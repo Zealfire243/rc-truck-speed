@@ -88,6 +88,38 @@ Know what you'll do before it happens:
 | Comes back smoking | Do not pick it up. Disconnect the pack if you can reach the connector safely, then leave it somewhere it can burn. |
 | Won't respond to the transmitter | Failsafe should already have handled it. If it hasn't, that's a Phase 4 gate that didn't hold — stop the session and fix it. |
 
+## Field weakening — the Phase 8 hazard
+
+Field weakening (negative `foc.id_ref`) lets the motor spin past the RPM that
+kV × pack voltage would normally allow, by using d-axis current to oppose the
+rotor's magnet flux. It trades torque you don't need at top speed for RPM you
+do, and it's a legitimate tool for the last few mph.
+
+**It is also the one thing in this firmware that can destroy the inverter and
+the pack in a single event.**
+
+While field weakening at high RPM, the motor's back-EMF is being actively
+suppressed by the current loop. If that suppression stops — inverter fault,
+gate driver dropout, break input firing, current loop losing the rotor angle,
+a crash disconnecting a phase — the back-EMF is suddenly unopposed, and at
+those speeds it exceeds pack voltage. The motor becomes an uncontrolled
+generator dumping current backwards through the FET body diodes into a pack
+that has nowhere to put it.
+
+Rules, if you use it at all:
+
+- **Not before Phase 8.** Everything else must be proven first.
+- Never field weaken beyond the point where back-EMF at that RPM exceeds the
+  pack's safe absorption. Compute that number before the first attempt.
+- Ramp `id_ref` in, don't step it.
+- The fault response for a field-weakening state cannot be "gates off" —
+  that is precisely the event described above. It has to be a controlled
+  unwind of `id_ref` first, and only then a cut.
+- Treat any `oc_trip` or `obs_lost` while field weakening as a hardware
+  inspection, not a reset-and-retry.
+
+If the gearing math closes without it, don't use it.
+
 ## Things this project deliberately does that look wrong
 
 **Coast on RC loss, don't brake.** A hobby ESC brakes on failsafe. This one coasts, because

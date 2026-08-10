@@ -132,7 +132,27 @@ typedef struct {
     pi_t  pi_id_q;      /**< named to avoid colliding with the `id` field   */
 
     float iq_ref;       /**< torque command, amps                          */
-    float id_ref;       /**< flux command, amps. Zero below base speed.    */
+
+    /** Flux command, amps. Zero below base speed.
+     *
+     *  Negative is FIELD WEAKENING: it opposes the rotor magnet flux, cutting
+     *  the effective back-EMF constant so the motor can spin past kV * vbus.
+     *  Trades torque (which you don't need at top speed) for RPM (which is
+     *  what binds you). Genuinely useful for the last few mph.
+     *
+     *  !! It is also the one thing here that can destroy the inverter and the
+     *  !! pack in a single event. While field weakening at high RPM, back-EMF
+     *  !! is being actively suppressed by this loop. Lose that suppression —
+     *  !! fault, gate dropout, break input, lost rotor angle — and the
+     *  !! unopposed back-EMF exceeds pack voltage and drives current backwards
+     *  !! through the body diodes into a pack with nowhere to put it.
+     *  !!
+     *  !! The fault response while field weakening CANNOT be "gates off";
+     *  !! that IS the failure. Unwind id_ref first, then cut.
+     *  !!
+     *  !! Phase 8 only, and only if the gearing doesn't close without it.
+     *  !! See docs/SAFETY.md#field-weakening--the-phase-8-hazard. */
+    float id_ref;
 
     /* Last measured values, for telemetry. */
     float id_meas;
