@@ -1,0 +1,39 @@
+# Defaults applied on a fresh `idf.py build`. The resulting sdkconfig is
+# gitignored on purpose so everyone starts from the same baseline.
+#
+# ESP-IDF v5.5, target esp32.
+
+CONFIG_IDF_TARGET="esp32"
+
+# --- Console --------------------------------------------------------------
+# The G4 link runs at 921600 on UART2; the console stays on UART0 so log
+# output never interleaves with relayed telemetry frames. This is the mistake
+# the crawler had to work around with the "skip any line not starting with {"
+# rule — worth avoiding outright here.
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+CONFIG_ESP_CONSOLE_UART_BAUDRATE=115200
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+
+# --- CPU ------------------------------------------------------------------
+# 240 MHz. This chip is relaying a 50 Hz telemetry stream, parsing NMEA at
+# 10 Hz, and writing an SD card. It is not busy, but SD writes block.
+CONFIG_ESP32_DEFAULT_CPU_FREQ_240=y
+CONFIG_FREERTOS_HZ=1000
+CONFIG_FREERTOS_UNICORE=n
+
+# --- Watchdog -------------------------------------------------------------
+# On, but note what it protects: nothing safety-critical runs here. A hung
+# supervisor loses telemetry, not control. That is the entire design.
+CONFIG_ESP_TASK_WDT_INIT=y
+CONFIG_ESP_TASK_WDT_TIMEOUT_S=10
+
+# --- Panic ----------------------------------------------------------------
+# Reboot rather than halt, so a crash mid-run self-recovers and resumes
+# logging instead of silently dropping the rest of the run.
+CONFIG_ESP_SYSTEM_PANIC_PRINT_REBOOT=y
+
+# --- Flash ----------------------------------------------------------------
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE=y
+
+CONFIG_COMPILER_OPTIMIZATION_PERF=y

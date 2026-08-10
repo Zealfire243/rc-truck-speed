@@ -1,0 +1,22 @@
+menu "Speed truck supervisor"
+
+config SPEED_GPS_ENABLED
+    bool "Enable GPS"
+    default y
+    help
+        10 Hz GPS module on UART1. A 1 Hz module is useless here — at target
+        speed it samples once every 31 meters.
+
+config SPEED_SD_LOGGING
+    bool "Enable SD card logging"
+    default y
+
+config SPEED_WIFI_STREAM
+    bool "Enable WiFi telemetry stream"
+    default n
+    help
+        TCP 3737 for commands and telemetry, UDP 3738 for lossy high-rate
+        plotting. Off by default: WiFi on a speed run is a distraction and the
+        SD log is the record that matters.
+
+endmenu

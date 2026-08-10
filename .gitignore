@@ -1,0 +1,29 @@
+# Python / uv
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.ruff_cache/
+.pytest_cache/
+
+# ESP-IDF
+supervisor/build/
+supervisor/sdkconfig
+supervisor/managed_components/
+supervisor/dependencies.lock
+
+# STM32 / CMake
+motor-ctrl/build/
+*.map
+*.elf
+*.bin
+*.hex
+
+# Run logs pulled off the SD card
+runs/
+*.jsonl
+
+# CAD scratch
+*.f3d.lck
+*~
+.DS_Store

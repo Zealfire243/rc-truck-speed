@@ -1,0 +1,18 @@
+[project]
+name = "speed-host-tools"
+version = "0.1.0"
+description = "Laptop-side tools for the speed truck: gearing solver, telemetry plotting, live tuning"
+requires-python = ">=3.11"
+dependencies = [
+    "pyserial>=3.5",
+    "matplotlib>=3.8",
+]
+
+[dependency-groups]
+dev = ["ruff>=0.6"]
+
+[tool.ruff]
+line-length = 100
+
+# gearing.py deliberately has no dependencies beyond the stdlib — it has to run
+# on whatever laptop is at the track, with no network and no venv.
