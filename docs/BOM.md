@@ -4,7 +4,23 @@
 you actually need things and let each phase's results inform the next purchase. Buying the Phase 8
 motor during Phase 0 is how projects end up geared for the wrong speed with no way back.
 
-Prices are rough, USD, for planning only.
+Prices are rough, USD, for planning only — **check the linked pages, they move.**
+
+### Verified product pages
+
+| Item | Link |
+|---|---|
+| NUCLEO-G474RE | [ST](https://www.st.com/en/evaluation-tools/nucleo-g474re.html) · [DigiKey](https://www.digikey.com/en/products/detail/stmicroelectronics/NUCLEO-G474RE/497-19491-ND/10231585) · [Mouser](https://www.mouser.com/en/new/stmicroelectronics/stm-nucleo-g474re-board) |
+| X-NUCLEO-IHM08M1 | [ST](https://www.st.com/en/evaluation-tools/x-nucleo-ihm08m1.html) · [UM1996 manual](https://www.st.com/resource/en/user_manual/um1996-getting-started-with-xnucleoihm08m1-lowvoltage-bldc-motor-driver-expansion-board-based-on-stl220n6f7-for-stm32-nucleo-stmicroelectronics.pdf) |
+| B28-47-16S motor, 2400 kV | [HobbyKing](https://hobbyking.com/en_us/b28-47-16s-brushless-inrunner-motor-2400kv.html) |
+| ELRS nano receiver | [RadioMaster RP1](https://radiomasterrc.com/products/rp1-expresslrs-2-4ghz-nano-receiver) · [BetaFPV](https://betafpv.com/products/elrs-nano-receiver) |
+| 10 Hz GPS | [Holybro M10](https://holybro.com/products/m10-gps) |
+| Pan-car foam tires | [rcMart](https://www.rcmart.com/Foam-Tires-RC-Pan-Car) — covers 1:12, 1:10 and 1:8 |
+| B-G431B-ESC1 (fallback) | [ST](https://www.st.com/en/evaluation-tools/b-g431b-esc1.html) — long lead times |
+
+Read the [UM1996 manual](https://www.st.com/resource/en/user_manual/um1996-getting-started-with-xnucleoihm08m1-lowvoltage-bldc-motor-driver-expansion-board-based-on-stl220n6f7-for-stm32-nucleo-stmicroelectronics.pdf)
+before Phase 1 — the three-shunt jumper settings (J5/J6) and the shunt values you
+need for `csense_init()`'s `amps_per_count` are both in it.
 
 ---
 
