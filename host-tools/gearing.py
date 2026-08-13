@@ -35,7 +35,7 @@ required kV comes out absurd (>3500), the fix is a bigger tire or a shorter
 final drive, not a hotter motor.
 
 Sanity check on the numbers this prints: the tire is usually the real limit.
-A 65 mm tire at 70 mph is turning ~9,200 rpm. Rubber balloons and lets go
+A 55 mm tire at 70 mph is turning ~10,900 rpm. Rubber balloons and lets go
 somewhere well below that. See docs/SAFETY.md.
 """
 
@@ -59,8 +59,8 @@ class Vehicle:
     target_mph: float = 70.0
 
     # --- Rolling ----------------------------------------------------------
-    tire_od_mm: float = 65.0
-    final_drive: float = 3.5  # motor turns per wheel turn
+    tire_od_mm: float = 55.0
+    final_drive: float = 2.75  # motor turns per wheel turn
 
     # --- Electrical -------------------------------------------------------
     cells: int = 4
@@ -235,12 +235,12 @@ def main() -> None:
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--mph", type=float, default=70.0)
-    p.add_argument("--tire", type=float, default=65.0, help="tire OD, mm")
-    p.add_argument("--fd", type=float, default=3.5, help="final drive ratio")
+    p.add_argument("--tire", type=float, default=55.0, help="tire OD, mm")
+    p.add_argument("--fd", type=float, default=2.75, help="final drive ratio")
     p.add_argument("--cells", type=int, default=4)
     p.add_argument("--mass", type=float, default=0.90, help="kg")
     p.add_argument("--solve", choices=["kv", "fd"], default="kv")
-    p.add_argument("--kv", type=float, default=2600.0,
+    p.add_argument("--kv", type=float, default=2441.0,
                    help="motor kV, for --solve fd")
     p.add_argument("--sweep", action="store_true")
     a = p.parse_args()

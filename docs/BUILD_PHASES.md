@@ -42,13 +42,19 @@ with arithmetic instead of with a shopping cart.
 
    | | |
    |---|---|
-   | Tire OD | 65 mm foam |
-   | Final drive | 3.5:1 |
+   | Tire OD | 55 mm foam — **measured off the donor body's wheel arches** |
+   | Final drive | 2.75:1 (16T/44T) |
    | Pack | 4S, 14.4 V under load |
-   | **Required motor kV** | **~2,630** |
-   | Motor RPM at target | 32,181 |
-   | Wheel RPM at target | 9,195 |
+   | **Required motor kV** | **~2,440** |
+   | Motor RPM at target | 29,882 |
+   | Wheel RPM at target | 10,866 |
    | Steady-state draw | 175 W, 6.1 A per motor |
+
+   2.75:1 rather than 3.0:1 keeps motor RPM under 30,000. At a 55 mm tire, two
+   of this build's three risk items are RPM-related, so spend the margin there.
+   6S at 3.0:1 (1,776 kV) is the upgrade path if Phase 6 shows heat as the
+   limiter — and the extra ~80 g costs almost nothing at top speed, which is
+   aero-limited, not mass-limited.
 
 3. **Size the inverters for peak, not steady state.** 6 A holds 70 mph; acceleration pulls several
    times that. Budget ~30 A continuous per channel with headroom above it.
@@ -59,8 +65,9 @@ with arithmetic instead of with a shopping cart.
 - [ ] Required kV lands in the 1200–3500 band, not at an edge.
 - [ ] Chosen motor's manufacturer max RPM exceeds your Phase 8 motor RPM **with margin**. This is
       the single most commonly ignored spec in speed builds.
-- [ ] Tires are **foam**, and their rated max RPM exceeds 9,200. If a vendor won't state an RPM
-      rating, treat that as a no.
+- [ ] Tires are **foam**, and their rated max RPM exceeds 10,900. 1/12 pan-car foams are the
+      right category at 55 mm, but they normally run 7,000–8,000 rpm — you are asking for 35–50%
+      above their usual duty. If a vendor won't state an RPM rating, treat that as a no.
 - [ ] Battery, motor, and inverter current ratings agree with each other at peak, not average.
 
 **Why this is a phase and not a footnote:** buying a motor before doing this arithmetic is how
@@ -272,7 +279,7 @@ Everything is proven. Now it's tires, aero, ballast, and a long enough piece of 
 
 **Requirements before the first attempt:**
 
-- Foam tires, balanced, RPM-rated above 9,200. Fresh — not the set you did Phase 6 on.
+- Foam tires, balanced, RPM-rated above 10,900. Fresh — not the set you did Phase 6 on.
 - **~200 m of smooth, closed pavement.** Accelerating to 31 m/s and stopping again needs it; the
   arithmetic is in [SAFETY.md](SAFETY.md#run-site).
 - A spotter. Two-person rule, no exceptions, at these speeds.

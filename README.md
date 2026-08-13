@@ -51,13 +51,14 @@ cd host-tools && uv run tune.py
 
 ## The numbers this is designed around
 
-Output of `gearing.py` at the current working target — 65 mm foam tires, 3.5:1 final drive, 4S:
+Output of `gearing.py` at the current working target — 55 mm foam tires (measured off the donor
+body's wheel arches), 2.75:1 final drive, 4S:
 
 ```
   SPEED  (the binding constraint)
-    wheel                    9,195 rpm
-    motor                   32,181 rpm
-    required motor kV        2,629 kV
+    wheel                   10,866 rpm
+    motor                   29,882 rpm
+    required motor kV        2,441 kV
 
   POWER  (confirm, don't design to)
     at the wheels              119 W
@@ -67,7 +68,10 @@ Output of `gearing.py` at the current working target — 65 mm foam tires, 3.5:1
 
 Read that twice, because it reframes the whole project: **power is not the constraint.** Holding
 70 mph against drag on a body this small takes about as much power as a bright desk lamp. What
-actually stops you is RPM (gearing), tires letting go, and yaw stability on a short wheelbase.
+actually stops you is RPM, tires letting go, and yaw stability on a short wheelbase.
+
+And note which number gearing can't touch: **10,866 wheel rpm** falls out of tire diameter and
+target speed alone. The 55 mm arches make the tires this project's binding constraint.
 Design accordingly — see [SAFETY.md](docs/SAFETY.md) and [MECHANICAL.md](docs/MECHANICAL.md).
 
 ## Body dimensions (measured, the donor)
@@ -76,6 +80,7 @@ Design accordingly — see [SAFETY.md](docs/SAFETY.md) and [MECHANICAL.md](docs/
 |---|---|
 | Bumper to bumper | 273 mm (10¾ in) |
 | Wheel well centers, front to back | 165 mm (6½ in) |
+| Wheel arch opening | **55 mm** — sets max tire OD |
 | Width | 105 mm |
 
 The chassis under it is deliberately **not** 165 mm. It stretches to ~190 mm wheelbase and ~125 mm

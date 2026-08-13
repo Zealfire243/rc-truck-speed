@@ -115,8 +115,8 @@ typedef enum {
  * whenever tire diameter, mass, or gearing changes.
  * ------------------------------------------------------------------------- */
 #define POLE_PAIRS           2       /* count magnets / 2. VERIFY.           */
-#define FINAL_DRIVE          3.5f    /* motor turns per wheel turn           */
-#define TIRE_OD_MM           65.0f
+#define FINAL_DRIVE          2.75f    /* motor turns per wheel turn           */
+#define TIRE_OD_MM           55.0f
 #define TIRE_CIRC_M          (3.14159265f * TIRE_OD_MM / 1000.0f)
 
 /* Wheel-derived speed:

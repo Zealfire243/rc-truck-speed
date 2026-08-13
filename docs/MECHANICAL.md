@@ -8,6 +8,7 @@ The donor body, measured:
 |---|---|
 | Bumper to bumper | 273 mm |
 | Wheel well centers, front to back | 165 mm |
+| Wheel arch opening | **55 mm** |
 | Width | 105 mm |
 
 The chassis under it is deliberately not those numbers:
@@ -42,43 +43,50 @@ new mass and watch how little changes.
 
 ### Tires
 
-The constraint nobody plans for. At the Phase 8 working point a 70 mm tire is turning **8,538 rpm**.
+**MEASURED: the donor body's wheel arches are exactly 55 mm.** That sets tire OD,
+and it makes the tire the binding constraint of the entire project.
 
-### Picking the diameter
+At 55 mm and 70 mph the wheel turns **10,866 rpm**, and *no choice of gearing
+changes that number* — it falls out of tire diameter and target speed alone.
+Gearing moves the load between motor kV and motor RPM; it cannot help the tire.
 
-`gearing.py` at 4S and 3.5:1, everything else held constant:
+#### What the arch measurement cost
 
-| Tire OD | Wheel RPM | Motor RPM | Required kV |
+`gearing.py` at 4S, everything else held constant:
+
+| Tire OD | Wheel RPM | Motor RPM @ 2.75:1 | Required kV |
 |---|---|---|---|
-| 50 mm | 11,953 | 41,835 | 3,418 |
-| 55 mm | 10,866 | 38,032 | 3,107 |
-| 60 mm | 9,961 | 34,863 | 2,848 |
-| 65 mm | 9,195 | 32,181 | 2,629 |
-| **70 mm** | **8,538** | **29,882** | **2,441** |
-| 75 mm | 7,969 | 27,890 | 2,279 |
-| 80 mm | 7,471 | 26,147 | 2,136 |
+| **55 mm (fits stock)** | **10,866** | **29,882** | **2,441** |
+| 65 mm (needs trimming) | 9,195 | 25,286 | 2,065 |
+| 70 mm (needs trimming) | 8,538 | 23,480 | 1,918 |
 
-Bigger tires win on every electrical axis at once — lower wheel RPM so the tire
-survives, lower motor RPM so the bearings survive, lower kV so the motor runs
-cooler and more efficiently. Going 50 → 70 mm cuts required kV by 29%.
+Bigger tires win on every axis at once — lower wheel RPM so the tire survives,
+lower motor RPM so the bearings survive, lower kV so the motor runs cooler. The
+only cost is 2.5 mm of axle rise per 5 mm of diameter, and CG height is the one
+thing this vehicle can least afford.
 
-The cost is mechanical and small: each 5 mm of diameter raises the axle 2.5 mm,
-and CG height is the thing this vehicle can least afford. Plus rotating inertia
-and a little frontal area.
+**The arch is a soft constraint.** Trimming wheel arches is routine on speed
+builds, and it is the correct fix if Phase 6 starts destroying tires — going to
+65 mm cuts wheel RPM 15%. Do not lower the speed target before spending this
+lever.
 
-**70 mm is the balance point**, and it lands in 1/10 pan-car / oval foam tire
-territory — a product category built for exactly this duty, glued to rims, with
-published specs. Shop there rather than for "1/18 tires."
+#### Sourcing at 55 mm
 
-**Before committing: measure the body's actual wheel arch opening.** The largest
-tire that clears without major trimming may decide this for you.
+55 mm is 1/12-scale pan-car foam territory: purpose-built for sustained high
+RPM, glued to rims, actually spec'd. Shop there rather than for "1/18 tires."
+
+But note the duty gap — 1/12 pan cars run 40–50 mph, so their tires normally see
+7,000–8,000 rpm. You would be running **35–50% above their usual duty.** Verify
+the manufacturer's RPM rating before buying and treat this as the live risk item
+straight through Phase 6.
+
+#### The rest of the tire rules
 
 - **Foam only above ~40 mph.** Rubber tires balloon under centrifugal load — the diameter grows,
   which changes your effective gearing mid-run, and then the tire delaminates. This is the single
-  most common catastrophic failure in RC speed runs.
-- **Check the vendor's RPM rating.** If they don't publish one, that's an answer.
-- **Balance the wheels.** At 9,000 rpm a small imbalance is a large force, and it goes into your
-  bearings and your chassis resonance.
+  most common catastrophic failure in RC speed runs, and at 10,866 rpm it is not a marginal call.
+- **Balance the wheels.** At nearly 11,000 rpm a small imbalance is a large force, and it goes
+  into your bearings and your chassis resonance.
 - Fresh tires for Phase 8. Not the set you did the Phase 6 ladder on.
 
 ---

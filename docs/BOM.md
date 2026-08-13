@@ -19,7 +19,7 @@ Run `gearing.py`. Decide the numbers. Spend zero dollars.
 | Item | Notes | ~$ |
 |---|---|---|
 | **STM32G4 dev board** | A **B-G431B-ESC1** discovery is the strong pick: it's a complete single-channel FOC test rig with gate driver, FETs, and current sensing already laid out and known-good. Being able to trust the hardware while you debug your own FOC is worth a great deal in Phase 1. A Nucleo-G474RE is the alternative if you'd rather build the power stage yourself. | 25–35 |
-| **One brushless motor** | ~2,600 kV, 4S-capable. **Check the manufacturer's max RPM against 32,000+ before ordering** — this is the spec most often omitted and most often exceeded. | 30–60 |
+| **One brushless motor** | ~2,440 kV, 4S-capable. **Check the manufacturer's max RPM against 30,000 with margin before ordering** — this is the spec most often omitted and most often exceeded. | 30–60 |
 | Bench supply, current-limited | Essential, not optional. You will be glad of the current limit. | 60–120 |
 | Oscilloscope access | For deadtime verification. Borrowed is fine; this is a handful of measurements. | — |
 | ST-Link / SWD debugger | On-board on both dev boards above. | — |
@@ -44,11 +44,11 @@ it for the price of one motor.
 
 | Item | Notes | ~$ |
 |---|---|---|
-| **Foam tires + wheels**, 65 mm OD | RPM-rated above 9,200. If the vendor won't state a rating, buy elsewhere. | 25–50 |
+| **Foam tires + wheels**, 55 mm OD | Set by the donor body's wheel arches. **RPM-rated above 10,900** — 1/12 pan-car foams are the right category, but they normally see 7,000–8,000 rpm, so check the rating hard. If the vendor won't state one, buy elsewhere. | 25–50 |
 | Steering servo | Fast, metal-gear, decent torque. Not a cheap nylon-gear servo. | 20–40 |
 | **CRSF / ELRS receiver + transmitter** | CRSF gets you a 2–4 ms link versus SBUS's 7–14 ms. On this vehicle the RC link is the slowest thing that isn't you, so it's worth the money. | 80–200 |
-| Bearings | Wheel and driveline. Buy quality — 9,200 rpm finds cheap bearings. | 20–40 |
-| Drive belts or gears, 3.5:1 | Per the Phase 0 math. | 20–50 |
+| Bearings | Wheel and driveline. Buy quality — 10,900 rpm finds cheap bearings. | 20–40 |
+| Drive gears, 2.75:1 (16T/44T) | Per the Phase 0 math. | 20–50 |
 | ABS or ASA filament | **Not PLA.** See [MECHANICAL.md](MECHANICAL.md#material). | 25–35 |
 | Fasteners, thread-lock, nutserts | Buy more than you think. | 30 |
 
@@ -92,7 +92,7 @@ Mostly consumables, because this phase is where things break. That's its job.
 | Item | Notes | ~$ |
 |---|---|---|
 | **Fresh foam tires** | Not the set you ran the Phase 6 ladder on. | 25–50 |
-| Wheel balancer | At 9,200 rpm imbalance is a real force. | 20 |
+| Wheel balancer | At 10,900 rpm imbalance is a real force. | 20 |
 | Radar gun | Only if you want the number to be official. GPS is enough to know. | 100+ |
 
 ---
