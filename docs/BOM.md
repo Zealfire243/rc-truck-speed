@@ -47,6 +47,8 @@ it for the price of one motor.
 | **Cheap foam tires**, 55 mm (`street`) + 70 mm (`test`) | Consumables for Phases 4–6. Ordinary ~8,600 rpm pan-car foams are fine *because the firmware caps them to ~50 and ~63 mph accordingly*. Buy spares; the ladder destroys tires and that is its job. | 50–90 |
 | Steering servo | Fast, metal-gear, decent torque. Not a cheap nylon-gear servo. | 20–40 |
 | **CRSF / ELRS receiver + transmitter** | CRSF gets you a 2–4 ms link versus SBUS's 7–14 ms. On this vehicle the RC link is the slowest thing that isn't you, so it's worth the money. | 80–200 |
+| **2 × gear differential** + silicone diff oil, assorted weights | One per drive unit, both identical. Tunable oil gives limited-slip behaviour — a Phase 6 tuning knob rather than a fixed choice. Buy a range of weights. | 40–70 |
+| Half-shafts / CVDs, 1/16–1/18 class | One per corner, independent suspension. A known weak point at speed. | 25–45 |
 | Bearings | Wheel and driveline. Buy quality — 10,900 rpm finds cheap bearings. | 20–40 |
 | Drive gears, 2.5:1 (single spur pair, no bevel) | Per the Phase 0 math. Same ratio for both tire profiles — the gearing never changes. | 20–50 |
 | ABS or ASA filament | **Not PLA.** See [MECHANICAL.md](MECHANICAL.md#material). | 25–35 |

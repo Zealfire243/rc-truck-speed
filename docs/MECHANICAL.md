@@ -60,46 +60,51 @@ Two things fall out of it that are worth designing around:
 > that — see [ride height and the tire swap](#ride-height-and-the-tire-swap).
 > Measure the vibration before trusting a large range.
 
-### Spool vs differential — front decided
+### Spool vs differential — decided: differentials both ends
 
-| Axle | Choice | Status |
+| Axle | Choice | Why |
 |---|---|---|
-| **Front** | **Differential** | **Decided.** A spooled front fights the steering directly, and on a 190 mm wheelbase that push is not a small effect. |
-| **Rear** | — | Open. Spool is the lean — straight-line duty, simplest, strongest — but it is not settled, and it must be before the rear drive unit is drawn. |
+| **Front** | Differential | A spooled front fights the steering directly, and on a 190 mm wheelbase that push is not small. |
+| **Rear** | Differential | The truck is meant to corner, not only run in a straight line. A spooled rear scrubs and pushes in every turn and chews the tires this project is trying to preserve. |
 
-Independent uprights do not settle this: a spool simply means both output
-shafts are locked together.
+Straight-line speed was never the only goal, so both ends get diffs. Both drive
+units are now identical, which also means one housing design instead of two.
 
-**The front diff has a firmware consequence, and it is the one that argued
-against diffs in the first place.** A differential lets a single wheel spin up
-freely, so a front wheel lifting over a pavement seam spikes front motor RPM
-with nothing actually wrong. Because speed is derived from motor RPM and the
+**Use gear diffs with tunable oil, not pure open diffs.** A gear diff filled
+with heavy silicone oil behaves as a limited-slip: it resists rapid speed
+differences (a spinning wheel) while still permitting the slow ones (cornering).
+That recovers most of what a spool would have given you without any of the
+steering penalty, and it turns a fixed mechanical choice into a tuning knob.
+
+Starting point, to be tuned in Phase 6:
+
+- **Front lighter** — preserves steering, which is why it got a diff.
+- **Rear heavier** — resists one-wheel spin on launch, where thrust matters.
+
+**Diffs have a firmware consequence, and it is the one that argued against them
+in the first place — now on both axles.** A differential lets a single wheel
+spin up freely, so a wheel lifting over a pavement seam spikes that axle's motor
+RPM with nothing actually wrong. Because speed is derived from motor RPM and the
 desync interlock compares the two axles, a naive detector would read that as an
 axle failure and cut both channels — **total loss of drive at 60 mph, over a
 bump.**
 
-That is handled rather than accepted. The detector now scales its threshold with
+That is handled rather than accepted. The detector scales its threshold with
 speed and requires the divergence to persist for 50 ms before latching, which
 rejects a wheel lift (tens of milliseconds) while still catching a stripped gear
 or a dead inverter (which do not heal). The trade is explicit: up to 50 ms of
 genuine desync is tolerated so that a bump cannot cut drive. See `pin_map.h`.
 
-> **Open item — left/right within each drive unit.** Spool or differential has
-> not been decided, and it is a housing-geometry input, so it must be settled
-> before the drive unit is drawn.
->
-> The lean is **spool the rear** (straight-line duty, simplest, strongest) and
-> decide the front on how much cornering you actually want: spooled fronts
-> fight the steering badly on a 190 mm wheelbase.
->
-> The argument specific to this truck: speed is derived from motor RPM and the
-> desync interlock compares the two axles, so an open diff lets a single
-> slipping wheel spike one axle's motor RPM and **false-trip the interlock,
-> cutting both channels at speed.** Spools keep that signal unambiguous.
->
-> Full decision table in
-> [BUILD_PHASES.md § 4a](BUILD_PHASES.md#decision-1--spool-or-differential-in-each-drive-unit).
-> **Record the decision and its reasoning here once made.**
+**And a second consequence, for reading telemetry.** With a differential, motor
+RPM tracks the **fastest wheel on that axle**, not the average. So wheel-derived
+speed *overstates* ground speed whenever any wheel is slipping. Two things
+follow:
+
+- The speed cap engages early during wheelspin. That is fail-safe, and it is
+  also a free diagnostic: **the `cap` flag appearing well below the cap speed
+  means a wheel is spinning**, not that you are near the limit.
+- GPS is the only honest ground speed. This is what the Phase 5 correlation is
+  for, and with diffs both ends it matters more, not less.
 
 ## What size is this thing?
 

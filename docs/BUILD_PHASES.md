@@ -333,10 +333,11 @@ wheelbase?* Find that out in 2D in an hour, not in 3D after a week.
 Three decisions come out of it, and all three are inputs to housing geometry — which is a
 cut-and-bend part you want to design once.
 
-#### Decision 1 — spool or differential in each drive unit
+#### Decision 1 — spool or differential in each drive unit — **DECIDED: diffs both ends**
 
-Each axle can lock its two wheels together (spool) or let them turn independently (diff). This is
-a **housing-geometry input**, so it has to be settled before the drive unit is drawn, not after.
+Each axle can lock its two wheels together (spool) or let them turn independently (diff). It is a
+**housing-geometry input**, so it had to be settled before the drive units were drawn. The
+comparison is kept below as the record of why.
 
 | | Spool | Differential |
 |---|---|---|
@@ -352,33 +353,34 @@ single slipping or lifted wheel spikes that axle's motor RPM — which inflates 
 can **false-trip the desync interlock, cutting both channels at speed.** A nuisance trip at 60 mph
 is not a nuisance. Spools keep that signal clean.
 
-Front and rear do not have to match:
+Front and rear did not have to match, but both landed the same way:
 
-- **Rear: spool.** Straight-line duty, simplest, strongest. This is what drag and oval cars do.
-- **Front: the actual decision.** A spooled front axle fights the steering directly — it is the
-  classic cause of understeer — and on a 190 mm wheelbase that is not a small effect.
+- **Front: diff.** A spooled front axle fights the steering directly — the classic cause of
+  understeer — and on a 190 mm wheelbase that is not a small effect.
+- **Rear: diff.** A spool would have been simplest and strongest for straight-line duty, but the
+  truck is meant to corner, and a spooled rear scrubs and pushes in every turn while chewing the
+  tires this project is trying to preserve.
 
-So the choice really turns on **how much non-straight-line driving you want**:
+**The deciding question was how much non-straight-line driving the truck is for.** A pure speed
+machine only has to hold a line and turn around at walking pace, and spools would have given the
+control code a cleaner wheel-speed signal for free. This truck also has to be a 55 mph
+`street`-tire toy, so cornering won.
 
-- *Purely a speed machine* → spool both. It only has to hold a line and turn around at walking
-  pace, and the cleaner wheel-speed signal is worth real money to the control code.
-- *Also a 55 mph `street`-tire toy* → spool rear, diff front. You will be cornering it, and a
-  spooled front on this wheelbase will push badly and scrub the tires you are trying to preserve.
+The cost is paid in firmware and in diff oil, both covered above.
 
-There is a software mitigation worth knowing about if you spool the front: bias `split.bias`
-rearward at low speed, which de-torques the front axle where the scrub actually hurts. Clever, and
-not a substitute for getting the mechanical choice right.
+**Status: DECIDED — differentials both ends.** The truck is meant to corner, not
+only run in a straight line, and a spool at either end scrubs and pushes in
+every turn. Both drive units are now identical, so there is one housing design
+instead of two.
 
-**Status:** **front is a differential — decided.** The rear is still open; spool
-remains the lean, and it must be settled before the rear drive unit is drawn.
+Use **gear diffs with tunable oil** rather than pure open diffs — heavy silicone
+oil gives limited-slip behaviour, resisting the fast speed differences of a
+spinning wheel while still allowing the slow ones of cornering. Fixed mechanical
+choice becomes a Phase 6 tuning knob.
 
-The front diff was chosen knowing it reintroduces the wheel-slip signal problem,
-and the firmware absorbs that rather than ignoring it: the desync detector now
-scales with speed and requires 50 ms of persistence before latching, so a front
-wheel lifting over a seam cannot cut drive at speed. See `pin_map.h`.
-
-- [ ] **Rear decision recorded** in [MECHANICAL.md](MECHANICAL.md#spool-vs-differential--front-decided)
-      with the reasoning, before the rear drive-unit housing is drawn.
+Both consequences are already absorbed: the desync detector tolerates a wheel
+lift (see `pin_map.h`), and telemetry readers know motor RPM tracks the fastest
+wheel on its axle (see [MECHANICAL.md](MECHANICAL.md#spool-vs-differential--decided-differentials-both-ends)).
 
 #### Decision 2 — wheel offset for the `wide` tires
 
@@ -453,6 +455,10 @@ out is survivable.
 
 1. Raise the cap one step. Run it. Read the logs before raising it again.
 2. Tune launch and traction control against the GPS-vs-wheel-RPM slip signal from Phase 5.
+3. **Tune diff oil**, front and rear. Heavier resists one-wheel spin; lighter preserves steering.
+   Start front-light / rear-heavy and adjust against launch traces. This is a mechanical tuning
+   knob that does the job electronic traction control cannot — the firmware can shift torque
+   *between* axles but has no authority *within* one.
 3. After every run: check wheel retention, tire condition, motor and inverter temps, and every
    printed part for cracks, creep, or elongated holes.
 

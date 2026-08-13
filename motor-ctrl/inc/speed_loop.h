@@ -59,6 +59,30 @@
  * A single-motor truck cannot do this at all.
  *
  * ============================================================================
+ * WHAT THE DIFFERENTIALS DO TO THAT SIGNAL
+ * ============================================================================
+ *
+ * Both axles run gear differentials, so **motor RPM tracks the FASTEST wheel
+ * on its axle, not the average.** Design around that, because it cuts both
+ * ways:
+ *
+ *   GOOD   The signal is very sensitive. One wheel breaking loose shows up
+ *          immediately in that axle's motor RPM.
+ *   BAD    It tells you "a wheel on this axle is slipping", never which wheel,
+ *          and never how much the VEHICLE is actually slipping. Wheel-derived
+ *          speed therefore always reads high during wheelspin.
+ *
+ * The consequence for control: an open diff sends torque to the wheel with
+ * LESS grip, so one spinning wheel means that axle contributes almost no
+ * thrust. Cutting torque to a slipping axle is therefore cheap — you are not
+ * giving up much — and shifting it to the other axle via `split.bias` is the
+ * right response. That is a real advantage of the dual-motor layout: it can
+ * act as a cross-axle limited-slip that no single-motor truck has.
+ *
+ * Within an axle, the firmware can do nothing; that is what diff oil is for.
+ * See docs/MECHANICAL.md.
+ *
+ * ============================================================================
  * LAUNCH CONTROL
  * ============================================================================
  *
