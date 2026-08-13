@@ -1,8 +1,8 @@
 # Bill of Materials
 
 **Phase-gated on purpose.** You own a body and nothing else, which means you can buy in the order
-you actually need things and let each phase's results inform the next purchase. Buying the Phase 8
-motor during Phase 0 is how projects end up geared for the wrong speed with no way back.
+you actually need things and let each phase's results inform the next purchase. Committing to gears before μ
+is measured is how projects end up geared for grip they do not have, or grip they cannot use.
 
 Prices are rough, USD, for planning only — **check the linked pages, they move.**
 
@@ -24,7 +24,7 @@ need for `csense_init()`'s `amps_per_count` are both in it.
 
 ---
 
-## Phase 0 — the μ rig, ~$40
+## Phase 0 — the μ rig, ~$40–100
 
 Run `gearing.py` and `accel.py`. Then buy the one thing that unblocks everything
 downstream, because **μ can be measured without a chassis.**
@@ -89,8 +89,8 @@ rig.
 > through Phases 1–6 and the boards stay inside their rating; the only cost is a 4.0 s 0-50 instead
 > of 2.4 s, which is irrelevant while tuning traction control and chasing geometry. Cruise draw is
 > 5.5 A per motor regardless, so only launches challenge the rating and only for seconds at a time.
-> The limit is phase-gated in `pin_map.h` exactly like the speed cap, and rises to 25 A when final
-> stages go in.
+> The limit is phase-gated in `pin_map.h` exactly like the speed cap, and rises to whatever the
+> motor and final stages allow — 20 A with the XK2845, more with a bigger motor.
 >
 > **So the custom power-stage design is deferred, not cancelled.** You reach it at Phase 7 with the
 > motor characterised, μ measured, and real current data from six phases of running — which is a far
@@ -121,6 +121,45 @@ bearing zone.
 > no room to raise `IQ_LIMIT_A` later. If you find a 28–35 mm inrunner with a higher power rating
 > for similar money, take it instead.
 
+#### If you want better than 2.39 s to 50 mph
+
+**The motor is not what is holding that number — grip is.** The launch is
+traction-limited end to end, so a bigger motor changes nothing today. The floor
+is `a = μg`:
+
+| μ | 0-50 mph |
+|---|---|
+| 1.1 | 2.39 s |
+| 1.3 | 1.99 s |
+| 1.5 | 1.71 s |
+| 1.8 | 1.41 s |
+
+So sub-2 s means μ ≥ 1.3, and ~1.5 s means μ ≈ 1.7. That is compound and width,
+not hardware — see [MECHANICAL.md](MECHANICAL.md#width-and-compound-are-the-grip-levers--diameter-is-not).
+
+**But the motor becomes the limit the moment you succeed at that**, and the
+XK2845 runs out early. Holding the wear-friendly ratio, the current each grip
+level demands:
+
+| μ | Matched FD | Motor rpm at cap | Current needed | XK2845 (24 A)? |
+|---|---|---|---|---|
+| 1.1 | 2.34:1 | 19,971 (70% no-load) | 20.0 A | yes |
+| 1.3 | 2.76:1 | 23,603 (83%) | 23.4 A | barely |
+| **1.4** | 2.98:1 | 25,418 (89%) | 25.0 A | **no** |
+| 1.5 | 3.19:1 | 27,234 (96%) | 26.7 A | **no** |
+
+**The XK2845 caps you at roughly μ 1.35, which is about 1.95 s.** Note the
+second squeeze too: chasing grip forces a shorter ratio, which pushes motor RPM
+from 70% of no-load to 96% — straight back into the bearing-marginal zone that
+2.5:1 was chosen to avoid.
+
+So if sub-2 s is a real goal rather than a nice-to-have, **spec ≥ 30 A and
+≥ 350 W**, which is roughly what the discontinued B28-47-16S offered
+(28 A / 470 W). That buys the current to use μ 1.5 *and* the freedom to keep the
+ratio tall enough to protect the motor. A 30–35 mm can rather than a 28 will
+usually get you there, and the extra ~100 g is irrelevant — mass cancels in
+traction-limited acceleration.
+
 **Strongly consider a sensored motor.** Hall sensors cost nothing to ignore if sensorless works,
 and the single biggest risk in Phase 2 is the observer failing to track *this particular motor* —
 low saliency or high inductance make the startup handover nasty. A sensored motor turns that from
@@ -131,9 +170,6 @@ pole.
 chassis redesign), and the low-kV 1/10 car motors, most of which are rated 2–3S only.
 
 ### Buy two, from the same batch — but only open one
-
-An earlier version of this file said buy one, to limit the loss if Phase 2 revealed the kV or RPM
-ceiling was wrong. That under-weighted the other side:
 
 An earlier version of this file said buy one, to limit the loss if Phase 2 revealed the kV or RPM
 ceiling was wrong. That under-weighted the other side:
@@ -152,10 +188,12 @@ it can still go back if Phase 2 changes the spec.
 
 ## Phase 3 — second channel
 
+The second motor and second IHM08M1 were bought in Phase 1–2 — this is where the sealed ones get
+opened.
+
 | Item | Notes | ~$ |
 |---|---|---|
-| Second motor | Identical to the first. Order the *same* part, same batch if possible. | 30–60 |
-| **2nd X-NUCLEO-IHM08M1** | The Nucleo already has TIM8 free, so Phase 3 is one more power stage, not a new controller. Buy the *same board again* — identical channels matter where both share gains and the interlock watches the difference between them. Only one can plug onto the shield headers; the second wires to the morpho pins. | 30–40 |
+| **2nd X-NUCLEO-IHM08M1** *(bought in Phase 1–2)* | The Nucleo already has TIM8 free, so Phase 3 is one more power stage, not a new controller. Buy the *same board again* — identical channels matter where both share gains and the interlock watches the difference between them. Only one can plug onto the shield headers; the second wires to the morpho pins. | 30–40 |
 | **Harness materials** | For wiring stage 2 to the morpho headers. Silicone-insulated stranded wire (flexes without fatiguing), **adhesive-lined heatshrink**, a shielded or twisted pair run for the three analog current-sense lines, zip ties and adhesive anchor pads. See [WIRING.md](WIRING.md#strain-relief-and-harness-routing) — the analog lines must not share a bundle with gate drive. | 20–30 |
 | Header connectors | Latching or friction-lock, not bare Dupont. Dupont crimps walk off 0.1 in pins under vibration. | 10 |
 | Gate drivers, FETs, shunts, bulk caps | If rolling your own power stage. | — |
@@ -167,12 +205,14 @@ it can still go back if Phase 2 changes the spec.
 | Item | Notes | ~$ |
 |---|---|---|
 | **Cheap foam tires**, 55 mm (`street`) + 70 mm (`test`) | Consumables for Phases 4–6. Ordinary ~8,600 rpm pan-car foams are fine *because the firmware caps them to ~50 and ~63 mph accordingly*. Buy spares; the ladder destroys tires and that is its job. | 50–90 |
+| **Cheap wide foams**, 70 × ~35 (`wide`) | The grip configuration, and where the Phase 4–6 μ work pays off. Same OD and rating as `test`, so same ceiling. **Verify its rating separately — same OD does not mean same rating**, since a wider carcass carries more mass at radius. | 30–55 |
 | Steering servo | Fast, metal-gear, decent torque. Not a cheap nylon-gear servo. | 20–40 |
 | **CRSF / ELRS receiver + transmitter** | CRSF gets you a 2–4 ms link versus SBUS's 7–14 ms. On this vehicle the RC link is the slowest thing that isn't you, so it's worth the money. | 80–200 |
 | **2 × gear differential** + silicone diff oil, assorted weights | One per drive unit, both identical. Tunable oil gives limited-slip behaviour — a Phase 6 tuning knob rather than a fixed choice. Buy a range of weights. | 40–70 |
 | Half-shafts / CVDs, 1/16–1/18 class | One per corner, independent suspension. A known weak point at speed. | 25–45 |
-| Bearings | Wheel and driveline. Buy quality — 10,900 rpm finds cheap bearings. | 20–40 |
-| Drive gears, 2.5:1 (single spur pair, no bevel) | Per the Phase 0 math. Same ratio for both tire profiles — the gearing never changes. | 20–50 |
+| Bearings | Wheel bearings see 8,537 rpm at the cap; driveline and motor bearings see up to ~20,000. Buy quality — those speeds find cheap bearings. | 20–40 |
+| Drive gears, single spur pair, no bevel | **Do not cut these until μ is measured.** Ratio depends on measured grip and the motor's current rating — 2.34:1 with the XK2845 at μ 1.1. Same ratio for every tire profile; the gearing never changes with tires. See `accel.py --match`. | 20–50 |
+| **Static ride-height adjusters** | Shock collars or adjustable links — sets ride height through Phases 4–7 and absorbs the 7.5 mm of axle rise on a tire swap. A few grams, no failure modes. Powered actuators are Phase 8. | 15 |
 | ABS or ASA filament | **Not PLA.** See [MECHANICAL.md](MECHANICAL.md#material). | 25–35 |
 | Fasteners, thread-lock, nutserts | Buy more than you think. | 30 |
 
@@ -215,10 +255,9 @@ Mostly consumables, because this phase is where things break. That's its job.
 
 | Item | Notes | ~$ |
 |---|---|---|
-| **Foam tires + wheels**, 70 mm OD (`speed`) | The second configuration — same chassis, same gearing, 70 mph. Wheels sit proud of the arches. Also rated above 8,600 rpm; wheel RPM is identical to the street set. | 25–50 |
-| **Cheap wide foams**, 70 × ~35 (`wide`) | Grip configuration for the Phase 4–6 μ work. Same OD and rating as `test`, so same ceiling. **Verify its rating separately: same OD does not mean same rating**, since a wider carcass carries more mass at radius. Enter whatever it actually is into `TIRE_PROFILES`. | 30–55 |
-| Ride-height adjusters | Shock collars or adjustable links, to give back the 7.5 mm of CG the bigger tire adds. A few grams. Powered actuators are a separate, later decision — see [MECHANICAL.md](MECHANICAL.md#ride-height-and-the-tire-swap). | 15 |
-| Wheel balancer | At 10,900 rpm imbalance is a real force. | 20 |
+| **`record` foam tires**, 70 × 25 | **Good for ≥ 9,500 rpm — this is the spec, not a preference.** A derated 8,600 rpm tire only licenses ~63 mph, so cheap tires physically cannot pass the Phase 8 gate. Vendors rarely publish RPM; derive it from the speed the tire is sold for. Fresh, not the Phase 6 set. | 60–120 |
+| **4 × linear actuator**, lead-screw class | Per-corner ride height. Self-locking so they hold position with no power and fail in place. **Usable travel is bounded by half-shaft angle, not actuator stroke** — see [MECHANICAL.md](MECHANICAL.md#independent-uprights--settled-not-open). | 80–200 |
+| Wheel balancer | At 8,537 rpm and ~2,850 g of centrifugal load at the tread, imbalance is a real force. | 20 |
 | Radar gun | Only if you want the number to be official. GPS is enough to know. | 100+ |
 
 ---
@@ -255,17 +294,17 @@ not a failure to shop properly.
 
 | Option | Notes |
 |---|---|
-| **X-NUCLEO-IHM08M1** *(chosen)* | ~15 A RMS / 30 A peak, 8–48 V, three-shunt. Plugs onto the Nucleo. Arduino-shield footprint, so useless in the truck. |
+| **X-NUCLEO-IHM08M1** *(chosen)* | ~15 A RMS / 30 A peak, 8–48 V, three-shunt. Plugs onto the Nucleo. The shield footprint is awkward to mount and fragile in a crash, but it fits and its mass is irrelevant — see the [CG budget](BUILD_PHASES.md#check-4--cg-height-budget). |
 | B-G431B-ESC1 | Integrated MCU + stage, compact. Dead-ends at Phase 3 (gate drivers hard-wired to its own MCU) and supply-constrained. |
 | TI BOOSTXL-DRV8305 | ~45 V, ~15 A, integrated current-sense amps. Pairs naturally with a C2000 LaunchPad. |
 
-**Flight hardware (~25 A, 4S, small and light):**
+**Flight hardware (~25 A+, 4S):**
 
 | Option | Notes |
 |---|---|
-| **Custom DRV8353 / DRV8323 board** | Gate driver with integrated current-sense amplifiers, your FETs, your shunts, your layout. Smallest and lightest, and the only route that fits two stages in this truck properly. The risk is layout — shunt placement, Kelvin connections, and keeping analog away from switching nodes are what decide whether Phase 1's current readings are honest. |
+| **Custom DRV8353 / DRV8323 board** | Gate driver with integrated current-sense amplifiers, your FETs, your shunts, your layout. The route that gives real current headroom in a package that mounts cleanly. The risk is layout — shunt placement, Kelvin connections, and keeping analog away from switching nodes are what decide whether Phase 1's current readings are honest. |
 | Drone ESC hardware | Right size, right weight, right current, cheap. Either repurpose the power stage with your own gate drive, or take the documented off-ramp: flash **AM32** and command it over bidirectional DShot behind `inverter.h`. |
-| VESC / Flipsky (incl. dual-channel) | Open-source FOC, excellent firmware, and dual-channel boards exist. But they are built for e-skateboards — 200–300 g and rated for several times the current needed. Too big and heavy for a 1/16-class truck. |
+| VESC / Flipsky (incl. dual-channel) | Open-source FOC, excellent firmware, and dual-channel boards exist. But they are built for e-skateboards — 200–300 g and rated for several times the current needed. Mass is not the objection (it cancels in traction-limited acceleration); bulk and cost are. |
 | ODrive S1 / Pro | Excellent hardware, open source, high current. Same problem: sized and priced for robotics, not for a 900 g truck. |
 
 ## Deliberately not on this list
@@ -275,7 +314,7 @@ not a failure to shop properly.
   turns into a swamp, a pair of ESCs running AM32 with bidirectional DShot would get the truck
   running while you keep working on your own FOC behind the `inverter.h` interface. That's a
   legitimate off-ramp, not a failure.
-- **A Raspberry Pi.** The crawler has one for the camera. This truck needs to be light, and there's
-  nothing here a Pi does that the ESP32 doesn't.
+- **A Raspberry Pi.** The crawler has one for the camera. There is nothing here a Pi does that the
+  ESP32 doesn't, and it would want more power and more space for no return.
 - **A center diff.** Two motors on two axles means the electronic torque split *is* the
   differential. Whether that needs mechanical backup is a Phase 6 question, not a Phase 0 purchase.
