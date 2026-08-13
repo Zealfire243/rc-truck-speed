@@ -26,14 +26,43 @@ only through the ground and through `split.bias`, which means **the electronic
 torque split IS the centre diff** — with no mechanical fallback if that code is
 wrong.
 
-> **Open item — live axle or independent.** Undecided, and separate from the
-> spool/diff question. A live axle (one shaft, wheels rigidly attached) is the
-> simplest thing the parallel-motor layout allows and puts the least between
-> the spur gear and the ground. It also puts the axle and part of the drive unit
-> into unsprung mass, which on a light truck crossing pavement seams at 70 mph
-> is the worst place for it. Independent uprights with CVDs cost parts and
-> complexity and keep unsprung mass low. Decide alongside the spool/diff call in
-> [Phase 4a](BUILD_PHASES.md#4a--the-packaging-study).
+### Independent uprights — settled, not open
+
+**Every corner is independently sprung, with a half-shaft from the drive unit
+to its own upright.** This is decided and it is not a Phase 4 question.
+
+The Phase 8 goal of **per-corner ride-height control** requires it. A live axle
+puts both wheels on one rigid shaft, so their heights are kinematically
+coupled — you get heave and roll per axle, and camber that tilts with the axle,
+never four corners you can address one at a time. Independent suspension is the
+only architecture that makes the actuators mean anything.
+
+Two things fall out of it that are worth designing around:
+
+- **Unsprung mass stays low**, which is the right answer anyway. A live axle
+  would put the shaft and part of the drive unit into unsprung mass, and on a
+  light truck crossing pavement seams at 70 mph that is the worst place for it.
+- **Half-shafts are now a load path**, with plunge and angle at each wheel.
+  They are a known weak point at speed and want sourcing from the 1/16–1/18
+  class along with the hubs.
+
+> **⚠ Half-shaft angle bounds the usable actuator range, and at this scale it
+> bounds it tightly.** Half-shafts on a 1/16-class car are short — call it
+> 45 mm — so ride-height change turns into driveshaft angle fast: ±10 mm is
+> already ±13°. Cheap dogbone "CVDs" are not truly constant-velocity, so at
+> angle they produce a second-order velocity fluctuation, and at 8,537 wheel
+> rpm that is a vibration source feeding straight into bearings and chassis
+> resonance.
+>
+> So the Phase 8 actuator travel is limited by what the half-shafts tolerate at
+> speed, not by what the actuators can physically do. Set static ride height
+> with the links in Phases 4–7 and keep the actuators for modest changes around
+> that — see [ride height and the tire swap](#ride-height-and-the-tire-swap).
+> Measure the vibration before trusting a large range.
+
+The remaining drive-unit question is spool vs differential — see
+[Phase 4a](BUILD_PHASES.md#4a--the-packaging-study). Independent uprights do not
+settle it: a spool simply means both output shafts are locked together.
 
 > **Open item — left/right within each drive unit.** Spool or differential has
 > not been decided, and it is a housing-geometry input, so it must be settled

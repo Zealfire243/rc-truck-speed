@@ -318,8 +318,10 @@ Print every structural part as the **flat-pattern-folded** geometry it will even
 aluminum. That constraint costs you almost nothing now and means Phase 7 is a material change
 rather than a redesign.
 
-**Mechanical:** ~190 mm wheelbase, ~125 mm track, body sitting over it. Steering servo with real
-Ackermann. Battery as low and as far forward as it will go.
+**Mechanical:** ~190 mm wheelbase, ~125 mm track, body sitting over it. **Independent uprights at
+all four corners**, half-shaft from each drive unit to its upright — settled, because Phase 8's
+per-corner ride-height control requires it. Steering servo with real Ackermann. Battery as low and
+as far forward as it will go. See [MECHANICAL.md](MECHANICAL.md#independent-uprights--settled-not-open).
 
 ### 4a — The packaging study
 
@@ -500,13 +502,19 @@ Everything is proven. Now it's tires, aero, ballast, and a long enough piece of 
 **Steps:**
 
 1. Raise the cap 55 → 60 → 65 → 70, one run each, logs read between every step.
-2. Fit the ride-height actuators if you're building them. **Phase 8 is where
+2. Fit the per-corner ride-height actuators. The independent suspension has been
+   waiting for these since Phase 4 — this is what it was for. **Phase 8 is where
    they belong** — they buy in-motion CG control (drop as speed builds, raise
    for launch), which is a refinement on a truck that already works, not a
    prerequisite for one. Phases 4–7 run static adjusters: shock collars or
    adjustable links, a few grams, no failure modes. Re-run the Phase 4 and
    Phase 6 gates after fitting them; four lead screws is four new failure
    modes in the suspension.
+
+   **Check half-shaft angle across the full actuator range before using it.**
+   Short 1/16-class shafts turn ±10 mm of ride height into ±13°, and dogbone
+   joints at angle produce velocity fluctuation at 8,537 wheel rpm. The usable
+   range is set by measured vibration, not by actuator stroke.
 3. Tune ballast and CG height for straight-line stability. The spoiler is doing real work here —
    it moves the aerodynamic center of pressure rearward, which is stabilizing in yaw for the same
    reason fletching stabilizes an arrow. Keep the CG forward of it.
