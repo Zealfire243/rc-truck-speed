@@ -101,6 +101,43 @@ with arithmetic instead of with a shopping cart.
    If you want a quicker launch, the lever is grip (μ 0.7 → 1.3 moves 0-50 from
    4.0 s to 2.0 s) — not the ratio, not more inverter, and not less mass.
 
+   **Grip is bought with tire WIDTH and COMPOUND, not diameter.** Rubber and
+   foam do not obey `F = μN`; their friction has adhesion and hysteresis terms
+   that make μ *load-sensitive*, falling as contact pressure rises (roughly
+   μ ∝ N^−0.1…−0.2). A wider tire spreads the same load over more area, runs
+   lower pressure, and genuinely grips harder. Diameter is a different lever
+   entirely — it sets gearing, wheel rpm, rotational inertia, and CG height,
+   but not μ. `accel.py --tire` only sweeps diameter, which is why acceleration
+   looks flat there; grip enters through `--mu`.
+
+   **⚠ These two choices interact, and the ratio is NOT free once grip
+   improves.** 2.5:1 leaves only 1.21× torque headroom over a μ = 1.1 traction
+   limit. Push grip past **μ ≈ 1.33** and the launch becomes current-limited —
+   wider or stickier tires then buy nothing:
+
+   | μ | 0-50 @ 2.5:1 | 0-50 @ 3.5:1 |
+   |---|---|---|
+   | 1.1 | 2.39 s | 2.39 s |
+   | 1.3 | 1.99 s | 1.99 s |
+   | 1.4 | **1.95 s — current-limited** | 1.84 s |
+   | 1.8 | **1.95 s — grip wasted** | 1.41 s |
+
+   So the ordering matters: **choose the tire, measure μ, then cut the gears.**
+   `accel.py --match` solves for the ratio where launch torque exactly meets
+   launch grip — all the grip used, motor spinning as slowly as possible.
+   Shorter than matched wastes motor life; taller wastes tire.
+
+   | Measured μ | Matched FD | Motor rpm at cap |
+   |---|---|---|
+   | 1.0 | 1.88:1 | 16,066 |
+   | 1.1 | 2.07:1 | 17,672 |
+   | 1.3 | 2.45:1 | 20,886 |
+   | 1.5 | 2.82:1 | 24,099 |
+
+   2.5:1 is the matched ratio for μ ≈ 1.33. It is a *provisional* pick standing
+   on a guessed μ — treat it as the working assumption to be replaced by the
+   Phase 4 measurement, not as a decided number.
+
    **A CVT or 2-speed is not worth it here, and the reason is specific.** Both
    exist to give you a short ratio off the line and a tall one at the top. You
    are traction-limited off the line, so the short ratio buys nothing — you want
@@ -137,6 +174,9 @@ with arithmetic instead of with a shopping cart.
       1/12 pan-car duty, which is the entire point of gearing this way. If a vendor won't state an
       RPM rating, treat that as a no.
 - [ ] Battery, motor, and inverter current ratings agree with each other at peak, not average.
+- [ ] **Gears not yet cut.** The ratio depends on μ, and μ is a guess until Phase 4 measures it.
+      Order motors and tires; defer the gear pair. Getting this out of order is how you end up
+      geared for grip you don't have or grip you can't use.
 
 **Why this is a phase and not a footnote:** buying a motor before doing this arithmetic is how
 speed builds end up geared for 45 mph with no way to fix it short of new everything.

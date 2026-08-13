@@ -102,6 +102,34 @@ If they get built: lead screws are the right class precisely because they are
 self-locking. They hold position with no power and fail in place rather than
 collapsing. Verify that property on whatever is actually specified.
 
+#### Width and compound are the grip levers — diameter is not
+
+Worth separating, because it is easy to collapse "tire size" into one thing:
+
+| Lever | What it buys |
+|---|---|
+| **Width** | Lower contact pressure → higher μ → **grip**, hence acceleration |
+| **Compound** | The largest μ lever available |
+| **Diameter** | Gearing, wheel rpm (tire survival), rotational inertia, CG height — **not** μ |
+
+Rubber and foam do not obey `F = μN`. Elastomer friction carries an adhesion
+term (scales with real contact area) and a hysteresis term (scales with
+deformed volume), which together make μ **load-sensitive** — it falls as
+contact pressure rises, roughly μ ∝ N^−0.1…−0.2. A wider tire at the same load
+runs lower pressure and therefore grips harder. That is a real effect and the
+reason race cars run wide rubber; it is not a myth about "more contact area."
+
+Diameter is genuinely different: contact patch area is roughly load ÷ contact
+pressure, and contact pressure is a property of the foam's stiffness — so at a
+given load and width, a larger diameter changes patch *shape* (longer, narrower)
+more than patch *area*.
+
+**So go as wide as the arches and the track allow.** It is the one tire choice
+that improves acceleration directly, and unlike compound it costs nothing in
+tire life. Just check the grip is usable at your gearing first —
+[BUILD_PHASES.md Phase 0](BUILD_PHASES.md#phase-0--numbers-before-parts) has the
+matched-ratio table.
+
 #### Sourcing
 
 Both sizes sit in pan-car foam territory — purpose-built for sustained high RPM,

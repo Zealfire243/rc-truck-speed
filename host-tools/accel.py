@@ -77,6 +77,29 @@ NUMBERS TO MEASURE, NOT TRUST
   mu         Foam on clean asphalt, 1.0-1.3. THE most uncertain input in this
              model and it sets the entire launch. Measure it: full throttle
              from a standstill, read the GPS trace, a = dv/dt, mu = a/g.
+
+             NOTE WHAT mu IS AND IS NOT IN THIS MODEL. It is an input, held
+             constant, because the sim uses Amontons-Coulomb friction (F=mu*N,
+             area-independent). That is a decent approximation for rigid
+             materials and WRONG for rubber and foam, whose friction has an
+             adhesion term (scales with real contact area) and a hysteresis
+             term (scales with deformed volume). The practical consequence is
+             LOAD SENSITIVITY: mu falls as contact pressure rises, roughly
+             mu ~ N^-k with k about 0.1-0.2.
+
+             So a WIDER tire at the same load runs lower contact pressure and
+             therefore a genuinely higher mu. Compound moves it further still.
+             Neither shows up if you only sweep --tire, which changes DIAMETER.
+
+             Decomposed:
+               width, compound  ->  mu  ->  acceleration
+               diameter         ->  gearing, wheel rpm, inertia, CG
+                                ->  NOT mu
+
+             Sweeping --tire and seeing acceleration stay flat is therefore a
+             statement about this model's parameterization, not evidence that
+             tire choice does not matter. It matters enormously; it just
+             enters through --mu.
   R_phase    Line-to-line resistance / 2, measured with a good meter.
   L_phase    Line-to-line inductance / 2. Dominates impedance above ~10,000
              rpm, so it sets the top end more than R does.
@@ -294,6 +317,45 @@ def sweep(veh: Vehicle, mot: Motor, tr: Traction) -> None:
     print("  Gear for the speed you want. For a quicker launch, chase grip.\n")
 
 
+def matched_ratio(veh: Vehicle, mot: Motor, mu: float) -> float:
+    """The final drive at which launch torque exactly meets launch grip.
+
+    This is the principled way to pick a ratio once you know mu, and it exists
+    because the two design goals pull in opposite directions:
+
+      SHORTER than matched  ->  torque you cannot put down. You are paying for
+                                it in motor rpm, bearing life, and heat, and
+                                getting nothing.
+      TALLER  than matched  ->  grip you cannot use. Wider or stickier tires
+                                stop buying you anything.
+
+    So the matched ratio is the one that extracts all the available grip while
+    spinning the motor as slowly as possible. Solve F_motor(FD) = mu*m*g:
+
+        FD = mu * m * g * r_wheel / (Kt * (iq_max - i_noload) * n * eta)
+    """
+    r_wheel = veh.tire_od_mm / 2000.0
+    f_traction = mu * veh.mass_kg * G
+    per_ratio = (mot.kt * (mot.iq_max - mot.i_noload) * veh.motors
+                 * veh.eta_drive / r_wheel)
+    return f_traction / per_ratio
+
+
+def match_table(veh: Vehicle, mot: Motor) -> None:
+    print(f"\n  MATCHED FINAL DRIVE vs GRIP  "
+          f"({veh.tire_od_mm:.0f} mm, {mot.iq_max:.0f} A/motor, "
+          f"{veh.mass_kg*1000:.0f} g)\n")
+    print("  Gear to the matched ratio: all the grip used, motor as slow as")
+    print("  possible. Shorter wastes motor life; taller wastes tire.\n")
+    print("   mu     matched FD   motor rpm @ cap")
+    print("   " + "-" * 40)
+    for mu in (0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.8):
+        fd = matched_ratio(veh, mot, mu)
+        wheel_rpm = 8537.0
+        print(f"   {mu:>4.2f}      {fd:>5.2f}:1      {wheel_rpm*fd:>9,.0f}")
+    print("\n  Measure mu on the first Phase 4 run, THEN cut the gears.\n")
+
+
 def thermal(veh: Vehicle, mot: Motor, tr: Traction, cruise_mph: float) -> None:
     """Motor loss at a SUSTAINED speed, versus final drive.
 
@@ -384,6 +446,8 @@ def main() -> None:
     p.add_argument("--mu", type=float, default=1.10)
     p.add_argument("--mass", type=float, default=0.90)
     p.add_argument("--sweep", action="store_true")
+    p.add_argument("--match", action="store_true",
+                   help="matched final drive vs grip")
     p.add_argument("--thermal", type=float, metavar="MPH",
                    help="motor loss vs ratio at a sustained speed")
     a = p.parse_args()
@@ -393,7 +457,9 @@ def main() -> None:
     mot = Motor(kv=a.kv, r_phase=a.r, l_phase=a.l, iq_max=a.iq)
     tr = Traction(mu=a.mu)
 
-    if a.thermal:
+    if a.match:
+        match_table(veh, mot)
+    elif a.thermal:
         thermal(veh, mot, tr, a.thermal)
     elif a.sweep:
         sweep(veh, mot, tr)
