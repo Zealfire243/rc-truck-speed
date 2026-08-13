@@ -106,7 +106,9 @@ the answer may be a sensored motor, which is a different part. That is the real 
 | Item | Notes | ~$ |
 |---|---|---|
 | Second motor | Identical to the first. Order the *same* part, same batch if possible. | 30–60 |
-| **2nd X-NUCLEO-IHM08M1** | The Nucleo already has TIM8 free, so Phase 3 is one more power stage, not a new controller. Buy the *same board again* — identical channels matter for a design where both share gains and the interlock watches the difference between them. Only one can plug onto the shield headers; the second wires to the morpho pins. **Solder a proper harness with strain relief, not jumper leads** — this ends up in a vehicle that crashes. `accel.py` shows launch force meets the traction ceiling at ~23 A — below that you are genuinely slower, above it you gain nothing. So 30 A is headroom over a real requirement, not a guess, and 45 A would be wasted copper. | 40–150 |
+| **2nd X-NUCLEO-IHM08M1** | The Nucleo already has TIM8 free, so Phase 3 is one more power stage, not a new controller. Buy the *same board again* — identical channels matter where both share gains and the interlock watches the difference between them. Only one can plug onto the shield headers; the second wires to the morpho pins. | 30–40 |
+| **Harness materials** | For wiring stage 2 to the morpho headers. Silicone-insulated stranded wire (flexes without fatiguing), **adhesive-lined heatshrink**, a shielded or twisted pair run for the three analog current-sense lines, zip ties and adhesive anchor pads. See [WIRING.md](WIRING.md#strain-relief-and-harness-routing) — the analog lines must not share a bundle with gate drive. | 20–30 |
+| Header connectors | Latching or friction-lock, not bare Dupont. Dupont crimps walk off 0.1 in pins under vibration. | 10 |
 | Gate drivers, FETs, shunts, bulk caps | If rolling your own power stage. | — |
 
 ---

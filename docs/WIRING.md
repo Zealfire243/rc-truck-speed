@@ -109,6 +109,60 @@ The supervisor. Nothing here can hurt anything.
 ESP32 GPIO ground rules carry over unchanged from the crawler: **6–11 are the SPI flash, never use
 them**; 34/35/36/39 are input-only with no internal pull-ups; 0, 2, 12, 15 are strapping pins.
 
+## Strain relief and harness routing
+
+**Strain relief means making sure mechanical load is carried by something other
+than the solder joint.**
+
+Solder is an electrical connection, not a structural one. When a wire is pulled
+or vibrated, the stress concentrates exactly where it exits the joint — solder
+wicks a few millimetres up into the strands, so there is an abrupt hard-to-soft
+transition right there. The copper work-hardens at that point and fatigue-cracks
+after some number of cycles.
+
+That failure mode is what makes it worth caring about: **it is not a joint that
+fails when you build it, it is a joint that passes every bench test and breaks
+in the vehicle.** A truck at speed on pavement is continuous high-frequency
+vibration, which is precisely the fatigue regime.
+
+Five things, in rough order of how much they buy you:
+
+1. **Anchor the cable within 10–20 mm of the joint.** Zip tie to an adhesive
+   pad or a chassis tab, so any pull on the harness is taken by the anchor and
+   the joint sees nothing. This is the single biggest one.
+2. **Leave a service loop.** A taut wire transmits every load to its ends. Slack
+   lets the wire absorb movement in its middle, where it is designed to.
+3. **Adhesive-lined heatshrink over each joint, extending onto the insulation.**
+   It spreads the bend radius instead of letting it concentrate at the solder
+   edge, and the adhesive seals out dirt and moisture.
+4. **Keep joints short.** The less solder wicks up the strands, the less stiff
+   the transition.
+5. **Route so flexing happens mid-span**, not at a termination.
+
+On the Nucleo morpho headers specifically: **do not use bare Dupont jumpers.**
+The crimps walk off 0.1 in pins under vibration, and a gate-drive line going
+open at speed is a half-bridge in an undefined state. Use latching or
+friction-lock connectors, or solder direct with the strain relief above.
+
+### Keep the analog away from the gate drive
+
+Routing matters electrically here, not just mechanically. The second stage's
+harness carries six gate-drive lines — hard, fast switching edges — and three
+current-sense lines that feed the ADC.
+
+**Do not run them in the same bundle.** Switching edges couple capacitively into
+adjacent conductors, and what you would be injecting noise into is the phase
+current measurement, which is the entire pass criterion for
+[Phase 1](BUILD_PHASES.md#phase-1--one-motor-current-sensing-proven). A harness
+that looks tidy and reads garbage currents is a genuinely miserable thing to
+debug, because nothing about it looks wrong.
+
+- Analog on its own twisted pair or shielded run, shield grounded **at one end
+  only** (the controller end) so it cannot become a ground loop.
+- Physical separation from the PWM lines wherever possible; cross at right
+  angles rather than running parallel if they must meet.
+- Keep the analog run as short as the layout allows.
+
 ## Bring-up order
 
 Do not skip ahead. Each step is cheap; the failures they prevent are not.
