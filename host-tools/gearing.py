@@ -233,37 +233,62 @@ def sweep(v: Vehicle) -> None:
     print("  * outside the comfortable 1200-3500 kV band\n")
 
 
-def swap_table(v: Vehicle, kv: float) -> None:
+def swap_table(v: Vehicle, kv: float, tire_rating_rpm: float = 8600.0) -> None:
     """Top speed per tire size at FIXED gearing and a FIXED motor.
 
-    This is the two-configuration plan: one chassis, one motor, one final
-    drive, and you change top speed by changing wheels.
+    This is the two-configuration plan: one chassis, two identical transaxles,
+    one final-drive ratio, and you change top speed by changing wheels.
 
     The point that makes it work — and it is not obvious — is that **wheel RPM
     is constant across every tire size.** The motor's RPM ceiling divided by
     the final drive sets wheel RPM, full stop. Tire diameter only changes how
     far the car travels per revolution.
 
-    So the tire never spins faster in the fast configuration than in the slow
-    one. Chasing top speed with a SMALL tire is what drives wheel RPM into the
-    danger zone; chasing it with a BIG tire and taller gearing does not.
+    !! WHAT THIS TABLE WILL NOT DO IS TELL YOU THE TIRE IS SAFE.
+    !!
+    !! At a tall gear the drivetrain can spin the wheels well past what the
+    !! tires are rated for, and the only thing standing between you and that
+    !! is the firmware speed cap. An earlier version of this function printed
+    !! "the tire never sees more than N rpm" as if gearing guaranteed it —
+    !! true at 3.5:1, dangerously false at 2.5:1. It now prints the margin and
+    !! names what is actually protecting you.
     """
     motor_rpm = kv * v.v_pack * v.rpm_load_frac
-    wheel_rpm = motor_rpm / v.final_drive
+    wheel_rpm_uncapped = motor_rpm / v.final_drive
 
     print(f"\n  FIXED: {kv:,.0f} kV, {v.cells}S @ {v.v_pack:.1f} V, "
           f"{v.final_drive:.2f}:1 final drive")
-    print(f"  Motor ceiling {motor_rpm:,.0f} rpm -> wheel {wheel_rpm:,.0f} rpm, "
-          f"in EVERY configuration\n")
-    print("   tire      top speed    wheel rpm")
-    print("   " + "-" * 38)
+    print(f"  Motor ceiling {motor_rpm:,.0f} rpm -> wheel "
+          f"{wheel_rpm_uncapped:,.0f} rpm UNCAPPED, in every configuration")
+    print(f"  Tire rating assumed {tire_rating_rpm:,.0f} rpm\n")
+
+    print("   tire    uncapped top   safe top   cap holds    UNCAPPED margin")
+    print("   " + "-" * 62)
+    worst = 0.0
     for od in (55, 60, 65, 70, 75, 80):
         circ = math.pi * od / 1000.0
-        mph = (wheel_rpm / 60.0 * circ) / MPH_TO_MS
-        print(f"   {od:>3.0f} mm    {mph:>6.1f} mph    {wheel_rpm:>8,.0f}")
+        mph_uncapped = (wheel_rpm_uncapped / 60.0 * circ) / MPH_TO_MS
+        mph_safe = (tire_rating_rpm / 60.0 * circ) / MPH_TO_MS
+        over = wheel_rpm_uncapped / tire_rating_rpm - 1.0
+        worst = max(worst, over)
+        print(f"   {od:>3.0f} mm    {mph_uncapped:>7.1f} mph   "
+              f"{mph_safe:>5.1f} mph   {mph_safe:>5.1f} mph    "
+              f"{over:>+6.0%} over rating")
 
-    print(f"\n  Tire RPM is the same in all rows. Pick tires by the speed you")
-    print(f"  want; the tire never sees more than {wheel_rpm:,.0f} rpm.\n")
+    print()
+    if worst > 0.02:
+        print(f"  ** The drivetrain can overspeed the tires by {worst:.0%}. **")
+        print("  Gearing does NOT protect the tire at this ratio — the firmware")
+        print("  speed cap does, and it is therefore load-bearing safety rather")
+        print("  than a convenience. The cap ceilings are tire-derived for this")
+        print("  reason (safety.c TIRE_PROFILES), and selecting the profile that")
+        print("  matches the fitted tires is a pre-run checklist item.")
+        print("\n  Gearing shorter shrinks this margin; gearing taller grows it.")
+        print("  See docs/BUILD_PHASES.md Phase 0 for the three-way tradeoff")
+        print("  between wear, grip utilisation, and this margin.\n")
+    else:
+        print("  At this ratio the motor cannot meaningfully overspeed the")
+        print("  tires — gearing is itself a backstop behind the cap.\n")
 
 
 def main() -> None:

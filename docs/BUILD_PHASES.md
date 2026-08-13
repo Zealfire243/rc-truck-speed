@@ -50,7 +50,8 @@ with arithmetic instead of with a shopping cart.
    | Pack | 4S, 14.4 V under load |
    | **Required motor kV** | **~2,440** |
    | Motor RPM at the 70 mph cap | 21,345 (61% of no-load) |
-   | **Wheel RPM — every configuration** | **8,537** |
+   | **Wheel RPM at the cap — every configuration** | **8,537** |
+   | Wheel RPM the drivetrain could reach *uncapped* | 11,951 (**+39% over tire rating**) |
    | Steady-state draw | 175 W, 6.1 A per motor |
 
    **Two tire configurations, one drivetrain.** Top speed changes by changing
@@ -65,10 +66,30 @@ with arithmetic instead of with a shopping cart.
    every tire size.** The motor's RPM ceiling divided by the final drive sets
    it; tire diameter only changes how far the truck travels per revolution.
 
-   That is what retires the tire-RPM problem rather than merely managing it.
-   Chasing 70 mph on a 55 mm tire needed 10,866 wheel rpm — 36% over typical
-   1/12 pan-car duty. Chasing it on a 70 mm tire with taller gearing needs
-   8,537, in *both* configurations. Run `gearing.py --swap`.
+   That is what retires the tire-RPM problem *at the cap*: chasing 70 mph on a
+   55 mm tire needed 10,866 wheel rpm, 36% over typical 1/12 pan-car duty,
+   whereas a 70 mm tire at the cap needs 8,537 in every configuration.
+
+   **⚠ But gearing no longer backstops it.** At 2.5:1 the drivetrain can spin
+   the wheels to 11,951 rpm — 39% past the tire rating — if the cap is not
+   holding. At 3.5:1 that margin was only 7%. Gearing taller for motor wear
+   spent the mechanical backstop, which means **the firmware speed cap is now
+   load-bearing safety rather than a convenience.** That is why the cap
+   ceilings are tire-derived (`safety.c TIRE_PROFILES`), why the profile is
+   bound to the ceiling, and why selecting the right profile is a pre-run
+   checklist item. Run `gearing.py --swap` to see the current margin.
+
+   **The three-way tradeoff on the ratio**, now that all three are quantified:
+
+   | Ratio | Motor wear | Grip usable to | Tire-overspeed margin |
+   |---|---|---|---|
+   | 2.07:1 | best | μ 1.10 | +68% |
+   | **2.5:1** | 1.40× bearing life | μ 1.33 | +39% |
+   | 3.5:1 | baseline | μ 1.8+ | +7% |
+
+   Taller protects the motor and wastes grip and mechanical tire protection;
+   shorter does the reverse. 2.5:1 is the current pick and it is provisional
+   until Phase 4 measures μ.
 
    6S at 4.0:1 is the upgrade path if Phase 6 shows heat as the limiter; the
    extra ~80 g costs almost nothing at top speed, which is aero-limited, not

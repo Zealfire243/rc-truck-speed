@@ -1,5 +1,25 @@
 # Mechanical
 
+## Drivetrain arrangement
+
+**Two motors, one per axle, each in its own transaxle** — motor, reduction, and
+axle as a single unit, front and rear identical. This was settled early and
+everything else is downstream of it: the [dual-channel FOC on one
+G4](ARCHITECTURE.md#why-one-g4-instead-of-two), the electronic torque split,
+the inter-axle slip signal traction control uses, and the desync interlock that
+cuts both channels rather than one.
+
+There is no propshaft and no centre differential. The two axles are coupled
+only through the ground and through `split.bias`, which means **the electronic
+torque split IS the centre diff** — with no mechanical fallback if that code is
+wrong.
+
+> **Open item — left/right within each transaxle.** Spool or differential has
+> not been decided. A spool is lighter, simpler, and stronger, and a speed run
+> is a straight line; the cost is scrub and a fought steering feel every time
+> you turn the truck around, on a 190 mm wheelbase that already wants to be
+> twitchy. Decide it in the Phase 4 packaging study.
+
 ## Geometry
 
 The donor body, measured:
@@ -53,9 +73,10 @@ It is retired now, by gearing rather than by compromise.
 
 #### Two tire configurations, one drivetrain
 
-One chassis, one motor, one final drive. Top speed changes by changing wheels:
+One chassis, two identical transaxles, one final-drive ratio. Top speed
+changes by changing wheels and nothing else:
 
-| Profile | Tire | Top speed | Wheel RPM | μ (est.) |
+| Profile | Tire | Top speed | Wheel RPM at cap | μ (est.) |
 |---|---|---|---|---|
 | `street` | 55 × 22, tucks in the stock arches | 55 mph | **8,537** | 1.05 |
 | `speed` | 70 × 25, wheels proud | 70 mph | **8,537** | 1.10 |
@@ -67,14 +88,21 @@ in grip, which is the acceleration lever. `wide` is the configuration to run
 when you want a quicker launch, and it is where the Phase 4 μ measurement pays
 off most.
 
-**Wheel RPM is identical in both.** That is the whole trick, and it is not
-obvious: the motor's RPM ceiling divided by the final drive sets wheel RPM
-outright. Tire diameter only changes how far the truck travels per revolution.
+**Wheel RPM at the cap is identical in all three.** That is the whole trick,
+and it is not obvious: the motor's RPM ceiling divided by the final drive sets
+wheel RPM outright. Tire diameter only changes how far the truck travels per
+revolution.
 
 So the tire never spins faster in the fast configuration than in the slow one.
 Chasing top speed with a *small* tire is what drives wheel RPM into the danger
 zone; chasing it with a *big* tire and taller gearing does not. 8,537 rpm is
-only ~7% over typical pan-car duty, in both configs.
+only ~7% over typical pan-car duty, in every config.
+
+**What holds it there is the speed cap, not the gearing.** At 2.5:1 the
+drivetrain can reach 11,951 wheel rpm — 39% past the tire rating — if the cap
+is not doing its job. Gearing taller for motor wear spent the mechanical
+backstop that 3.5:1 provided. See
+[BUILD_PHASES.md Phase 0](BUILD_PHASES.md#phase-0--numbers-before-parts).
 
 Run `gearing.py --swap` to regenerate this table for any motor or ratio.
 
