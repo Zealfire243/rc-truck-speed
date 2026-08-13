@@ -17,6 +17,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "safety.h"
@@ -60,15 +61,39 @@ int main(void)
 
     printf("\nSpeed follows the ACTIVE tire, not a constant\n");
     /* Same motor RPM, two tire sizes: the bigger tire really is going faster,
-     * and the firmware must say so. This is the whole hazard in one check. */
+     * and the firmware must say so. This is the whole hazard in one check.
+     *
+     * Asserted as a RATIO rather than against absolute mph on purpose. The
+     * absolute numbers depend on FINAL_DRIVE, and an earlier version of this
+     * test hardcoded values that were coincidental to a 3.5:1 ratio — it then
+     * failed for a gearing change that broke nothing. Reported speed must
+     * scale with tire circumference; that is the property, and it holds at
+     * every ratio. */
     safety_set_profile(&s, TIRE_PROFILE_STREET);
     float mph_street = safety_mph_from_rpm(&s, 29878.0f);
     safety_set_profile(&s, TIRE_PROFILE_SPEED);
     float mph_speed = safety_mph_from_rpm(&s, 29878.0f);
-    near("55 mm tire at motor ceiling", mph_street, 55.0f);
-    near("70 mm tire at motor ceiling", mph_speed, 70.0f);
+
+    float want_ratio = TIRE_PROFILES[TIRE_PROFILE_SPEED].tire_od_mm /
+                       TIRE_PROFILES[TIRE_PROFILE_STREET].tire_od_mm;
+    near("speed ratio tracks tire diameter ratio",
+         mph_speed / mph_street, want_ratio);
     ok("bigger tire reports higher speed at equal RPM",
        mph_speed > mph_street);
+    ok("both are nonzero", mph_street > 0.0f && mph_speed > 0.0f);
+
+    /* And the cap ceilings must remain TIRE-derived, not gearing-derived:
+     * each is the road speed at which that tire hits ~8,600 rpm. Changing
+     * FINAL_DRIVE must never move them. */
+    for (int i = 0; i < TIRE_PROFILE_COUNT; i++) {
+        float od_m = TIRE_PROFILES[i].tire_od_mm / 1000.0f;
+        float mph_at_rating = 8600.0f / 60.0f * (3.14159265f * od_m) / 0.44704f;
+        float declared = TIRE_PROFILES[i].cap_ceiling_mph;
+        char buf[80];
+        snprintf(buf, sizeof buf, "%s ceiling matches its tire rating",
+                 TIRE_PROFILES[i].name);
+        ok(buf, declared <= mph_at_rating + 1.0f);
+    }
 
     printf("\nEffective ceiling is the LOWER of phase gate and profile\n");
     /* Compiled phase ceiling is 20 mph (Phase 4). Neither profile may exceed

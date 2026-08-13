@@ -62,7 +62,7 @@ class Vehicle:
 
     # --- Rolling ----------------------------------------------------------
     tire_od_mm: float = 55.0
-    final_drive: float = 3.50  # motor turns per wheel turn
+    final_drive: float = 2.50  # motor turns per wheel turn
 
     # --- Electrical -------------------------------------------------------
     cells: int = 4
@@ -271,7 +271,7 @@ def main() -> None:
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--mph", type=float, default=70.0)
     p.add_argument("--tire", type=float, default=55.0, help="tire OD, mm")
-    p.add_argument("--fd", type=float, default=3.50, help="final drive ratio")
+    p.add_argument("--fd", type=float, default=2.50, help="final drive ratio")
     p.add_argument("--cells", type=int, default=4)
     p.add_argument("--mass", type=float, default=0.90, help="kg")
     p.add_argument("--solve", choices=["kv", "fd"], default="kv")

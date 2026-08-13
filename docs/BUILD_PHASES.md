@@ -46,10 +46,10 @@ with arithmetic instead of with a shopping cart.
 
    | | |
    |---|---|
-   | Final drive | 3.5:1 |
+   | Final drive | 2.5:1 |
    | Pack | 4S, 14.4 V under load |
    | **Required motor kV** | **~2,440** |
-   | Motor RPM ceiling | 29,878 |
+   | Motor RPM at the 70 mph cap | 21,345 (61% of no-load) |
    | **Wheel RPM — every configuration** | **8,537** |
    | Steady-state draw | 175 W, 6.1 A per motor |
 
@@ -74,13 +74,39 @@ with arithmetic instead of with a shopping cart.
    extra ~80 g costs almost nothing at top speed, which is aero-limited, not
    mass-limited.
 
-   **Gearing is a pure top-speed selector on this vehicle.** `accel.py` puts
-   0-50 mph at ~2.4 s across every ratio from 2.5:1 to 5:1, because the entire
-   run is traction-limited — the motors make ~1.7× more force than the tires
-   will transmit. So there is no acceleration-versus-top-speed trade to agonise
-   over: gear for the speed you want. If you want a quicker launch, the lever
-   is grip (μ 0.7 → 1.3 moves 0-50 from 4.0 s to 2.0 s), not the ratio, not
-   more inverter, and not less mass.
+   **Gearing costs nothing off the line, so spend it on motor longevity.**
+   `accel.py` puts 0-50 mph at ~2.4 s across every ratio from 2.5:1 to 5:1,
+   because the entire run is traction-limited — the motors make ~1.7× more
+   force than the tires will transmit. And the cap ceilings are set by the
+   *tire's* rpm rating, not by gearing, so they don't move either. Gearing is
+   therefore free, and the right thing to buy with it is rotational wear.
+
+   At a sustained 70 mph, relative to 3.5:1 (`accel.py --thermal 70`):
+
+   | Ratio | Motor rpm | Loss | Bearing life | Centrifugal stress |
+   |---|---|---|---|---|
+   | **2.5:1** | **21,345** | **−30%** | **1.40×** | **0.51×** |
+   | 3.5:1 | 29,882 | — | 1.00× | 1.00× |
+   | 5.0:1 | 42,689 | +66% | 0.70× | 2.04× |
+
+   Bearing L10 life goes as 1/rpm and magnet-retention stress as rpm², so both
+   punish a short gear far harder than heat does. 29,882 rpm also sits near the
+   practical ceiling for grease-lubricated small bearings; 21,345 is comfortably
+   inside it.
+
+   The resulting over-specification is deliberate: a 2,441 kV motor at 2.5:1
+   could reach ~96 mph and is capped at 70 by the tire. **Running a motor at 61%
+   of its no-load speed IS the wear reduction.**
+
+   If you want a quicker launch, the lever is grip (μ 0.7 → 1.3 moves 0-50 from
+   4.0 s to 2.0 s) — not the ratio, not more inverter, and not less mass.
+
+   **A CVT or 2-speed is not worth it here, and the reason is specific.** Both
+   exist to give you a short ratio off the line and a tall one at the top. You
+   are traction-limited off the line, so the short ratio buys nothing — you want
+   the tall one always, which is a fixed gear. A variator would add ~10% drive
+   loss plus its own sliding, belted, high-speed wear items: more rotational
+   wear than it removes.
 
    Two consequences worth acting on:
 

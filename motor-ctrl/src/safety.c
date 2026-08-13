@@ -11,9 +11,11 @@
 
 #include "pin_map.h"
 
-/* The fitted-tire table. Top speed in mph happens to equal tire OD in mm at
- * 3.5:1 with a 2441 kV motor on 4S — a coincidence of the ratio, but a handy
- * one at the track. See pin_map.h and `gearing.py --swap`. */
+/* The fitted-tire table.
+ *
+ * Each ceiling is the road speed at which that tire reaches its ~8,600 rpm
+ * rating -- 55 mm -> 55.4 mph, 70 mm -> 70.5 mph. They are derived from the
+ * TIRE, so changing FINAL_DRIVE does not move them. See pin_map.h. */
 const tire_profile_t TIRE_PROFILES[TIRE_PROFILE_COUNT] = {
     [TIRE_PROFILE_STREET] = { "street", 55.0f, 55.0f },
     [TIRE_PROFILE_SPEED]  = { "speed",  70.0f, 70.0f },

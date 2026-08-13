@@ -115,7 +115,7 @@ typedef enum {
  * whenever tire diameter, mass, or gearing changes.
  * ------------------------------------------------------------------------- */
 #define POLE_PAIRS           2       /* count magnets / 2. VERIFY.           */
-#define FINAL_DRIVE          3.50f   /* motor turns per wheel turn           */
+#define FINAL_DRIVE          2.50f   /* motor turns per wheel turn           */
 
 /* -------------------------------------------------------------------------
  * TIRE PROFILES — the two-configuration plan.
@@ -127,10 +127,47 @@ typedef enum {
  *   divided by FINAL_DRIVE sets it, full stop. Tire diameter only changes how
  *   far the truck travels per revolution.
  *
- * At 2441 kV on 4S with 3.5:1, wheel RPM tops out at 8,537 in EVERY profile.
+ * At 2441 kV on 4S with 2.5:1, wheel RPM tops out at 8,537 in EVERY profile.
  * Chasing 70 mph on a small tire is what pushed wheel RPM to 10,866 and put
  * it 36% over typical 1/12 pan-car duty. Chasing it with a bigger tire and
  * taller gearing does not. Run `gearing.py --swap`.
+ *
+ * ---------------------------------------------------------------------------
+ * THE CAP CEILINGS ARE DERIVED FROM THE TIRE, NOT FROM THE GEARING
+ * ---------------------------------------------------------------------------
+ *
+ * Each profile's ceiling is simply the road speed at which that tire reaches
+ * its ~8,600 rpm rating:
+ *
+ *     55 mm:  8600/60 * (pi*0.055) = 24.8 m/s = 55.4 mph
+ *     70 mm:  8600/60 * (pi*0.070) = 31.5 m/s = 70.5 mph
+ *
+ * That is why they are 55 and 70, and it is why they DO NOT MOVE when the
+ * final drive changes. Gearing is therefore free to be chosen on motor
+ * longevity rather than on top speed — see below.
+ *
+ * ---------------------------------------------------------------------------
+ * WHY 2.5:1 AND NOT 3.5:1 — ROTATIONAL WEAR
+ * ---------------------------------------------------------------------------
+ *
+ * Acceleration is traction-limited at every ratio from 2.5:1 to 5:1 (0-50 mph
+ * is ~2.4 s in all of them), so gearing costs nothing off the line. That frees
+ * the ratio to be picked purely on what it does to the motor. At a sustained
+ * 70 mph, relative to 3.5:1:
+ *
+ *     ratio   motor rpm   loss    bearing life   centrifugal stress
+ *     2.5:1      21,345   -30%          1.40x                 0.51x
+ *     3.5:1      29,882      --          1.00x                 1.00x
+ *     5.0:1      42,689   +66%          0.70x                 2.04x
+ *
+ * Bearing L10 life goes as 1/rpm and magnet-retention stress goes as rpm^2,
+ * so both punish a short gear far harder than heat does. 29,882 rpm is also
+ * near the practical limit for grease-lubricated small bearings; 21,345 is
+ * comfortably inside it.
+ *
+ * The surplus is deliberate: a 2441 kV motor at 2.5:1 could reach ~96 mph, and
+ * it is capped at 70 by the tire. Running an over-specified motor at 61% of
+ * its no-load speed IS the wear reduction. Run `accel.py --thermal 70`.
  *
  * !! TIRE OD IS NOT A COMPILE-TIME CONSTANT ANYMORE, and that is a safety
  * !! fix, not a convenience. It feeds the speed calculation, which feeds the

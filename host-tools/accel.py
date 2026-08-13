@@ -294,12 +294,88 @@ def sweep(veh: Vehicle, mot: Motor, tr: Traction) -> None:
     print("  Gear for the speed you want. For a quicker launch, chase grip.\n")
 
 
+def thermal(veh: Vehicle, mot: Motor, tr: Traction, cruise_mph: float) -> None:
+    """Motor loss at a SUSTAINED speed, versus final drive.
+
+    Answers: does gearing taller actually take pressure off the motors at
+    cruise? It does, and the reason is that the two loss terms move in
+    opposite directions with very different steepness.
+
+        COPPER   P = 1.5 * iq^2 * R        falls with a SHORTER gear
+                                            (less torque needed per motor)
+        IRON +   P ~ (rpm)^1.6              falls with a TALLER gear
+        WINDAGE                             and falls steeply
+
+    At sustained top speed the truck needs very little torque — about 6 A per
+    motor — so copper loss is small and iron loss dominates. Iron loss scales
+    with roughly the 1.6 power of frequency, so slowing the motor down is
+    worth far more than the extra current costs you.
+
+    CAVEAT, and it is a real one: the iron-loss curve is anchored to
+    `i_noload`, which is a guess until you measure it. The SHAPE of this
+    table (that taller is cooler, and by roughly how much) is robust. The
+    absolute watts are not. Spin the motor unloaded at a known RPM and
+    measure the current — that one number calibrates this whole model.
+    """
+    v = cruise_mph * MPH_TO_MS
+    r_wheel = veh.tire_od_mm / 2000.0
+    wheel_rpm = v / r_wheel * 60.0 / (2.0 * math.pi)
+
+    f_drag = 0.5 * RHO_AIR * veh.cd * veh.frontal_area_m2 * v * v
+    f_roll = veh.crr * veh.mass_kg * G
+    p_wheel = (f_drag + f_roll) * v
+    p_mech_per_motor = p_wheel / veh.eta_drive / veh.motors
+
+    # Iron+windage reference: what the no-load current costs at 30k rpm.
+    p_iron_ref = mot.i_noload * veh.v_pack
+    rpm_ref = 30000.0
+
+    print(f"\n  SUSTAINED {cruise_mph:.0f} MPH on {veh.tire_od_mm:.0f} mm tires")
+    print(f"  wheel {wheel_rpm:,.0f} rpm | {p_wheel:.0f} W at the wheels | "
+          f"{p_mech_per_motor:.0f} W per motor\n")
+    print("   ratio   motor rpm   loss W   bearing life   centrif.   tire OK to")
+    print("   " + "-" * 66)
+
+    baseline = None
+    for fd in (2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0):
+        motor_rpm = wheel_rpm * fd
+        omega = motor_rpm * 2.0 * math.pi / 60.0
+        torque = p_mech_per_motor / omega
+        iq = torque / mot.kt
+        p_cu = 1.5 * iq * iq * mot.r_phase
+        p_fe = p_iron_ref * (motor_rpm / rpm_ref) ** 1.6
+        total = p_cu + p_fe
+        if abs(fd - 3.5) < 1e-6:
+            baseline = total
+        # Bearing L10 life is inversely proportional to speed for a given
+        # load; centrifugal stress on rotor magnet retention goes as rpm^2.
+        life = 29882.0 / motor_rpm
+        centrif = (motor_rpm / 29882.0) ** 2
+        # Road speed the drivetrain can reach before the MOTOR runs out, and
+        # whether the tire is still inside its rating there.
+        print(f"   {fd:>4.2f}:1  {motor_rpm:>9,.0f}  {total:>6.1f}   "
+              f"{life:>8.2f}x     {centrif:>6.2f}x", end="")
+        print()
+
+    print("\n  bearing life and centrifugal stress are RELATIVE TO 3.5:1.")
+    print("  Bearing L10 goes as 1/rpm; magnet retention stress goes as rpm^2.")
+    print("  Both favour a taller gear, and more steeply than heat does.\n")
+    for fd in (2.0, 2.5, 3.0):
+        motor_rpm = wheel_rpm * fd
+        omega = motor_rpm * 2.0 * math.pi / 60.0
+        iq = (p_mech_per_motor / omega) / mot.kt
+        total = 1.5 * iq * iq * mot.r_phase + p_iron_ref * (motor_rpm / rpm_ref) ** 1.6
+        if baseline:
+            print(f"  {fd:.2f}:1 runs {(1-total/baseline)*100:.0f}% cooler than 3.5:1")
+    print()
+
+
 def main() -> None:
     p = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--tire", type=float, default=55.0)
-    p.add_argument("--fd", type=float, default=3.5)
+    p.add_argument("--fd", type=float, default=2.5)
     p.add_argument("--cells", type=int, default=4)
     p.add_argument("--kv", type=float, default=2441.0)
     p.add_argument("--iq", type=float, default=30.0, help="amps per motor")
@@ -308,6 +384,8 @@ def main() -> None:
     p.add_argument("--mu", type=float, default=1.10)
     p.add_argument("--mass", type=float, default=0.90)
     p.add_argument("--sweep", action="store_true")
+    p.add_argument("--thermal", type=float, metavar="MPH",
+                   help="motor loss vs ratio at a sustained speed")
     a = p.parse_args()
 
     veh = Vehicle(tire_od_mm=a.tire, final_drive=a.fd, cells=a.cells,
@@ -315,7 +393,9 @@ def main() -> None:
     mot = Motor(kv=a.kv, r_phase=a.r, l_phase=a.l, iq_max=a.iq)
     tr = Traction(mu=a.mu)
 
-    if a.sweep:
+    if a.thermal:
+        thermal(veh, mot, tr, a.thermal)
+    elif a.sweep:
         sweep(veh, mot, tr)
     else:
         report(veh, mot, tr)

@@ -71,8 +71,10 @@ only ~7% over typical pan-car duty, in both configs.
 
 Run `gearing.py --swap` to regenerate this table for any motor or ratio.
 
-At 3.5:1 with a 2,441 kV motor on 4S, **top speed in mph equals tire OD in
-millimetres.** A coincidence of the ratio, but a useful one at the track.
+**Both ceilings come from the tire, not the gearing.** Each is simply the road
+speed at which that tire hits its ~8,600 rpm rating — 55 mm → 55.4 mph, 70 mm →
+70.5 mph. Change the final drive and these do not move, which is what frees the
+ratio to be chosen on motor wear instead (see below).
 
 #### What this costs
 
