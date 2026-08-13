@@ -68,11 +68,16 @@ things the ESC1 cannot:
 The ESC1 remains a perfectly good fallback if you find one in stock cheap and want a second bench
 rig.
 
-> **Note the IHM08M1's rating: 15 A RMS nominal, 30 A peak.** That is ample for Phase 1–2, where
-> the bench supply is current-limited to a few amps anyway, and marginal for the vehicle's 25 A
-> launch bursts. Treat it as a bring-up and bench tool, not necessarily the flight hardware — the
-> Phase 3 power stages are still a design decision, and by then you will have measured the motor
-> and know what current you actually need.
+> **The IHM08M1's 15 A RMS rating carries you further than it looks.** Run `IQ_LIMIT_A` at 15 A
+> through Phases 1–6 and the boards stay inside their rating; the only cost is a 4.0 s 0-50 instead
+> of 2.4 s, which is irrelevant while tuning traction control and chasing geometry. Cruise draw is
+> 5.5 A per motor regardless, so only launches challenge the rating and only for seconds at a time.
+> The limit is phase-gated in `pin_map.h` exactly like the speed cap, and rises to 25 A when final
+> stages go in.
+>
+> **So the custom power-stage design is deferred, not cancelled.** You reach it at Phase 7 with the
+> motor characterised, μ measured, and real current data from six phases of running — which is a far
+> better position to design a board from than guessing now.
 
 **Buy two motors, from the same batch — but only open one.**
 
@@ -101,7 +106,7 @@ the answer may be a sensored motor, which is a different part. That is the real 
 | Item | Notes | ~$ |
 |---|---|---|
 | Second motor | Identical to the first. Order the *same* part, same batch if possible. | 30–60 |
-| **2nd 3-phase power stage** | The Nucleo already has TIM8 free, so Phase 3 is one more power stage, not a new controller. Only one shield can plug onto the Nucleo, so the second wires to the morpho headers. **Size for ~30 A continuous per channel** — above the 25 A limit and the IHM08M1's 15 A RMS, so this is where the bring-up hardware likely gets replaced on both channels. `accel.py` shows launch force meets the traction ceiling at ~23 A — below that you are genuinely slower, above it you gain nothing. So 30 A is headroom over a real requirement, not a guess, and 45 A would be wasted copper. | 40–150 |
+| **2nd X-NUCLEO-IHM08M1** | The Nucleo already has TIM8 free, so Phase 3 is one more power stage, not a new controller. Buy the *same board again* — identical channels matter for a design where both share gains and the interlock watches the difference between them. Only one can plug onto the shield headers; the second wires to the morpho pins. **Solder a proper harness with strain relief, not jumper leads** — this ends up in a vehicle that crashes. `accel.py` shows launch force meets the traction ceiling at ~23 A — below that you are genuinely slower, above it you gain nothing. So 30 A is headroom over a real requirement, not a guess, and 45 A would be wasted copper. | 40–150 |
 | Gate drivers, FETs, shunts, bulk caps | If rolling your own power stage. | — |
 
 ---

@@ -288,12 +288,35 @@ extern const tire_profile_t TIRE_PROFILES[TIRE_PROFILE_COUNT];
  * Protection thresholds. Software layer — the hardware comparator is the one
  * that actually saves the FETs.
  * ------------------------------------------------------------------------- */
-/* 25 A, not 30. The candidate motor (28 x 47 mm, 2400 kV inrunner) is rated
- * 28 A max, and launch goes traction-limited at ~23 A — so 25 A sits above
- * what is usable and below what the motor tolerates. Raising this buys
- * nothing: 23, 25 and 28 A all give the same 2.39 s to 50 mph. Re-check
- * against the motor you actually buy. */
-#define IQ_LIMIT_A           25.0f
+/* -------------------------------------------------------------------------
+ * TORQUE CURRENT LIMIT — phase-gated, like the speed cap.
+ *
+ * 25 A is the vehicle's design ceiling: the motor (28 x 47 mm, 2400 kV) is
+ * rated 28 A, and launch goes traction-limited at ~23 A, so 25 sits above what
+ * is usable and below what the motor tolerates. Raising it buys nothing —
+ * 23, 25 and 28 A all give the same 2.39 s to 50 mph.
+ *
+ * But the BRING-UP POWER STAGE gets there first. An X-NUCLEO-IHM08M1 is
+ * ~15 A RMS, so running 25 A through it during Phase 4-6 launches is asking
+ * the shunts and traces to do something they are not rated for. The cost of
+ * respecting that is small and entirely in a place that does not matter:
+ *
+ *     limit   0-50 mph
+ *      15 A     4.02 s   <- bring-up hardware, tuning phases
+ *      20 A     2.80 s
+ *      25 A     2.39 s   <- final stages, traction-limited
+ *
+ * A slower launch is irrelevant while tuning traction control and chasing
+ * geometry. Cruise draw is 5.5 A per motor regardless, so only launches
+ * challenge the rating, and only for a couple of seconds.
+ *
+ * So raise this the same way as SPEED_CAP_CEILING_MPH — one step, in source,
+ * in a commit, when the hardware under it has been proven:
+ *
+ *   Phases 1-6 on IHM08M1      15.0
+ *   Phase 7+ on final stages   25.0
+ * ------------------------------------------------------------------------- */
+#define IQ_LIMIT_A           15.0f
 #define OVERCURRENT_TRIP_A   45.0f
 #define OVERTEMP_FOLDBACK_C  80.0f
 #define OVERTEMP_CUT_C       95.0f
