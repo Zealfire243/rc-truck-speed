@@ -201,16 +201,21 @@ a 125 mm track:
 1.20. Above that the truck stops sliding when it loses grip and starts tipping
 instead, which at speed is the difference between a spin and a tumble.
 
-That number is the real constraint on stacking electronics. Floor area is not
-short — roughly 200 × 90 mm between the wheels — and **mass is not the problem
-either**, since it cancels in traction-limited acceleration. Height is the
-problem. A Nucleo with a shield stacked on it is ~40 mm tall before it is
-mounted on anything, which spends most of the budget on the least
-mass-efficient thing in the truck.
+**In practice this ceiling is not close.** A first-pass build-up with 70 mm
+tires puts CG around **31 mm** — most of the truck's mass sits at or below axle
+height and there is very little room to put anything high. Even a
+Nucleo-with-shield stack, 40 mm tall and ~150 g at a 35 mm centre, only moves it
+to 32.9 mm. Treat 57 mm as a check to run in
+[Phase 4a](BUILD_PHASES.md#check-4--cg-height-budget), not a constraint that
+shapes the layout.
 
-Which makes the controller the same story as the power stage: **bring-up
-hardware, not flight hardware** — for height, not weight. The truck wants a
-flat custom board or a bare module lying low on the chassis floor.
+So neither mass nor height rules out mounting dev boards in the mule. The reason
+the Nucleo and IHM08M1 are still bring-up hardware is **packaging and
+robustness** — shield stacks, header pins, and Arduino footprints are awkward to
+mount and fragile in a vehicle that crashes — not any performance budget.
+
+And note the actuators buy rollover margin too: **ride height lowers CG 1:1**,
+so dropping 10 mm at speed takes the roll threshold from 1.9 g to 2.7 g.
 
 Ballast, if needed, goes **forward and low**. Adding 50 g at the front bumper is a legitimate
 stability fix and costs you almost nothing in top speed — go back and re-run `gearing.py` with the

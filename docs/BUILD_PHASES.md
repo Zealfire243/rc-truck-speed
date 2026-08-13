@@ -390,6 +390,47 @@ wheel on its axle (see [MECHANICAL.md](MECHANICAL.md#spool-vs-differential--deci
 A wider tire at fixed track either pushes the wheels further out (more frontal area, more wheel
 wake) or further in (fouling the chassis). Decide it here, with all three tire sets in the drawing.
 
+#### Check 4 — CG height budget
+
+Do this once, on the 2D side view, by weighing parts and reading heights off the drawing.
+
+A vehicle rolls rather than slides when lateral acceleration exceeds `(track/2) / h`. With a
+125 mm track that is **57 mm at μ 1.10, and 52 mm at μ 1.20** with the `wide` tires. Above it the
+truck stops sliding when it runs out of grip and starts tipping — at speed, a tumble instead of a
+spin.
+
+A first-pass build-up with 70 mm tires (axle centreline at 35 mm):
+
+| Component | g | h |
+|---|---|---|
+| Chassis plate + drive units | 250 | 25 mm |
+| 2 × motor, on the axle line | 160 | 35 mm |
+| 4S pack, flat on the floor | 150 | 31 mm |
+| Wheels + tires | 100 | 35 mm |
+| Body shell (tall, light) | 80 | 50 mm |
+| Electronics, flat | 100 | 20 mm |
+| **Total** | **840** | **31 mm** |
+
+**So the ceiling is not close, and this is a check rather than a design driver.** 31 mm against a
+57 mm limit is 26 mm of headroom, and the truck rolls at 2.0 g against 1.1 g of grip. Swapping the
+flat electronics for a Nucleo-with-shield stack — 40 mm tall, ~150 g, centre at 35 mm — moves CG to
+32.9 mm. That is **1.9 mm**, not the "most of the budget" an earlier draft of this claimed.
+
+The reason it barely matters: most of the truck's mass is at or below axle height already, and
+almost nothing can sit high in a chassis this shallow. Ballast and the body shell are the only
+things naturally up there.
+
+**Ride height buys CG 1:1**, which is a Phase 8 bonus worth noting here:
+
+| Ride height | CG | Rolls at |
+|---|---|---|
+| nominal | 32.9 mm | 1.90 g |
+| −5 mm | 27.9 mm | 2.24 g |
+| −10 mm | 22.9 mm | 2.73 g |
+
+- [ ] Build-up done from real weights once parts arrive, and the result under 52 mm.
+- [ ] Re-check after any ballast is added — ballast goes forward **and low** for this reason.
+
 #### Decision 3 — where the μ measurement happens
 
 Grip drives acceleration *and* the final drive ratio (`accel.py --match`), and it is still a guess.
