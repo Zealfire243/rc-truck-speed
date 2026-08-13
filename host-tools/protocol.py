@@ -38,6 +38,11 @@ FLAGS = (
 # Flags that mean stop what you are doing and look at the truck.
 CRITICAL_FLAGS = frozenset({"estop", "desync", "oc_trip", "overtemp", "obs_lost"})
 
+# Fitted-tire profiles. `speed` and `wide` share a 70 mm OD, so they report
+# identical speeds and carry identical caps — they differ only in grip, which
+# is why the log records width separately.
+TIRE_PROFILES = ("street", "speed", "wide")
+
 PARAMS = (
     "pid.kp", "pid.ki", "pid.kd", "pid.ff",
     "foc.kp_i", "foc.ki_i", "foc.id_ref",
@@ -72,6 +77,7 @@ class Telemetry:
     # computed from this, so a log without it is a log you cannot trust.
     tire: str | None = None
     tire_od: float | None = None
+    tire_w: float | None = None
 
     @property
     def has_critical_flag(self) -> bool:
@@ -121,6 +127,7 @@ def as_telemetry(obj: dict[str, Any]) -> Telemetry | None:
         flags=list(obj.get("flags", [])),
         tire=obj.get("tire"),
         tire_od=obj.get("tire_od"),
+        tire_w=obj.get("tire_w"),
     )
 
 
@@ -175,6 +182,9 @@ class CommandBuilder:
         wrong one makes the speed cap fail open. Hosts should surface the
         active profile prominently rather than treating it as a normal param.
         """
+        if name not in TIRE_PROFILES:
+            raise ValueError(f"unknown tire profile {name!r}, "
+                             f"expected one of {TIRE_PROFILES}")
         return self.set("tire.profile", name)
 
     def mode(self, value: str):

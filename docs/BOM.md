@@ -92,6 +92,7 @@ Mostly consumables, because this phase is where things break. That's its job.
 | Item | Notes | ~$ |
 |---|---|---|
 | **Foam tires + wheels**, 70 mm OD (`speed`) | The second configuration — same chassis, same gearing, 70 mph. Wheels sit proud of the arches. Also rated above 8,600 rpm; wheel RPM is identical to the street set. | 25–50 |
+| **Foam tires + wheels**, 70 mm OD × ~35 mm wide (`wide`) | The grip configuration — same OD as the `speed` set, so identical top speed and wheel RPM, quicker launch. **Verify its RPM rating separately: same OD does not mean same rating**, since a wider carcass carries more mass at radius. If it comes back lower, drop that profile's ceiling. | 30–55 |
 | Ride-height adjusters | Shock collars or adjustable links, to give back the 7.5 mm of CG the bigger tire adds. A few grams. Powered actuators are a separate, later decision — see [MECHANICAL.md](MECHANICAL.md#ride-height-and-the-tire-swap). | 15 |
 | Wheel balancer | At 10,900 rpm imbalance is a real force. | 20 |
 | Radar gun | Only if you want the number to be official. GPS is enough to know. | 100+ |

@@ -126,6 +126,18 @@ float safety_effective_ceiling(const safety_t *s);
  *  Never use a hardcoded constant for this — see pin_map.h. */
 float safety_mph_from_rpm(const safety_t *s, float motor_rpm);
 
+/** Maximum useful acceleration for the fitted tires, m/s^2 — simply mu*g.
+ *
+ *  Launch control should slew the setpoint no faster than this. Ramping harder
+ *  does not accelerate the truck; it just spins the tires, which is slower AND
+ *  destroys the tires you are trying to run a record on. Feed this into
+ *  `speed_loop.accel_limit` (converted to motor RPM/s) rather than tuning a
+ *  slew rate by feel.
+ *
+ *  Only as good as the profile's `mu_nominal` — an estimate until Phase 4
+ *  measures it. */
+float safety_launch_accel_mps2(const safety_t *s);
+
 void safety_note_rc_frame(safety_t *s, uint32_t now_ms);
 void safety_estop(safety_t *s, bool engaged);
 bool safety_clear_fault(safety_t *s);

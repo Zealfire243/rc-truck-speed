@@ -61,7 +61,7 @@ consumer's.
 ### 3.1 `hello` — sent once on boot
 
 ```json
-{"t":"hello","proto":1,"fw":"0.1.0","app":"bringup","axles":2,"hz":50,"cap_mph":20.0,"tire":"street","tire_od":55.0}
+{"t":"hello","proto":1,"fw":"0.1.0","app":"bringup","axles":2,"hz":50,"cap_mph":20.0,"tire":"street","tire_od":55.0,"tire_w":22.0}
 ```
 
 | Field | Type | Meaning |
@@ -72,8 +72,9 @@ consumer's.
 | `axles` | int | Axles reporting real data. `1` in Phases 1–2, `2` from Phase 3. |
 | `hz` | int | Nominal telemetry rate. |
 | `cap_mph` | float | **The speed cap in force.** A host MUST display this prominently. |
-| `tire` | string | Active tire profile — `"street"` (55 mm) or `"speed"` (70 mm). A host MUST display this prominently too; see the warning below. |
+| `tire` | string | Active tire profile — `"street"` (55×22), `"speed"` (70×25), or `"wide"` (70×35). A host MUST display this prominently too; see the warning below. |
 | `tire_od` | float | Tire OD in mm for the active profile. Every speed figure in `tlm` is computed from it. |
+| `tire_w` | float | Tire width in mm. Does **not** affect any speed figure — it is recorded so a log identifies which tires produced it, which is what makes per-tire μ measurements attributable. |
 
 > **Why `tire` is displayed as loudly as `cap_mph`.** Tire OD feeds the speed
 > calculation, which feeds the cap. If 70 mm tires are fitted while the
@@ -190,7 +191,7 @@ Every command carries an `id` (uint16, host-assigned, incrementing). Hosts SHOUL
 | `split.bias` | float | -1…1 | Front/rear torque split. `0` even, `-1` all front, `+1` all rear. |
 | `tc.gain` | float | ≥ 0 | Traction control authority. `0` disables. |
 | `tc.deadband` | float | ≥ 0 | Slip ratio below which traction control does nothing. |
-| `tire.profile` | string | `street` \| `speed` | **Which tires are fitted.** Rebinds the speed calculation and the cap ceiling together so they cannot be mismatched. Selecting a lower profile immediately pulls `cap.mph` down if it was above the new ceiling; selecting a higher one never auto-raises it. |
+| `tire.profile` | string | `street` \| `speed` \| `wide` | **Which tires are fitted.** Rebinds the speed calculation and the cap ceiling together so they cannot be mismatched. `speed` and `wide` share a 70 mm OD, so they behave identically for speed and cap purposes and differ only in grip. Selecting a lower profile immediately pulls `cap.mph` down if it was above the new ceiling; selecting a higher one never auto-raises it. |
 | `tlm.hz` | int | 1…200 | Telemetry rate. |
 | `bringup.duty` | float | -1…1 | **Phase 1 app only.** Open-loop duty. Still subject to `limit.iq`. |
 | `bringup.freq` | float | ≥ 0 | **Phase 1 app only.** Forced commutation electrical frequency, Hz. |

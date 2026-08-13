@@ -17,9 +17,22 @@
  * rating -- 55 mm -> 55.4 mph, 70 mm -> 70.5 mph. They are derived from the
  * TIRE, so changing FINAL_DRIVE does not move them. See pin_map.h. */
 const tire_profile_t TIRE_PROFILES[TIRE_PROFILE_COUNT] = {
-    [TIRE_PROFILE_STREET] = { "street", 55.0f, 55.0f },
-    [TIRE_PROFILE_SPEED]  = { "speed",  70.0f, 70.0f },
+    /*                      name       OD    width   cap    mu   */
+    [TIRE_PROFILE_STREET] = { "street", 55.0f, 22.0f, 55.0f, 1.05f },
+    [TIRE_PROFILE_SPEED]  = { "speed",  70.0f, 25.0f, 70.0f, 1.10f },
+    [TIRE_PROFILE_WIDE]   = { "wide",   70.0f, 35.0f, 70.0f, 1.20f },
 };
+
+/* `wide` shares `speed`'s OD, so it shares its ceiling and its wheel RPM
+ * exactly -- width does not enter the speed calculation. It is a separate
+ * profile because grip differs, and grip is what the log needs to record and
+ * what launch control needs to know. See pin_map.h.
+ *
+ * mu_nominal values are ESTIMATES. Replace each one with a Phase 4
+ * measurement: full throttle from a standstill, a = dv/dt off the GPS trace,
+ * mu = a/g. Note that mu is really a (tire, surface) property -- what you
+ * store here is the grip of that tire on the surface you measured, which is
+ * fine as long as you run the same kind of pavement. */
 
 void safety_init(safety_t *s)
 {
@@ -51,6 +64,12 @@ float safety_effective_ceiling(const safety_t *s)
 float safety_mph_from_rpm(const safety_t *s, float motor_rpm)
 {
     return motor_rpm * RPM_TO_MPH_FOR(TIRE_PROFILES[s->profile].tire_od_mm);
+}
+
+float safety_launch_accel_mps2(const safety_t *s)
+{
+    /* a_max = mu * g. Mass cancels: traction force is mu*m*g and a = F/m. */
+    return TIRE_PROFILES[s->profile].mu_nominal * 9.80665f;
 }
 
 bool safety_set_profile(safety_t *s, tire_profile_id_t profile)

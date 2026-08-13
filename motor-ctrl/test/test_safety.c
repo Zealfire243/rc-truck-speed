@@ -95,6 +95,43 @@ int main(void)
         ok(buf, declared <= mph_at_rating + 1.0f);
     }
 
+    printf("\nWIDE shares SPEED's diameter: same speed, same cap, more grip\n");
+    /* Width does not enter the speed calculation at all -- speed comes from OD
+     * and gearing. So `wide` must be indistinguishable from `speed` everywhere
+     * the cap logic looks, and differ only in grip. If a future edit gives
+     * `wide` a different OD, these catch it. */
+    safety_set_profile(&s, TIRE_PROFILE_SPEED);
+    float mph_narrow = safety_mph_from_rpm(&s, 20000.0f);
+    float ceil_narrow = safety_effective_ceiling(&s);
+    float mu_narrow = safety_launch_accel_mps2(&s);
+
+    safety_set_profile(&s, TIRE_PROFILE_WIDE);
+    near("wide reports the same speed as speed",
+         safety_mph_from_rpm(&s, 20000.0f), mph_narrow);
+    near("wide has the same effective ceiling",
+         safety_effective_ceiling(&s), ceil_narrow);
+    ok("wide is actually wider",
+       TIRE_PROFILES[TIRE_PROFILE_WIDE].tire_width_mm >
+       TIRE_PROFILES[TIRE_PROFILE_SPEED].tire_width_mm);
+    ok("wide grips harder, so allows a faster launch ramp",
+       safety_launch_accel_mps2(&s) > mu_narrow);
+
+    /* Launch limit is mu*g and nothing else -- mass cancels, because traction
+     * force is mu*m*g and acceleration is F/m. */
+    near("launch limit is mu*g",
+         safety_launch_accel_mps2(&s),
+         TIRE_PROFILES[TIRE_PROFILE_WIDE].mu_nominal * 9.80665f);
+
+    printf("\nEvery profile's ceiling stays tire-derived\n");
+    for (int i = 0; i < TIRE_PROFILE_COUNT; i++) {
+        float od_m = TIRE_PROFILES[i].tire_od_mm / 1000.0f;
+        float mph_at_rating = 8600.0f / 60.0f * (3.14159265f * od_m) / 0.44704f;
+        char buf[80];
+        snprintf(buf, sizeof buf, "%-6s ceiling within its tire rating",
+                 TIRE_PROFILES[i].name);
+        ok(buf, TIRE_PROFILES[i].cap_ceiling_mph <= mph_at_rating + 1.0f);
+    }
+
     printf("\nEffective ceiling is the LOWER of phase gate and profile\n");
     /* Compiled phase ceiling is 20 mph (Phase 4). Neither profile may exceed
      * it, because the TRUCK has not been proven past 20 regardless of tires. */

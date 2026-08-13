@@ -55,10 +55,17 @@ It is retired now, by gearing rather than by compromise.
 
 One chassis, one motor, one final drive. Top speed changes by changing wheels:
 
-| Profile | Tire | Top speed | Wheel RPM |
-|---|---|---|---|
-| `street` | 55 mm, tucks in the stock arches | 55 mph | **8,537** |
-| `speed` | 70 mm, wheels proud | 70 mph | **8,537** |
+| Profile | Tire | Top speed | Wheel RPM | μ (est.) |
+|---|---|---|---|---|
+| `street` | 55 × 22, tucks in the stock arches | 55 mph | **8,537** | 1.05 |
+| `speed` | 70 × 25, wheels proud | 70 mph | **8,537** | 1.10 |
+| `wide` | 70 × 35, same OD, more grip | 70 mph | **8,537** | 1.20 |
+
+`speed` and `wide` share a diameter, so they are identical for every speed and
+cap purpose — same ceiling, same wheel RPM, same gearing math. They differ only
+in grip, which is the acceleration lever. `wide` is the configuration to run
+when you want a quicker launch, and it is where the Phase 4 μ measurement pays
+off most.
 
 **Wheel RPM is identical in both.** That is the whole trick, and it is not
 obvious: the motor's RPM ceiling divided by the final drive sets wheel RPM
@@ -124,9 +131,17 @@ pressure, and contact pressure is a property of the foam's stiffness — so at a
 given load and width, a larger diameter changes patch *shape* (longer, narrower)
 more than patch *area*.
 
-**So go as wide as the arches and the track allow.** It is the one tire choice
-that improves acceleration directly, and unlike compound it costs nothing in
-tire life. Just check the grip is usable at your gearing first —
+**So go as wide as the arches and the track allow** — that is the `wide`
+profile. It is the one tire choice that improves acceleration directly, and
+unlike compound it costs nothing in tire life.
+
+Be honest about the magnitude though: 22 → 35 mm is a 59% width increase and
+buys perhaps 5–10% of μ from load sensitivity alone. **Compound is the bigger
+lever.** The `wide` profile is specced at μ = 1.20 assuming both.
+
+Packaging cost: a wider tire at fixed track either pushes the wheels further
+out (more frontal area, more wheel wake) or further in (fouling the chassis).
+Decide which in the Phase 4 packaging study, not at the track. Just check the grip is usable at your gearing first —
 [BUILD_PHASES.md Phase 0](BUILD_PHASES.md#phase-0--numbers-before-parts) has the
 matched-ratio table.
 

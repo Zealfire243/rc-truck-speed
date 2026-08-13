@@ -182,14 +182,51 @@ typedef enum {
 typedef struct {
     const char *name;
     float tire_od_mm;
+    float tire_width_mm;
     float cap_ceiling_mph;   /**< profile's own ceiling, before the phase gate */
+    float mu_nominal;        /**< grip estimate; replace with Phase 4 measurement */
 } tire_profile_t;
 
 typedef enum {
-    TIRE_PROFILE_STREET = 0,   /**< 55 mm, tucks in the stock arches */
-    TIRE_PROFILE_SPEED  = 1,   /**< 70 mm, for the record attempt     */
-    TIRE_PROFILE_COUNT  = 2,
+    TIRE_PROFILE_STREET = 0,   /**< 55 x 22, tucks in the stock arches   */
+    TIRE_PROFILE_SPEED  = 1,   /**< 70 x 25, for the record attempt      */
+    TIRE_PROFILE_WIDE   = 2,   /**< 70 x 35, same speed, more grip       */
+    TIRE_PROFILE_COUNT  = 3,
 } tire_profile_id_t;
+
+/* ---------------------------------------------------------------------------
+ * WHY WIDTH IS A PROFILE FIELD BUT DOES NOT MOVE THE CAP
+ * ---------------------------------------------------------------------------
+ *
+ * Speed is computed from OD and gearing, so width does not enter it at all.
+ * `wide` shares `speed`'s 70 mm OD and therefore its exact ceiling and its
+ * exact wheel RPM. Nothing about the speed-cap logic changes.
+ *
+ * What width changes is GRIP, and grip is the acceleration lever. Rubber and
+ * foam do not obey F = mu*N -- elastomer friction carries adhesion and
+ * hysteresis terms that make mu load-sensitive, falling as contact pressure
+ * rises (roughly mu ~ N^-0.15). A wider tire at the same load runs lower
+ * pressure and grips harder.
+ *
+ * Be honest about the size of that effect though: 22 -> 35 mm is a 59% width
+ * increase and buys maybe 5-10% of mu on load sensitivity alone. COMPOUND is
+ * the bigger lever. `wide` is specced at mu 1.20 on the assumption of both.
+ *
+ * So width is here for two real reasons, neither of them the cap:
+ *
+ *   1. The log has to say which tires produced which run. You will be
+ *      measuring mu per tire set in Phase 4 and choosing the final drive from
+ *      it (accel.py --match) -- the profile is how a measurement gets attached
+ *      to the tires that produced it.
+ *   2. mu_nominal gives launch control a tire-aware slew limit. Maximum useful
+ *      acceleration is mu*g; ramping the setpoint faster than that just spins
+ *      the tires. See safety_launch_accel_mps2().
+ *
+ * !! DO NOT ASSUME THE WIDE TIRE INHERITS THE NARROW ONE'S RPM RATING. Same
+ * !! OD does not mean same rating -- a wider carcass carries more mass at
+ * !! radius and sees higher centrifugal stress. Verify it separately, and if
+ * !! it comes back lower, drop this profile's cap_ceiling_mph to match.
+ * ------------------------------------------------------------------------- */
 
 extern const tire_profile_t TIRE_PROFILES[TIRE_PROFILE_COUNT];
 
