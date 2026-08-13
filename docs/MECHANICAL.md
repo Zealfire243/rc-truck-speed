@@ -42,7 +42,36 @@ new mass and watch how little changes.
 
 ### Tires
 
-The constraint nobody plans for. At the Phase 8 working point a 65 mm tire is turning **9,195 rpm**.
+The constraint nobody plans for. At the Phase 8 working point a 70 mm tire is turning **8,538 rpm**.
+
+### Picking the diameter
+
+`gearing.py` at 4S and 3.5:1, everything else held constant:
+
+| Tire OD | Wheel RPM | Motor RPM | Required kV |
+|---|---|---|---|
+| 50 mm | 11,953 | 41,835 | 3,418 |
+| 55 mm | 10,866 | 38,032 | 3,107 |
+| 60 mm | 9,961 | 34,863 | 2,848 |
+| 65 mm | 9,195 | 32,181 | 2,629 |
+| **70 mm** | **8,538** | **29,882** | **2,441** |
+| 75 mm | 7,969 | 27,890 | 2,279 |
+| 80 mm | 7,471 | 26,147 | 2,136 |
+
+Bigger tires win on every electrical axis at once — lower wheel RPM so the tire
+survives, lower motor RPM so the bearings survive, lower kV so the motor runs
+cooler and more efficiently. Going 50 → 70 mm cuts required kV by 29%.
+
+The cost is mechanical and small: each 5 mm of diameter raises the axle 2.5 mm,
+and CG height is the thing this vehicle can least afford. Plus rotating inertia
+and a little frontal area.
+
+**70 mm is the balance point**, and it lands in 1/10 pan-car / oval foam tire
+territory — a product category built for exactly this duty, glued to rims, with
+published specs. Shop there rather than for "1/18 tires."
+
+**Before committing: measure the body's actual wheel arch opening.** The largest
+tire that clears without major trimming may decide this for you.
 
 - **Foam only above ~40 mph.** Rubber tires balloon under centrifugal load — the diameter grows,
   which changes your effective gearing mid-run, and then the tire delaminates. This is the single
