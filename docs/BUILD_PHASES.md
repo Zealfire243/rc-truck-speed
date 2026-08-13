@@ -134,7 +134,7 @@ the full RPM range.
 **Pass criteria:**
 
 - [ ] Holds a commanded RPM within ~3% unloaded, from the observer handover threshold up to
-      **full Phase 8 motor RPM** — 32,000+. Test the top of the range now, on the bench, with no
+      **full Phase 8 motor RPM** — 30,000. Test the top of the range now, on the bench, with no
       wheel. Finding an observer that falls apart at 28,000 rpm is much cheaper here.
 - [ ] Startup ramp hands over to the observer cleanly, **20 attempts in a row**, no stalls and no
       audible cogging at handover.
