@@ -60,9 +60,29 @@ Two things fall out of it that are worth designing around:
 > that — see [ride height and the tire swap](#ride-height-and-the-tire-swap).
 > Measure the vibration before trusting a large range.
 
-The remaining drive-unit question is spool vs differential — see
-[Phase 4a](BUILD_PHASES.md#4a--the-packaging-study). Independent uprights do not
-settle it: a spool simply means both output shafts are locked together.
+### Spool vs differential — front decided
+
+| Axle | Choice | Status |
+|---|---|---|
+| **Front** | **Differential** | **Decided.** A spooled front fights the steering directly, and on a 190 mm wheelbase that push is not a small effect. |
+| **Rear** | — | Open. Spool is the lean — straight-line duty, simplest, strongest — but it is not settled, and it must be before the rear drive unit is drawn. |
+
+Independent uprights do not settle this: a spool simply means both output
+shafts are locked together.
+
+**The front diff has a firmware consequence, and it is the one that argued
+against diffs in the first place.** A differential lets a single wheel spin up
+freely, so a front wheel lifting over a pavement seam spikes front motor RPM
+with nothing actually wrong. Because speed is derived from motor RPM and the
+desync interlock compares the two axles, a naive detector would read that as an
+axle failure and cut both channels — **total loss of drive at 60 mph, over a
+bump.**
+
+That is handled rather than accepted. The detector now scales its threshold with
+speed and requires the divergence to persist for 50 ms before latching, which
+rejects a wheel lift (tens of milliseconds) while still catching a stripped gear
+or a dead inverter (which do not heal). The trade is explicit: up to 50 ms of
+genuine desync is tolerated so that a bump cannot cut drive. See `pin_map.h`.
 
 > **Open item — left/right within each drive unit.** Spool or differential has
 > not been decided, and it is a housing-geometry input, so it must be settled

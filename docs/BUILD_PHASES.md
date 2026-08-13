@@ -369,8 +369,16 @@ There is a software mitigation worth knowing about if you spool the front: bias 
 rearward at low speed, which de-torques the front axle where the scrub actually hurts. Clever, and
 not a substitute for getting the mechanical choice right.
 
-- [ ] **Decision recorded** in [MECHANICAL.md](MECHANICAL.md#drivetrain-arrangement) with the
-      reasoning, before the drive-unit housing is drawn.
+**Status:** **front is a differential — decided.** The rear is still open; spool
+remains the lean, and it must be settled before the rear drive unit is drawn.
+
+The front diff was chosen knowing it reintroduces the wheel-slip signal problem,
+and the firmware absorbs that rather than ignoring it: the desync detector now
+scales with speed and requires 50 ms of persistence before latching, so a front
+wheel lifting over a seam cannot cut drive at speed. See `pin_map.h`.
+
+- [ ] **Rear decision recorded** in [MECHANICAL.md](MECHANICAL.md#spool-vs-differential--front-decided)
+      with the reasoning, before the rear drive-unit housing is drawn.
 
 #### Decision 2 — wheel offset for the `wide` tires
 

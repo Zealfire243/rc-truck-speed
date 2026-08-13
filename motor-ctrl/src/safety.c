@@ -43,6 +43,8 @@ void safety_init(safety_t *s)
     s->iq_limit = IQ_LIMIT_A;
     s->last_rc_ms = 0;
     s->overrun_count = 0;
+    s->desync_pending = false;
+    s->desync_since_ms = 0;
 
     /* Boot into the SLOWER profile. If the human forgets to select one, the
      * failure is "the truck is slower than expected", not "the cap is set for
@@ -134,6 +136,7 @@ bool safety_clear_fault(safety_t *s)
         return false;   /* estop outranks a clear request */
     }
     s->fault_latched = false;
+    s->desync_pending = false;
     s->flags &= ~(uint32_t)(FLAG_DESYNC | FLAG_OBS_LOST | FLAG_OC_TRIP);
     return true;
 }
@@ -167,16 +170,36 @@ safety_action_t safety_check(safety_t *s,
     }
 
     /* --- Axle desync -----------------------------------------------------
-     * Both channels compared in the same tick, and BOTH cut. Never one. */
+     * Both channels compared in the same tick, and BOTH cut. Never one.
+     *
+     * Threshold is proportional to speed with a floor, and the divergence must
+     * PERSIST before it latches — because the front differential lets a single
+     * lifted or slipping wheel spike front motor RPM with nothing actually
+     * wrong. See pin_map.h for the reasoning and the trade. */
 #if AXLES_POPULATED > 1
     float divergence = rpm[AXLE_FRONT] - rpm[AXLE_REAR];
     if (divergence < 0.0f) {
         divergence = -divergence;
     }
-    if (divergence > DESYNC_RPM) {
-        s->flags |= FLAG_DESYNC;
-        s->fault_latched = true;
-        return SAFETY_LATCH;
+
+    float mag_f = rpm[AXLE_FRONT] < 0.0f ? -rpm[AXLE_FRONT] : rpm[AXLE_FRONT];
+    float mag_r = rpm[AXLE_REAR] < 0.0f ? -rpm[AXLE_REAR] : rpm[AXLE_REAR];
+    float threshold = DESYNC_FRAC * 0.5f * (mag_f + mag_r);
+    if (threshold < DESYNC_RPM_FLOOR) {
+        threshold = DESYNC_RPM_FLOOR;
+    }
+
+    if (divergence > threshold) {
+        if (!s->desync_pending) {
+            s->desync_pending = true;
+            s->desync_since_ms = now_ms;
+        } else if (now_ms - s->desync_since_ms >= DESYNC_PERSIST_MS) {
+            s->flags |= FLAG_DESYNC;
+            s->fault_latched = true;
+            return SAFETY_LATCH;
+        }
+    } else {
+        s->desync_pending = false;
     }
 #else
     (void)rpm;

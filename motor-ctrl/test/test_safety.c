@@ -196,15 +196,51 @@ int main(void)
     ok("estop blocks a fault clear", !safety_clear_fault(&s));
     near("no torque under estop", safety_limit_torque(&s, 20.0f, 0.0f), 0.0f);
 
-    printf("\nAxle desync cuts BOTH channels\n");
+    printf("\nAxle desync must PERSIST before it latches\n");
+    /* The front axle runs a differential, so one wheel lifting over a seam
+     * spikes front motor RPM with nothing wrong. An instantaneous latch would
+     * cut all drive at speed over a bump — which is the very failure the
+     * interlock exists to prevent. See pin_map.h. */
     safety_init(&s);
     safety_note_rc_frame(&s, 1000);
     float split[AXLE_COUNT] = {9000.0f, 4000.0f};
-    ok("divergence past threshold latches",
-       safety_check(&s, split, temp, 14.4f, 5.0f, 1000) == SAFETY_LATCH);
+    float synced[AXLE_COUNT] = {9000.0f, 9000.0f};
+
+    ok("a single diverged tick does NOT latch",
+       safety_check(&s, split, temp, 14.4f, 5.0f, 1000) != SAFETY_LATCH);
+    ok("still not latched 20 ms in",
+       safety_check(&s, split, temp, 14.4f, 5.0f, 1020) != SAFETY_LATCH);
+
+    /* A wheel lift ends. The detector must forget it completely. */
+    safety_note_rc_frame(&s, 1030);
+    ok("divergence clearing resets the timer",
+       safety_check(&s, synced, temp, 14.4f, 5.0f, 1030) != SAFETY_LATCH);
+    ok("pending flag cleared", !s.desync_pending);
+    safety_note_rc_frame(&s, 1060);
+    ok("a later brief spike starts over, does not latch",
+       safety_check(&s, split, temp, 14.4f, 5.0f, 1060) != SAFETY_LATCH);
+
+    /* A real failure does not heal. */
+    safety_note_rc_frame(&s, 1120);
+    ok("sustained divergence past 50 ms DOES latch",
+       safety_check(&s, split, temp, 14.4f, 5.0f, 1120) == SAFETY_LATCH);
     ok("desync flag set", (s.flags & FLAG_DESYNC) != 0);
     near("both axles get zero torque",
          safety_limit_torque(&s, 20.0f, 5.0f), 0.0f);
+
+    printf("\nDesync threshold scales with speed\n");
+    /* 500 rpm apart is a real divergence at 5,000 rpm and noise at 25,000. */
+    safety_init(&s);
+    safety_note_rc_frame(&s, 1000);
+    float fast[AXLE_COUNT] = {25000.0f, 24500.0f};   /* 2% apart */
+    safety_check(&s, fast, temp, 14.4f, 5.0f, 1000);
+    ok("500 rpm apart at 25,000 rpm is not a desync", !s.desync_pending);
+
+    safety_init(&s);
+    safety_note_rc_frame(&s, 1000);
+    float slow[AXLE_COUNT] = {2000.0f, 1200.0f};     /* 800 rpm, 50% apart */
+    safety_check(&s, slow, temp, 14.4f, 5.0f, 1000);
+    ok("800 rpm apart at 1,600 rpm mean IS a desync", s.desync_pending);
 
     printf("\n%s (%d failures)\n\n",
            failures ? "FAILURES" : "ALL PASS", failures);

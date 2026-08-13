@@ -293,5 +293,33 @@ extern const tire_profile_t TIRE_PROFILES[TIRE_PROFILE_COUNT];
 #define OVERTEMP_FOLDBACK_C  80.0f
 #define OVERTEMP_CUT_C       95.0f
 #define VBAT_LOW_V           12.8f   /* 4S under load; 3.2 V/cell           */
-#define DESYNC_RPM           500.0f  /* axle divergence that cuts BOTH      */
+/* -------------------------------------------------------------------------
+ * AXLE DESYNC DETECTION
+ *
+ * The front axle runs a DIFFERENTIAL (decided in Phase 4a), which means a
+ * single front wheel lifting over a pavement seam or breaking traction spins
+ * up freely and spikes front motor RPM — with no axle failure whatsoever.
+ *
+ * A bare "divergence > 500 rpm, latch" check would treat that as a desync and
+ * cut both channels. **A nuisance latch at 60 mph is not a nuisance** — it is
+ * total loss of drive at speed, which is the thing the interlock exists to
+ * prevent. So the detector has to separate "a wheel slipped for a moment" from
+ * "an axle has actually failed":
+ *
+ *   PROPORTIONAL  500 rpm is a real divergence at 5,000 and noise at 25,000.
+ *                 Threshold scales with mean axle speed, with a floor so it
+ *                 stays meaningful at low speed.
+ *   PERSISTENT    A wheel lift is tens of milliseconds. A stripped gear, a
+ *                 dead inverter, or a lost observer does not heal. Requiring
+ *                 the divergence to hold for DESYNC_PERSIST_MS rejects the
+ *                 first and still catches the second.
+ *
+ * The trade is explicit and deliberate: we tolerate up to 50 ms of genuine
+ * desync in exchange for not cutting drive over a bump. The failure this
+ * guards against — asymmetric torque yawing the truck — develops over far
+ * longer than 50 ms.
+ * ------------------------------------------------------------------------- */
+#define DESYNC_RPM_FLOOR     300.0f  /* absolute floor, low-speed relevance  */
+#define DESYNC_FRAC          0.15f   /* fraction of mean axle rpm            */
+#define DESYNC_PERSIST_MS    50      /* must hold this long before latching  */
 #define RC_TIMEOUT_MS        100

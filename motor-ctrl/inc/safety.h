@@ -83,6 +83,11 @@ typedef struct {
 
     uint32_t last_rc_ms;
     uint32_t overrun_count;
+
+    /** Desync persistence tracking. A front differential lets one wheel spin
+     *  up freely, so divergence must be sustained to count. See pin_map.h. */
+    bool     desync_pending;
+    uint32_t desync_since_ms;
 } safety_t;
 
 void safety_init(safety_t *s);
