@@ -167,6 +167,51 @@ Mostly consumables, because this phase is where things break. That's its job.
 
 ---
 
+## Alternatives considered — controllers and power stages
+
+Ratings below are ballpark; verify against the datasheet for whatever you
+actually buy.
+
+### Controllers
+
+The requirement is specific: **two advanced-control timers** (3 complementary
+PWM pairs each, with break inputs) and **ADCs that can be triggered by the
+timer** so phase current is sampled at the same instant every PWM cycle. That
+second one eliminates most general-purpose micros.
+
+| Part | Verdict |
+|---|---|
+| **STM32G474** *(chosen)* | 170 MHz M4F, TIM1/TIM8/**TIM20** — three advanced timers, so a third channel is even possible. 5 ADCs. CORDIC accelerator sits exactly where `foc_sincos()` wants it. Purpose-built for this. |
+| STM32G431 | Same family, fewer ADCs and less RAM. What the B-G431B-ESC1 carries. No reason to prefer it once you own a G474. |
+| **TI C2000** (e.g. LAUNCHXL-F280049C) | Genuinely the best silicon for this — sub-cycle PWM resolution, very fast ADCs, a coprocessor for control math. The cost is a different toolchain (Code Composer), a much smaller hobby community, and a steeper start. If motor control itself were the project rather than the truck, this would be the pick. |
+| STM32H7 | Far more compute, similar motor peripherals. Overkill; the G474 is not the bottleneck. |
+| STM32F303 | The previous generation's motor-control part. Works, but slower and superseded. |
+| ESP32 / ESP32-S3 | **Not for the FOC layer.** No PWM-synchronized injected ADC conversion, which is the whole requirement. Correctly used as the supervisor — see [ARCHITECTURE.md](ARCHITECTURE.md). |
+| RP2040 / RP2350 | PIO is clever, but the ADC is slow and cannot be timer-triggered into a synchronized sample. Same disqualification. |
+
+### Power stages
+
+**Expect two different boards.** Nothing off-the-shelf is both convenient for
+bench bring-up and small enough for a 105 mm-wide truck. That is a real split,
+not a failure to shop properly.
+
+**Bring-up (bench, current-limited, convenience wins):**
+
+| Option | Notes |
+|---|---|
+| **X-NUCLEO-IHM08M1** *(chosen)* | ~15 A RMS / 30 A peak, 8–48 V, three-shunt. Plugs onto the Nucleo. Arduino-shield footprint, so useless in the truck. |
+| B-G431B-ESC1 | Integrated MCU + stage, compact. Dead-ends at Phase 3 (gate drivers hard-wired to its own MCU) and supply-constrained. |
+| TI BOOSTXL-DRV8305 | ~45 V, ~15 A, integrated current-sense amps. Pairs naturally with a C2000 LaunchPad. |
+
+**Flight hardware (~25 A, 4S, small and light):**
+
+| Option | Notes |
+|---|---|
+| **Custom DRV8353 / DRV8323 board** | Gate driver with integrated current-sense amplifiers, your FETs, your shunts, your layout. Smallest and lightest, and the only route that fits two stages in this truck properly. The risk is layout — shunt placement, Kelvin connections, and keeping analog away from switching nodes are what decide whether Phase 1's current readings are honest. |
+| Drone ESC hardware | Right size, right weight, right current, cheap. Either repurpose the power stage with your own gate drive, or take the documented off-ramp: flash **AM32** and command it over bidirectional DShot behind `inverter.h`. |
+| VESC / Flipsky (incl. dual-channel) | Open-source FOC, excellent firmware, and dual-channel boards exist. But they are built for e-skateboards — 200–300 g and rated for several times the current needed. Too big and heavy for a 1/16-class truck. |
+| ODrive S1 / Pro | Excellent hardware, open source, high current. Same problem: sized and priced for robotics, not for a 900 g truck. |
+
 ## Deliberately not on this list
 
 - **A commercial ESC.** The whole point of the STM32G4 route is that you're building the
