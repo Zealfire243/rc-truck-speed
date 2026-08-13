@@ -61,10 +61,28 @@ For this vehicle, in this regime, the answers are unusually clean:
       slow (5.3 s to 50); 45 A is identical to 20 A.
 
   MASS IS NEARLY IRRELEVANT TO BOTH.
-      Traction force is mu*m*g and acceleration is F/m, so m cancels. 700 g
-      does 0-50 in 2.48 s; 1300 g does it in 2.30 s — the heavier truck is
-      marginally QUICKER, because fixed rotating inertia is a smaller share of
-      it. Build light for safety, cost, and part stress. Not for performance.
+      Traction force is mu*m*g and acceleration is F/m, so m cancels.
+
+      This sim, holding mu constant, shows the heavier truck marginally
+      QUICKER — fixed rotating inertia is a smaller share of it. **That is an
+      artifact of constant mu**, the same modelling limitation described under
+      the mu entry below. Put load sensitivity back in (mu ~ m^-0.15) and it
+      reverses: heavier means higher contact pressure, lower mu, and slightly
+      LESS acceleration.
+
+          mass     a, constant mu     a, load-sensitive mu
+          700 g       10.07 m/s2            10.45 m/s2
+          900 g       10.22                 10.22
+         1300 g       10.39                  9.83
+
+      The two effects oppose and roughly cancel, so the honest answer is that
+      mass is neutral for acceleration — not that heavier is better. It is
+      still worse for crash energy, part stress, bearing loads, and rolling
+      resistance. Build light for those reasons.
+
+      What mass does NOT buy is grip in any useful sense. Absolute traction
+      force rises with weight, but so does the weight it has to accelerate, and
+      the two cancel exactly.
 
 So: gear for the top speed you want, because acceleration is free. If you want
 a quicker launch, the lever is grip — tire compound, surface, downforce — not

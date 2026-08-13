@@ -182,6 +182,35 @@ The spoiler is doing real work on rule 2 — it adds rear side-area and pushes t
 back. It came with the body and it happens to be exactly what a speed truck wants. Don't remove it
 for weight.
 
+#### The hard CG ceiling
+
+Track sets a limit that has nothing to do with feel. A vehicle rolls rather
+than slides when lateral acceleration exceeds `(track/2) / CG height`, so with
+a 125 mm track:
+
+| CG height | Rolls at | Verdict |
+|---|---|---|
+| 30 mm | 2.08 g | Slides first — good |
+| 40 mm | 1.56 g | Slides first — good |
+| 50 mm | 1.25 g | Slides first — thin |
+| **57 mm** | **1.10 g** | **Marginal — equals grip** |
+| 65 mm | 0.96 g | **Rolls first** |
+
+**Keep CG under ~57 mm**, and under ~52 mm once the `wide` tires raise μ to
+1.20. Above that the truck stops sliding when it loses grip and starts tipping
+instead, which at speed is the difference between a spin and a tumble.
+
+That number is the real constraint on stacking electronics. Floor area is not
+short — roughly 200 × 90 mm between the wheels — and **mass is not the problem
+either**, since it cancels in traction-limited acceleration. Height is the
+problem. A Nucleo with a shield stacked on it is ~40 mm tall before it is
+mounted on anything, which spends most of the budget on the least
+mass-efficient thing in the truck.
+
+Which makes the controller the same story as the power stage: **bring-up
+hardware, not flight hardware** — for height, not weight. The truck wants a
+flat custom board or a bare module lying low on the chassis floor.
+
 Ballast, if needed, goes **forward and low**. Adding 50 g at the front bumper is a legitimate
 stability fix and costs you almost nothing in top speed — go back and re-run `gearing.py` with the
 new mass and watch how little changes.
