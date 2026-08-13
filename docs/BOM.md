@@ -35,7 +35,7 @@ it for the price of one motor.
 | Item | Notes | ~$ |
 |---|---|---|
 | Second motor | Identical to the first. Order the *same* part, same batch if possible. | 30–60 |
-| Custom dual inverter board | This is where the B-G431B-ESC1 runs out — it's single-channel. Either two of them driven by one G4, or a purpose-built dual board. **Size the FETs for ~30 A continuous per channel with real headroom**, not the 6 A steady-state figure. | 40–150 |
+| Custom dual inverter board | This is where the B-G431B-ESC1 runs out — it's single-channel. Either two of them driven by one G4, or a purpose-built dual board. **Size the FETs for ~30 A continuous per channel.** `accel.py` shows launch force meets the traction ceiling at ~20 A — below that you are genuinely slower, above it you gain nothing. So 30 A is headroom over a real requirement, not a guess, and 45 A would be wasted copper. | 40–150 |
 | Gate drivers, FETs, shunts, bulk caps | If rolling your own power stage. | — |
 
 ---

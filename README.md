@@ -22,7 +22,7 @@ mule to an aluminum chassis at speed.
 |---|---|
 | [`motor-ctrl/`](motor-ctrl/) | STM32G4 (C) — the hard real-time layer. Dual 3-phase FOC, current sensing, rotor observer, RC input, and every safety interlock. Owns the motors outright. |
 | [`supervisor/`](supervisor/) | ESP32 (ESP-IDF, C) — GPS, telemetry logging, WiFi streaming, host link. **Not in the control path.** You must be able to yank it at speed and have nothing happen. |
-| [`host-tools/`](host-tools/) | Laptop-side Python — the gearing solver, live telemetry plotting, and interactive gain tuning over the serial link. |
+| [`host-tools/`](host-tools/) | Laptop-side Python — the gearing solver, the acceleration simulator, live telemetry plotting, and interactive gain tuning over the serial link. |
 | [`hardware/`](hardware/) | CAD (`cad/`) and print-ready (`print/`) files. Every structural part is designed as a flat blank plus bend lines from day one — see [MECHANICAL.md](docs/MECHANICAL.md). |
 | [`docs/`](docs/) | The phase plan, architecture, wiring, protocol, safety, mechanical design rules, and a phase-gated BOM. |
 
@@ -31,7 +31,8 @@ mule to an aluminum chassis at speed.
 Nothing has been bought yet, so the first thing to run is the solver, not a compiler:
 
 ```bash
-cd host-tools && uv run gearing.py --sweep
+cd host-tools && uv run gearing.py --sweep    # top speed vs tire and ratio
+cd host-tools && uv run accel.py --sweep      # acceleration, and what limits it
 ```
 
 That prints the tire × final-drive × pack table the whole build is designed around. See

@@ -33,9 +33,13 @@ with arithmetic instead of with a shopping cart.
 
 **Steps:**
 
-1. Run the solver:
+1. Run both solvers. `gearing.py` answers "how fast eventually"; `accel.py`
+   answers "how quickly, and what actually limits it" — you need both, and
+   they disagree by ~7% on top speed for reasons worth understanding (see
+   below).
    ```bash
    cd host-tools && uv run gearing.py --sweep
+   cd host-tools && uv run accel.py --sweep
    ```
 2. Pick a tire diameter and final drive that put required kV inside the 1200–3500 band with the
    pack you want. The current working point:
@@ -69,6 +73,30 @@ with arithmetic instead of with a shopping cart.
    6S at 4.0:1 is the upgrade path if Phase 6 shows heat as the limiter; the
    extra ~80 g costs almost nothing at top speed, which is aero-limited, not
    mass-limited.
+
+   **Gearing is a pure top-speed selector on this vehicle.** `accel.py` puts
+   0-50 mph at ~2.4 s across every ratio from 2.5:1 to 5:1, because the entire
+   run is traction-limited — the motors make ~1.7× more force than the tires
+   will transmit. So there is no acceleration-versus-top-speed trade to agonise
+   over: gear for the speed you want. If you want a quicker launch, the lever
+   is grip (μ 0.7 → 1.3 moves 0-50 from 4.0 s to 2.0 s), not the ratio, not
+   more inverter, and not less mass.
+
+   Two consequences worth acting on:
+
+   - **~20 A per motor is where launch force meets the traction ceiling.** 10 A
+     is genuinely slow; 45 A is identical to 20 A. The 30 A inverter spec is
+     right *as headroom*, not because the extra is usable.
+   - **Building light is for safety, cost, and part stress — not performance.**
+     Mass cancels in traction-limited acceleration, and a 1300 g truck actually
+     posts a marginally quicker 0-50 than a 700 g one.
+
+   **The two models disagree, and you should know which to trust when.**
+   `gearing.py` applies a generic 0.85 no-load-RPM factor and predicts 70 mph;
+   `accel.py` models back-EMF against real impedance and predicts 75. The truth
+   is in between — `accel.py` omits some losses, `gearing.py`'s 0.85 is a rule
+   of thumb borrowed from vehicles under far more load than this one. Treat the
+   pair as a bracket until Phase 2 bench data replaces both.
 
 3. **Size the inverters for peak, not steady state.** 6 A holds 70 mph; acceleration pulls several
    times that. Budget ~30 A continuous per channel with headroom above it.
@@ -302,10 +330,17 @@ Everything is proven. Now it's tires, aero, ballast, and a long enough piece of 
 **Steps:**
 
 1. Raise the cap 55 → 60 → 65 → 70, one run each, logs read between every step.
-2. Tune ballast and CG height for straight-line stability. The spoiler is doing real work here —
+2. Fit the ride-height actuators if you're building them. **Phase 8 is where
+   they belong** — they buy in-motion CG control (drop as speed builds, raise
+   for launch), which is a refinement on a truck that already works, not a
+   prerequisite for one. Phases 4–7 run static adjusters: shock collars or
+   adjustable links, a few grams, no failure modes. Re-run the Phase 4 and
+   Phase 6 gates after fitting them; four lead screws is four new failure
+   modes in the suspension.
+3. Tune ballast and CG height for straight-line stability. The spoiler is doing real work here —
    it moves the aerodynamic center of pressure rearward, which is stabilizing in yaw for the same
    reason fletching stabilizes an arrow. Keep the CG forward of it.
-3. GPS-verify. Radar only if you want the number to be official.
+4. GPS-verify. Radar only if you want the number to be official.
 
 **Pass criteria:**
 
