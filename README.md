@@ -1,7 +1,7 @@
 # rc-truck-speed
 
 A scratch-built RC speed truck: an inherited **Nikko 14620B** body (with its very good spoiler) over
-a stretched, scratch-built chassis with **two brushless motors, one per axle**, both commutated by a
+a stretched, scratch-built chassis with **two brushless motors, each parallel to the axle it drives**, both commutated by a
 single **STM32G4 running custom dual-channel FOC**. An ESP32 rides along as a supervisor — GPS,
 telemetry, logging — with no authority over the motors. Printed ABS/ASA chassis first, cut-and-bend
 aluminum later.
@@ -67,8 +67,8 @@ spins faster in the fast configuration than in the slow one. Run `gearing.py --s
 ```
   POWER  (confirm, don't design to)
     at the wheels              119 W
-    electrical                 175 W
-    pack current              12.2 A   (6.1 A per motor, steady state)
+    electrical                 158 W
+    pack current              11.0 A   (5.5 A per motor, steady state)
 ```
 
 Read that twice, because it reframes the whole project: **power is not the constraint.** Holding

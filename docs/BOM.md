@@ -35,7 +35,7 @@ it for the price of one motor.
 | Item | Notes | ~$ |
 |---|---|---|
 | Second motor | Identical to the first. Order the *same* part, same batch if possible. | 30–60 |
-| Custom dual inverter board | This is where the B-G431B-ESC1 runs out — it's single-channel. Either two of them driven by one G4, or a purpose-built dual board. **Size the FETs for ~30 A continuous per channel.** `accel.py` shows launch force meets the traction ceiling at ~20 A — below that you are genuinely slower, above it you gain nothing. So 30 A is headroom over a real requirement, not a guess, and 45 A would be wasted copper. | 40–150 |
+| Custom dual inverter board | This is where the B-G431B-ESC1 runs out — it's single-channel. Either two of them driven by one G4, or a purpose-built dual board. **Size the FETs for ~30 A continuous per channel.** `accel.py` shows launch force meets the traction ceiling at ~23 A — below that you are genuinely slower, above it you gain nothing. So 30 A is headroom over a real requirement, not a guess, and 45 A would be wasted copper. | 40–150 |
 | Gate drivers, FETs, shunts, bulk caps | If rolling your own power stage. | — |
 
 ---
@@ -48,7 +48,7 @@ it for the price of one motor.
 | Steering servo | Fast, metal-gear, decent torque. Not a cheap nylon-gear servo. | 20–40 |
 | **CRSF / ELRS receiver + transmitter** | CRSF gets you a 2–4 ms link versus SBUS's 7–14 ms. On this vehicle the RC link is the slowest thing that isn't you, so it's worth the money. | 80–200 |
 | Bearings | Wheel and driveline. Buy quality — 10,900 rpm finds cheap bearings. | 20–40 |
-| Drive gears, 3.5:1 | Per the Phase 0 math. Same ratio for both tire profiles — the gearing never changes. | 20–50 |
+| Drive gears, 2.5:1 (single spur pair, no bevel) | Per the Phase 0 math. Same ratio for both tire profiles — the gearing never changes. | 20–50 |
 | ABS or ASA filament | **Not PLA.** See [MECHANICAL.md](MECHANICAL.md#material). | 25–35 |
 | Fasteners, thread-lock, nutserts | Buy more than you think. | 30 |
 

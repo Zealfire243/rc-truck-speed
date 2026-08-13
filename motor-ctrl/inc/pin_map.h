@@ -120,7 +120,7 @@ typedef enum {
 /* -------------------------------------------------------------------------
  * TIRE PROFILES — the two-configuration plan.
  *
- * One chassis, two identical transaxles, one final-drive ratio. Top speed
+ * One chassis, two identical drive units, one final-drive ratio. Top speed
  * changes by changing wheels. The reason this works, and it is not obvious:
  *
  *   **Wheel RPM is constant across every tire size.** Motor RPM ceiling

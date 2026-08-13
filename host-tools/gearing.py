@@ -76,7 +76,9 @@ class Vehicle:
     crr: float = 0.020  # foam tires on asphalt
 
     # --- Efficiency -------------------------------------------------------
-    eta_drive: float = 0.85  # belt/gear final drive
+    eta_drive: float = 0.94  # single spur pair, motor parallel to axle, no
+                             # bevel. Drop to ~0.88 if a 90 deg drive is ever
+                             # added. See docs/MECHANICAL.md.
     eta_motor: float = 0.80  # motor + inverter, combined
     motors: int = 2
 
@@ -236,8 +238,8 @@ def sweep(v: Vehicle) -> None:
 def swap_table(v: Vehicle, kv: float, tire_rating_rpm: float = 8600.0) -> None:
     """Top speed per tire size at FIXED gearing and a FIXED motor.
 
-    This is the two-configuration plan: one chassis, two identical transaxles,
-    one final-drive ratio, and you change top speed by changing wheels.
+    This is the two-configuration plan: one chassis, two identical drive
+    units, one final-drive ratio, and you change top speed by changing wheels.
 
     The point that makes it work — and it is not obvious — is that **wheel RPM
     is constant across every tire size.** The motor's RPM ceiling divided by

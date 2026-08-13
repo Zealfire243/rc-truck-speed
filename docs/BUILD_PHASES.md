@@ -52,7 +52,7 @@ with arithmetic instead of with a shopping cart.
    | Motor RPM at the 70 mph cap | 21,345 (61% of no-load) |
    | **Wheel RPM at the cap — every configuration** | **8,537** |
    | Wheel RPM the drivetrain could reach *uncapped* | 11,951 (**+39% over tire rating**) |
-   | Steady-state draw | 175 W, 6.1 A per motor |
+   | Steady-state draw | 158 W, 5.5 A per motor |
 
    **Two tire configurations, one drivetrain.** Top speed changes by changing
    wheels, and nothing else changes at all:
@@ -91,9 +91,9 @@ with arithmetic instead of with a shopping cart.
 
    | Ratio | Motor wear | Grip usable to | Tire-overspeed margin |
    |---|---|---|---|
-   | 2.07:1 | best | μ 1.10 | +68% |
-   | **2.5:1** | 1.40× bearing life | μ 1.33 | +39% |
-   | 3.5:1 | baseline | μ 1.8+ | +7% |
+   | 1.87:1 | best | μ 1.10 | +86% |
+   | **2.5:1** | 1.40× bearing life | μ 1.47 | +39% |
+   | 3.5:1 | baseline | μ 2.0+ | +7% |
 
    Taller protects the motor and wastes grip and mechanical tire protection;
    shorter does the reverse. 2.5:1 is the current pick and it is provisional
@@ -105,7 +105,7 @@ with arithmetic instead of with a shopping cart.
 
    **Gearing costs nothing off the line, so spend it on motor longevity.**
    `accel.py` puts 0-50 mph at ~2.4 s across every ratio from 2.5:1 to 5:1,
-   because the entire run is traction-limited — the motors make ~1.7× more
+   because the entire run is traction-limited — the motors make ~1.3× more
    force than the tires will transmit. And the cap ceilings are set by the
    *tire's* rpm rating, not by gearing, so they don't move either. Gearing is
    therefore free, and the right thing to buy with it is rotational wear.
@@ -140,16 +140,16 @@ with arithmetic instead of with a shopping cart.
    looks flat there; grip enters through `--mu`.
 
    **⚠ These two choices interact, and the ratio is NOT free once grip
-   improves.** 2.5:1 leaves only 1.21× torque headroom over a μ = 1.1 traction
-   limit. Push grip past **μ ≈ 1.33** and the launch becomes current-limited —
-   wider or stickier tires then buy nothing:
+   improves.** 2.5:1 leaves ~1.3× torque headroom over a μ = 1.1 traction limit.
+   Push grip past **μ ≈ 1.47** and the launch becomes current-limited — wider or
+   stickier tires then buy nothing:
 
    | μ | 0-50 @ 2.5:1 | 0-50 @ 3.5:1 |
    |---|---|---|
    | 1.1 | 2.39 s | 2.39 s |
-   | 1.3 | 1.99 s | 1.99 s |
-   | 1.4 | **1.95 s — current-limited** | 1.84 s |
-   | 1.8 | **1.95 s — grip wasted** | 1.41 s |
+   | 1.4 | 1.84 s | 1.84 s |
+   | 1.5 | **1.75 s — current-limited** | 1.71 s |
+   | 1.8 | **1.75 s — grip wasted** | 1.45 s |
 
    So the ordering matters: **choose the tire, measure μ, then cut the gears.**
    `accel.py --match` solves for the ratio where launch torque exactly meets
@@ -158,12 +158,12 @@ with arithmetic instead of with a shopping cart.
 
    | Measured μ | Matched FD | Motor rpm at cap |
    |---|---|---|
-   | 1.0 | 1.88:1 | 16,066 |
-   | 1.1 | 2.07:1 | 17,672 |
-   | 1.3 | 2.45:1 | 20,886 |
-   | 1.5 | 2.82:1 | 24,099 |
+   | 1.0 | 1.70:1 | 14,528 |
+   | 1.1 | 1.87:1 | 15,980 |
+   | 1.3 | 2.21:1 | 18,886 |
+   | 1.5 | 2.55:1 | 21,792 |
 
-   2.5:1 is the matched ratio for μ ≈ 1.33. It is a *provisional* pick standing
+   2.5:1 is the matched ratio for μ ≈ 1.47. It is a *provisional* pick standing
    on a guessed μ — treat it as the working assumption to be replaced by the
    Phase 4 measurement, not as a decided number.
 
@@ -176,8 +176,8 @@ with arithmetic instead of with a shopping cart.
 
    Two consequences worth acting on:
 
-   - **~20 A per motor is where launch force meets the traction ceiling.** 10 A
-     is genuinely slow; 45 A is identical to 20 A. The 30 A inverter spec is
+   - **~23 A per motor is where launch force meets the traction ceiling.** 15 A
+     is genuinely slow; 45 A is identical to 23 A. The 30 A inverter spec is
      right *as headroom*, not because the extra is usable.
    - **Building light is for safety, cost, and part stress — not performance.**
      Mass cancels in traction-limited acceleration, and a 1300 g truck actually
@@ -324,17 +324,17 @@ Ackermann. Battery as low and as far forward as it will go.
 ### 4a — The packaging study
 
 **Do this in 2D before any 3D modelling.** Side view and top view, real dimensions, an hour of
-work. It answers the question that could invalidate the whole layout: *do two transaxles, a 4S
+work. It answers the question that could invalidate the whole layout: *do two drive units, a 4S
 pack, two inverters, the G4 and the ESP32 actually fit inside 105 mm of width at a 190 mm
 wheelbase?* Find that out in 2D in an hour, not in 3D after a week.
 
 Three decisions come out of it, and all three are inputs to housing geometry — which is a
 cut-and-bend part you want to design once.
 
-#### Decision 1 — spool or differential inside each transaxle
+#### Decision 1 — spool or differential in each drive unit
 
 Each axle can lock its two wheels together (spool) or let them turn independently (diff). This is
-a **housing-geometry input**, so it has to be settled before the transaxle is drawn, not after.
+a **housing-geometry input**, so it has to be settled before the drive unit is drawn, not after.
 
 | | Spool | Differential |
 |---|---|---|
@@ -368,7 +368,7 @@ rearward at low speed, which de-torques the front axle where the scrub actually 
 not a substitute for getting the mechanical choice right.
 
 - [ ] **Decision recorded** in [MECHANICAL.md](MECHANICAL.md#drivetrain-arrangement) with the
-      reasoning, before the transaxle housing is drawn.
+      reasoning, before the drive-unit housing is drawn.
 
 #### Decision 2 — wheel offset for the `wide` tires
 
@@ -382,7 +382,7 @@ Plan the measurement now: a straight, a known start line, and GPS logging — se
 
 ### 4b — Build it
 
-1. Print and assemble the chassis, transaxles, uprights, and steering.
+1. Print and assemble the chassis, drive units, uprights, and steering.
 2. Wire the CRSF receiver **directly to the G4** — not through the ESP32. See
    [ARCHITECTURE.md](ARCHITECTURE.md#why-the-receiver-goes-to-the-g4).
 3. Fit **static** ride-height adjusters — shock collars or adjustable links. Powered actuators are

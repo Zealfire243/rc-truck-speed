@@ -2,21 +2,42 @@
 
 ## Drivetrain arrangement
 
-**Two motors, one per axle, each in its own transaxle** — motor, reduction, and
-axle as a single unit, front and rear identical. This was settled early and
-everything else is downstream of it: the [dual-channel FOC on one
+**Two motors, one per axle, each mounted parallel to the axle it drives** —
+motor, reduction, and axle as one drive unit, front and rear identical. Settled
+early, and everything else is downstream of it: the [dual-channel FOC on one
 G4](ARCHITECTURE.md#why-one-g4-instead-of-two), the electronic torque split,
 the inter-axle slip signal traction control uses, and the desync interlock that
 cuts both channels rather than one.
+
+**Motor parallel to axle means a single spur reduction and no bevel gears.**
+That is worth more than it sounds. A 90° drive costs an extra mesh at ~93%
+efficiency and brings thrust loads, shimming, and a housing that has to locate
+two perpendicular axes precisely. A motor lying alongside its axle needs one
+spur pair — around 96% — with both shafts on parallel axes, which a folded
+sheet-metal housing locates far more easily than a bevel set.
+
+Concretely: motor pinion meshes a spur gear on the axle line at 2.5:1, and that
+is the entire transmission. Drivetrain efficiency in `gearing.py` and
+`accel.py` is set to **0.94** for that reason — if a bevel or 90° drive is ever
+added, drop it to ~0.88 and re-run both.
 
 There is no propshaft and no centre differential. The two axles are coupled
 only through the ground and through `split.bias`, which means **the electronic
 torque split IS the centre diff** — with no mechanical fallback if that code is
 wrong.
 
-> **Open item — left/right within each transaxle.** Spool or differential has
+> **Open item — live axle or independent.** Undecided, and separate from the
+> spool/diff question. A live axle (one shaft, wheels rigidly attached) is the
+> simplest thing the parallel-motor layout allows and puts the least between
+> the spur gear and the ground. It also puts the axle and part of the drive unit
+> into unsprung mass, which on a light truck crossing pavement seams at 70 mph
+> is the worst place for it. Independent uprights with CVDs cost parts and
+> complexity and keep unsprung mass low. Decide alongside the spool/diff call in
+> [Phase 4a](BUILD_PHASES.md#4a--the-packaging-study).
+
+> **Open item — left/right within each drive unit.** Spool or differential has
 > not been decided, and it is a housing-geometry input, so it must be settled
-> before the transaxle is drawn.
+> before the drive unit is drawn.
 >
 > The lean is **spool the rear** (straight-line duty, simplest, strongest) and
 > decide the front on how much cornering you actually want: spooled fronts
@@ -28,7 +49,7 @@ wrong.
 > cutting both channels at speed.** Spools keep that signal unambiguous.
 >
 > Full decision table in
-> [BUILD_PHASES.md § 4a](BUILD_PHASES.md#decision-1--spool-or-differential-inside-each-transaxle).
+> [BUILD_PHASES.md § 4a](BUILD_PHASES.md#decision-1--spool-or-differential-in-each-drive-unit).
 > **Record the decision and its reasoning here once made.**
 
 ## What size is this thing?
@@ -123,7 +144,7 @@ It is retired now, by gearing rather than by compromise.
 
 #### Two tire configurations, one drivetrain
 
-One chassis, two identical transaxles, one final-drive ratio. Top speed
+One chassis, two identical drive units, one final-drive ratio. Top speed
 changes by changing wheels and nothing else:
 
 | Profile | Tire | Rated RPM | Ceiling | μ (est.) |
