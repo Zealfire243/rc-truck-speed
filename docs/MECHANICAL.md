@@ -15,10 +15,60 @@ torque split IS the centre diff** — with no mechanical fallback if that code i
 wrong.
 
 > **Open item — left/right within each transaxle.** Spool or differential has
-> not been decided. A spool is lighter, simpler, and stronger, and a speed run
-> is a straight line; the cost is scrub and a fought steering feel every time
-> you turn the truck around, on a 190 mm wheelbase that already wants to be
-> twitchy. Decide it in the Phase 4 packaging study.
+> not been decided, and it is a housing-geometry input, so it must be settled
+> before the transaxle is drawn.
+>
+> The lean is **spool the rear** (straight-line duty, simplest, strongest) and
+> decide the front on how much cornering you actually want: spooled fronts
+> fight the steering badly on a 190 mm wheelbase.
+>
+> The argument specific to this truck: speed is derived from motor RPM and the
+> desync interlock compares the two axles, so an open diff lets a single
+> slipping wheel spike one axle's motor RPM and **false-trip the interlock,
+> cutting both channels at speed.** Spools keep that signal unambiguous.
+>
+> Full decision table in
+> [BUILD_PHASES.md § 4a](BUILD_PHASES.md#decision-1--spool-or-differential-inside-each-transaxle).
+> **Record the decision and its reasoning here once made.**
+
+## What size is this thing?
+
+Worth pinning down, because **the class is where you shop** — bearings, hubs,
+driveshafts, servos, and motor cans all come in class-shaped sizes.
+
+| | This build | 1/18 | 1/16 | 1/10 |
+|---|---|---|---|---|
+| Wheelbase | **190 mm** | ~160 | ~198 | 255–290 |
+| Track | **125 mm** | ~120 | ~150 | 190–200 |
+| Body length | **273 mm** | ~250 | ~290 | 400–450 |
+| Tire OD | **55–70 mm** | 55–65 | 65–70 | 60–68 (touring) |
+
+**It is a 1/16 by wheelbase, on a narrow 1/18-ish track, wearing a 1/18-ish
+body.** It is emphatically **not 1/10** — 1/10 means a 255–290 mm wheelbase and
+~190 mm of width, roughly half again this truck in every linear dimension.
+
+The mismatch is deliberate and it is the geometry stretch: a body that scales
+around 1/18 sitting over a chassis stretched to 1/16 proportions, which is
+exactly why the wheels end up proud of the arches.
+
+**What that means practically:**
+
+- **Shop 1/16 and 1/18 running gear.** Bearings, hubs, uprights, driveshafts.
+  1/10 parts are too big and too heavy, and their mass lands in the worst
+  possible places for a truck this size.
+- **Motors are 1/16-class, not 1/10-class.** Two motors at ~400 W peak each
+  wants roughly 28–30 mm diameter cans (380 / 28xx size). A 1/10 540-can is
+  overkill, heavy, and will not fit two-across in a 105 mm body.
+- **Tires cross classes on purpose.** 55 mm is 1/12 pan-car; 70 mm is 1/16
+  truck or 1/10 touring. The `record` config runs 1/10-touring-sized rubber on
+  a 1/16 chassis, which is where the "large wheeled" look comes from and is a
+  legitimate speed-run choice — bigger tires are lower wheel RPM at a given
+  road speed.
+
+For context on the target: RC speed records are usually set by 1/10 and 1/8
+cars with long wheelbases and long stability arms. **70 mph on a 1/16-class
+truck is genuinely aggressive** — at 31.3 m/s this thing covers about 115 of
+its own body lengths every second.
 
 ## Geometry
 
@@ -186,7 +236,7 @@ lever.** The `wide` profile is specced at μ = 1.20 assuming both.
 
 Packaging cost: a wider tire at fixed track either pushes the wheels further
 out (more frontal area, more wheel wake) or further in (fouling the chassis).
-Decide which in the Phase 4 packaging study, not at the track. Just check the grip is usable at your gearing first —
+Decide which in the [Phase 4 packaging study](BUILD_PHASES.md#4a--the-packaging-study), not at the track. Just check the grip is usable at your gearing first —
 [BUILD_PHASES.md Phase 0](BUILD_PHASES.md#phase-0--numbers-before-parts) has the
 matched-ratio table.
 

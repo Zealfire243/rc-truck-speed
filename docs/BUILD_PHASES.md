@@ -321,13 +321,82 @@ rather than a redesign.
 **Mechanical:** ~190 mm wheelbase, ~125 mm track, body sitting over it. Steering servo with real
 Ackermann. Battery as low and as far forward as it will go.
 
-**Steps:**
+### 4a — The packaging study
 
-1. Print and assemble the chassis, uprights, motor mounts, and steering.
+**Do this in 2D before any 3D modelling.** Side view and top view, real dimensions, an hour of
+work. It answers the question that could invalidate the whole layout: *do two transaxles, a 4S
+pack, two inverters, the G4 and the ESP32 actually fit inside 105 mm of width at a 190 mm
+wheelbase?* Find that out in 2D in an hour, not in 3D after a week.
+
+Three decisions come out of it, and all three are inputs to housing geometry — which is a
+cut-and-bend part you want to design once.
+
+#### Decision 1 — spool or differential inside each transaxle
+
+Each axle can lock its two wheels together (spool) or let them turn independently (diff). This is
+a **housing-geometry input**, so it has to be settled before the transaxle is drawn, not after.
+
+| | Spool | Differential |
+|---|---|---|
+| Weight / parts | Lighter, fewer parts, effectively unbreakable | ~20–40 g per axle, more to package, more to fail |
+| Straight line | Slight yaw-stability benefit | Neutral |
+| Turning | Scrubs; pushes on turn-in | Correct behaviour |
+| Under one-wheel slip | Torque still reaches the gripping wheel | Torque goes to the *slipping* wheel |
+| Wheel-speed signal | Unambiguous — motor rpm maps to both wheels | Corrupted by a lifted or slipping wheel |
+
+**The last row is the one specific to this truck, and it is easy to miss.** Speed is derived from
+motor RPM, and the desync interlock compares front motor RPM against rear. With open diffs, a
+single slipping or lifted wheel spikes that axle's motor RPM — which inflates computed speed and
+can **false-trip the desync interlock, cutting both channels at speed.** A nuisance trip at 60 mph
+is not a nuisance. Spools keep that signal clean.
+
+Front and rear do not have to match:
+
+- **Rear: spool.** Straight-line duty, simplest, strongest. This is what drag and oval cars do.
+- **Front: the actual decision.** A spooled front axle fights the steering directly — it is the
+  classic cause of understeer — and on a 190 mm wheelbase that is not a small effect.
+
+So the choice really turns on **how much non-straight-line driving you want**:
+
+- *Purely a speed machine* → spool both. It only has to hold a line and turn around at walking
+  pace, and the cleaner wheel-speed signal is worth real money to the control code.
+- *Also a 55 mph `street`-tire toy* → spool rear, diff front. You will be cornering it, and a
+  spooled front on this wheelbase will push badly and scrub the tires you are trying to preserve.
+
+There is a software mitigation worth knowing about if you spool the front: bias `split.bias`
+rearward at low speed, which de-torques the front axle where the scrub actually hurts. Clever, and
+not a substitute for getting the mechanical choice right.
+
+- [ ] **Decision recorded** in [MECHANICAL.md](MECHANICAL.md#drivetrain-arrangement) with the
+      reasoning, before the transaxle housing is drawn.
+
+#### Decision 2 — wheel offset for the `wide` tires
+
+A wider tire at fixed track either pushes the wheels further out (more frontal area, more wheel
+wake) or further in (fouling the chassis). Decide it here, with all three tire sets in the drawing.
+
+#### Decision 3 — where the μ measurement happens
+
+Grip drives acceleration *and* the final drive ratio (`accel.py --match`), and it is still a guess.
+Plan the measurement now: a straight, a known start line, and GPS logging — see 4c.
+
+### 4b — Build it
+
+1. Print and assemble the chassis, transaxles, uprights, and steering.
 2. Wire the CRSF receiver **directly to the G4** — not through the ESP32. See
    [ARCHITECTURE.md](ARCHITECTURE.md#why-the-receiver-goes-to-the-g4).
-3. Set the firmware speed cap to **20 mph** and confirm you cannot exceed it with the stick pinned.
-4. Drive it in a straight line somewhere empty.
+3. Fit **static** ride-height adjusters — shock collars or adjustable links. Powered actuators are
+   Phase 8; see [MECHANICAL.md](MECHANICAL.md#ride-height-and-the-tire-swap).
+4. Set `tire.profile` to match what is actually fitted, and the speed cap to **20 mph**. Confirm
+   you cannot exceed it with the stick pinned.
+
+### 4c — Drive it, and measure μ
+
+5. Drive it in a straight line somewhere empty.
+6. **Measure μ.** Full throttle from a standstill on each tire set, read `a = dv/dt` off the GPS
+   trace, μ = a/g. Put the numbers into `TIRE_PROFILES[].mu_nominal`, then re-run
+   `accel.py --match` and **cut the gears to the result.** Until this happens, the 2.5:1 ratio is a
+   guess resting on a guessed μ.
 
 **Pass criteria:**
 
@@ -338,6 +407,9 @@ Ackermann. Battery as low and as far forward as it will go.
       is off — fix it now, at 20 mph, not at 50.
 - [ ] Nothing on the truck is too hot to hold after a five-minute run. Motors, inverters, battery.
 - [ ] Wheels stay on. Check retention after every run in this phase.
+- [ ] **μ measured on every tire set you own**, written into `TIRE_PROFILES`, and the final drive
+      re-checked against `accel.py --match`. This is the measurement the whole gearing choice has
+      been waiting on — do not carry a guessed μ into Phase 6.
 
 ---
 
