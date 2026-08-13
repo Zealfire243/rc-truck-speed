@@ -12,7 +12,7 @@ Prices are rough, USD, for planning only — **check the linked pages, they move
 |---|---|
 | NUCLEO-G474RE | [ST](https://www.st.com/en/evaluation-tools/nucleo-g474re.html) · [DigiKey](https://www.digikey.com/en/products/detail/stmicroelectronics/NUCLEO-G474RE/497-19491-ND/10231585) · [Mouser](https://www.mouser.com/en/new/stmicroelectronics/stm-nucleo-g474re-board) |
 | X-NUCLEO-IHM08M1 | [ST](https://www.st.com/en/evaluation-tools/x-nucleo-ihm08m1.html) · [UM1996 manual](https://www.st.com/resource/en/user_manual/um1996-getting-started-with-xnucleoihm08m1-lowvoltage-bldc-motor-driver-expansion-board-based-on-stl220n6f7-for-stm32-nucleo-stmicroelectronics.pdf) |
-| B28-47-16S motor, 2400 kV | [HobbyKing](https://hobbyking.com/en_us/b28-47-16s-brushless-inrunner-motor-2400kv.html) |
+| Turnigy XK2845-1980KV motor | [HobbyKing](https://hobbyking.com/en_us/turnigy-xk2845-1980kv-brushless-inrunner.html) — B28-47-16S is discontinued |
 | ELRS nano receiver | [RadioMaster RP1](https://radiomasterrc.com/products/rp1-expresslrs-2-4ghz-nano-receiver) · [BetaFPV](https://betafpv.com/products/elrs-nano-receiver) |
 | 10 Hz GPS | [Holybro M10](https://holybro.com/products/m10-gps) |
 | Pan-car foam tires | [rcMart](https://www.rcmart.com/Foam-Tires-RC-Pan-Car) — covers 1:12, 1:10 and 1:8 |
@@ -64,6 +64,7 @@ therefore the final drive ratio.
 |---|---|---|
 | **Nucleo-G474RE** | **The final MCU, bought on day one.** G474 is what the vehicle ships with — TIM1 and TIM8 both free for dual-channel FOC, five ADCs, and no port from a different part later. Also actually in stock, which the B-G431B-ESC1 currently is not. | 20–25 |
 | **X-NUCLEO-IHM08M1** | Known-good 3-phase power stage that plugs straight onto the Nucleo. L6398 gate drivers + STL220N6F7 FETs, 8–48 V, three-shunt current sensing (jumpers J5/J6 to the 3-Sh side) — exactly the topology `current_sense.h` assumes, laid out by people who do this for a living. | 30–40 |
+| **Brushless motor ×2** | Same batch, open only one. See *Motor sizing* below — the previously listed B28-47-16S is **discontinued**. | 25–60 ea |
 | Bench supply, current-limited | Essential, not optional. You will be glad of the current limit. | 60–120 |
 | Oscilloscope access | For deadtime verification. Borrowed is fine; this is a handful of measurements. | — |
 | ST-Link / SWD debugger | On-board on both dev boards above. | — |
@@ -95,7 +96,44 @@ rig.
 > motor characterised, μ measured, and real current data from six phases of running — which is a far
 > better position to design a board from than guessing now.
 
-**Buy two motors, from the same batch — but only open one.**
+### Motor sizing — read before ordering
+
+The B28-47-16S (2400 kV, 470 W, 28 A) is discontinued. Replacing it exposed a relationship worth
+understanding, because it means **kV is not the thing to shop on.**
+
+Required wheel force is fixed by traction (μmg). Wheel force is `Kt × iq × FD`, and
+`Kt = 8.27/kV`. So if you re-gear to keep motor RPM where you want it, **kV cancels and the
+required current is the same.** Lower kV just means a shorter ratio. What kV actually changes is
+motor RPM at cruise — the wear axis — and lower wins there.
+
+So shop on **current and power rating**, then pick the ratio to suit.
+
+**The candidate in stock:** [Turnigy XK2845-1980KV](https://hobbyking.com/en_us/turnigy-xk2845-1980kv-brushless-inrunner.html)
+— 1980 kV, 4 poles (2 pole pairs, matches `POLE_PAIRS`), 28 × 46.5 mm case, 125 g, 2–4S,
+**220 W / 24 A max**, ~$24.
+
+Geared **2.34:1** at a **20 A** limit: full traction-limited launch (2.39 s to 50 mph), ~90 mph
+capability capped to 70, and 19,971 rpm at the cap — 70% of no-load, comfortably inside the
+bearing zone.
+
+> **It is tighter than the part it replaces.** 197 W peak per motor against 220 W rated is 10%
+> margin; 20 A against 24 A is 17%. Workable — and Phases 1–6 run at 15 A regardless — but there is
+> no room to raise `IQ_LIMIT_A` later. If you find a 28–35 mm inrunner with a higher power rating
+> for similar money, take it instead.
+
+**Strongly consider a sensored motor.** Hall sensors cost nothing to ignore if sensorless works,
+and the single biggest risk in Phase 2 is the observer failing to track *this particular motor* —
+low saliency or high inductance make the startup handover nasty. A sensored motor turns that from
+"buy a different motor and restart the phase" into "use the halls." Cheap insurance on the long
+pole.
+
+**Avoid:** 1/8-scale cans (42 mm+, ~300 g each — two would nearly double vehicle mass and force a
+chassis redesign), and the low-kV 1/10 car motors, most of which are rated 2–3S only.
+
+### Buy two, from the same batch — but only open one
+
+An earlier version of this file said buy one, to limit the loss if Phase 2 revealed the kV or RPM
+ceiling was wrong. That under-weighted the other side:
 
 An earlier version of this file said buy one, to limit the loss if Phase 2 revealed the kV or RPM
 ceiling was wrong. That under-weighted the other side:
@@ -107,13 +145,8 @@ ceiling was wrong. That under-weighted the other side:
   quite the same part.
 - **Bench work kills motors.** A spare has value whatever happens.
 
-The spec risk that motivated "buy one" is genuinely low — a 28 × 47 mm 2400 kV inrunner is a close
-match to the design point. So buy the pair, characterise the first one on the bench, and **leave
-the second sealed until Phase 3** so it can still go back if Phase 2 changes the spec.
-
-**The Phase 2 outcome that would change the motor** is the sensorless observer failing to track
-this particular motor — low saliency or high inductance can make handover nasty. If that happens
-the answer may be a sensored motor, which is a different part. That is the real risk, not kV.
+Buy the pair, characterise the first on the bench, and **leave the second sealed until Phase 3** so
+it can still go back if Phase 2 changes the spec.
 
 ---
 
