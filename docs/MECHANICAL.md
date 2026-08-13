@@ -134,10 +134,11 @@ exactly why the wheels end up proud of the arches.
 - **Motors are 1/16-class, not 1/10-class.** Two motors at ~400 W peak each
   wants roughly 28–30 mm diameter cans (380 / 28xx size). A 1/10 540-can is
   overkill, heavy, and will not fit two-across in a 105 mm body.
-- **Tires cross classes on purpose.** 55 mm is 1/12 pan-car; 70 mm is 1/16
-  truck or 1/10 touring. The `record` config runs 1/10-touring-sized rubber on
-  a 1/16 chassis, which is where the "large wheeled" look comes from and is a
-  legitimate speed-run choice — bigger tires are lower wheel RPM at a given
+- **Tires cross classes on purpose.** 55 mm is 1/10 pan-car *front*; 70 mm is
+  1/10 pan-car rear or small 1/8. (Not 1/12 — those foams are 39–43 mm. See
+  [Sourcing](#sourcing).) The `record` config runs 1/10-sized rubber on a 1/16
+  chassis, which is where the "large wheeled" look comes from and is a
+  legitimate speed-run choice — bigger tires mean lower wheel RPM at a given
   road speed.
 
 For context on the target: RC speed records are usually set by 1/10 and 1/8
