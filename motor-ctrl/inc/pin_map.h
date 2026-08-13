@@ -288,7 +288,12 @@ extern const tire_profile_t TIRE_PROFILES[TIRE_PROFILE_COUNT];
  * Protection thresholds. Software layer — the hardware comparator is the one
  * that actually saves the FETs.
  * ------------------------------------------------------------------------- */
-#define IQ_LIMIT_A           30.0f
+/* 25 A, not 30. The candidate motor (28 x 47 mm, 2400 kV inrunner) is rated
+ * 28 A max, and launch goes traction-limited at ~23 A — so 25 A sits above
+ * what is usable and below what the motor tolerates. Raising this buys
+ * nothing: 23, 25 and 28 A all give the same 2.39 s to 50 mph. Re-check
+ * against the motor you actually buy. */
+#define IQ_LIMIT_A           25.0f
 #define OVERCURRENT_TRIP_A   45.0f
 #define OVERTEMP_FOLDBACK_C  80.0f
 #define OVERTEMP_CUT_C       95.0f

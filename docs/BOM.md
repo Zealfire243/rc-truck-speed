@@ -8,9 +8,37 @@ Prices are rough, USD, for planning only.
 
 ---
 
-## Phase 0 — nothing
+## Phase 0 — the μ rig, ~$40
 
-Run `gearing.py`. Decide the numbers. Spend zero dollars.
+Run `gearing.py` and `accel.py`. Then buy the one thing that unblocks everything
+downstream, because **μ can be measured without a chassis.**
+
+| Item | Notes | ~$ |
+|---|---|---|
+| Digital luggage / fish scale, kg | Reads in kgf, which makes the arithmetic trivial — see below. | 10 |
+| Candidate tire sets, 2–3 compounds | The things being compared. Sizes and classes in [MECHANICAL.md](MECHANICAL.md#sourcing). | 30–90 |
+| A board and some ballast | Scrap. | 0 |
+
+**The drag test.** Mount the wheels under a board, ballast it to the truck's
+target mass, and pull it horizontally on the pavement you intend to run on.
+Record the force at which it breaks away. Because the scale reads kgf and the
+rig mass is in kg, the units cancel:
+
+```
+μ = pull force (kgf) ÷ rig mass (kg)
+```
+
+A 0.9 kg rig that slides at 1.0 kgf is μ ≈ 1.11.
+
+**What it is and is not.** This measures *sliding* μ. Peak dynamic μ — what a
+rolling tire makes at ~10–20% slip — is typically 10–30% higher, so treat the
+result as a **conservative lower bound**. What it gives you reliably is the
+*relative ranking between compounds*, which is what tire selection actually
+needs. Load the rig realistically (μ is load-sensitive), test on the real
+surface, and refine with the Phase 4 GPS measurement.
+
+That one number feeds `TIRE_PROFILES[].mu_nominal`, `accel.py --match`, and
+therefore the final drive ratio.
 
 ---
 
@@ -18,8 +46,8 @@ Run `gearing.py`. Decide the numbers. Spend zero dollars.
 
 | Item | Notes | ~$ |
 |---|---|---|
-| **STM32G4 dev board** | A **B-G431B-ESC1** discovery is the strong pick: it's a complete single-channel FOC test rig with gate driver, FETs, and current sensing already laid out and known-good. Being able to trust the hardware while you debug your own FOC is worth a great deal in Phase 1. A Nucleo-G474RE is the alternative if you'd rather build the power stage yourself. | 25–35 |
-| **One brushless motor** | ~2,440 kV, 4S-capable. **Check the manufacturer's max RPM against 30,000 with margin before ordering** — this is the spec most often omitted and most often exceeded. | 30–60 |
+| **STM32G4 dev board** | ⚠ **Order this first — lead times run months.** A **B-G431B-ESC1** discovery is the strong pick: it's a complete single-channel FOC test rig with gate driver, FETs, and current sensing already laid out and known-good. Being able to trust the hardware while you debug your own FOC is worth a great deal in Phase 1. A Nucleo-G474RE is the alternative if you'd rather build the power stage yourself. | 25–35 |
+| **One brushless motor** | Target ~2,440 kV, 4S, 28–30 mm can. A **28 × 47 mm 2400 kV inrunner** (e.g. HobbyKing B28-47-16S: 2400 kV, 28 A max, 470 W, 3–4S) matches the design point closely — the truck needs ~23 A at the traction limit and ~400 W peak. **Check max RPM against 21,345 at the cap with margin**; it is the spec most often omitted. | 30–60 |
 | Bench supply, current-limited | Essential, not optional. You will be glad of the current limit. | 60–120 |
 | Oscilloscope access | For deadtime verification. Borrowed is fine; this is a handful of measurements. | — |
 | ST-Link / SWD debugger | On-board on both dev boards above. | — |

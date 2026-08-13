@@ -317,9 +317,47 @@ matched-ratio table.
 
 #### Sourcing
 
-Both sizes sit in pan-car foam territory — purpose-built for sustained high RPM,
-glued to rims, actually spec'd. Shop there rather than for "1/18 tires," and get
-a manufacturer RPM number in writing for both sets before ordering.
+**Correction worth knowing before you order:** 1/12 pan-car foams are about
+**39–43 mm**, not 55. Shopping that class gets you tires far too small. The
+right classes here are:
+
+| Need | Class to shop |
+|---|---|
+| ~55 mm | 1/10 pan-car / oval **front** foams (2.15–2.2 in) |
+| ~70 mm | 1/10 pan-car **rear**, or small 1/8 on-road foams |
+
+**And manufacturers largely do not publish an RPM rating.** The `rated_rpm`
+field still needs a number, so derive it from the spec vendors *do* quote —
+the speed the tire is sold as good for:
+
+```
+rated_rpm = proven_mph × 0.44704 ÷ (π × od_m) × 60
+```
+
+Speed-run foams (GRP, BSR and similar) are marketed by intended speed for
+exactly this reason. A tire sold for 120 mph running on 1/8 gear is proving a
+*surface speed*, which is what actually matters.
+
+Because the real limit is centrifugal stress, not RPM: `a = v²/r`, so **a
+smaller tire at the same road speed is under more load, not less.** At 70 mph:
+
+| Tire OD | Centrifugal load at the tread |
+|---|---|
+| 55 mm | **3,630 g** |
+| 70 mm | **2,850 g** |
+| 80 mm | 2,500 g |
+
+That is the physical reason the bigger tire is the safer one, and it is a 27%
+reduction for going 55 → 70 mm.
+
+Two practices from the speed-run community that are worth adopting:
+
+- **Glue thoroughly and cure fully** — 8–12 hours, overnight, before any
+  high-speed run. Early running shears an uncured bond and that is a
+  delamination.
+- **Reinforce the inner wall** with tape strips if you are near the limit,
+  applied evenly so you do not introduce imbalance. At 2,850 g, imbalance is
+  not a small force.
 
 #### The rest of the tire rules
 

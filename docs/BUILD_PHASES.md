@@ -199,10 +199,12 @@ with arithmetic instead of with a shopping cart.
 - [ ] Required kV lands in the 1200–3500 band, not at an edge.
 - [ ] Chosen motor's manufacturer max RPM exceeds your Phase 8 motor RPM **with margin**. This is
       the single most commonly ignored spec in speed builds.
-- [ ] **Record tires rated ≥ 9,500 rpm.** At 2.5:1 the wheels turn 8,537 rpm at 70 mph, and a 10%
-      derate on an 8,600 rpm tire only licenses ~63 mph — **an ordinary pan-car foam physically
-      cannot pass the Phase 8 gate.** Get the rating in writing; if a vendor won't state one, that
-      is an answer. Cheap tires for Phases 4–6 are fine and expected; the cap follows the rating.
+- [ ] **Record tires good for ≥ 9,500 rpm.** At 2.5:1 the wheels turn 8,537 rpm at 70 mph, and a
+      10% derate on an 8,600 rpm tire only licenses ~63 mph. **Vendors rarely publish an RPM
+      number** — derive it from the speed the tire is sold as good for:
+      `rated_rpm = proven_mph × 0.44704 ÷ (π × od_m) × 60`. Speed-run foams are marketed by
+      intended speed for exactly this reason. Cheap tires for Phases 4–6 are fine and expected;
+      the cap follows whatever you enter.
 - [ ] Battery, motor, and inverter current ratings agree with each other at peak, not average.
 - [ ] **Gears not yet cut.** The ratio depends on μ, and μ is a guess until Phase 4 measures it.
       Order motors and tires; defer the gear pair. Getting this out of order is how you end up
