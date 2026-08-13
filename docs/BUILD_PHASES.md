@@ -42,19 +42,33 @@ with arithmetic instead of with a shopping cart.
 
    | | |
    |---|---|
-   | Tire OD | 55 mm foam — **measured off the donor body's wheel arches** |
-   | Final drive | 2.75:1 (16T/44T) |
+   | Final drive | 3.5:1 |
    | Pack | 4S, 14.4 V under load |
    | **Required motor kV** | **~2,440** |
-   | Motor RPM at target | 29,882 |
-   | Wheel RPM at target | 10,866 |
+   | Motor RPM ceiling | 29,878 |
+   | **Wheel RPM — every configuration** | **8,537** |
    | Steady-state draw | 175 W, 6.1 A per motor |
 
-   2.75:1 rather than 3.0:1 keeps motor RPM under 30,000. At a 55 mm tire, two
-   of this build's three risk items are RPM-related, so spend the margin there.
-   6S at 3.0:1 (1,776 kV) is the upgrade path if Phase 6 shows heat as the
-   limiter — and the extra ~80 g costs almost nothing at top speed, which is
-   aero-limited, not mass-limited.
+   **Two tire configurations, one drivetrain.** Top speed changes by changing
+   wheels, and nothing else changes at all:
+
+   | Profile | Tire | Top speed | Wheel RPM |
+   |---|---|---|---|
+   | `street` | 55 mm, tucks in the stock arches | 55 mph | 8,537 |
+   | `speed` | 70 mm, for the attempt | 70 mph | 8,537 |
+
+   The reason this works, and it is not obvious: **wheel RPM is constant across
+   every tire size.** The motor's RPM ceiling divided by the final drive sets
+   it; tire diameter only changes how far the truck travels per revolution.
+
+   That is what retires the tire-RPM problem rather than merely managing it.
+   Chasing 70 mph on a 55 mm tire needed 10,866 wheel rpm — 36% over typical
+   1/12 pan-car duty. Chasing it on a 70 mm tire with taller gearing needs
+   8,537, in *both* configurations. Run `gearing.py --swap`.
+
+   6S at 4.0:1 is the upgrade path if Phase 6 shows heat as the limiter; the
+   extra ~80 g costs almost nothing at top speed, which is aero-limited, not
+   mass-limited.
 
 3. **Size the inverters for peak, not steady state.** 6 A holds 70 mph; acceleration pulls several
    times that. Budget ~30 A continuous per channel with headroom above it.
@@ -65,9 +79,9 @@ with arithmetic instead of with a shopping cart.
 - [ ] Required kV lands in the 1200–3500 band, not at an edge.
 - [ ] Chosen motor's manufacturer max RPM exceeds your Phase 8 motor RPM **with margin**. This is
       the single most commonly ignored spec in speed builds.
-- [ ] Tires are **foam**, and their rated max RPM exceeds 10,900. 1/12 pan-car foams are the
-      right category at 55 mm, but they normally run 7,000–8,000 rpm — you are asking for 35–50%
-      above their usual duty. If a vendor won't state an RPM rating, treat that as a no.
+- [ ] **Both** tire sets are **foam** and rated above 8,600 rpm. That is only ~7% over typical
+      1/12 pan-car duty, which is the entire point of gearing this way. If a vendor won't state an
+      RPM rating, treat that as a no.
 - [ ] Battery, motor, and inverter current ratings agree with each other at peak, not average.
 
 **Why this is a phase and not a footnote:** buying a motor before doing this arithmetic is how

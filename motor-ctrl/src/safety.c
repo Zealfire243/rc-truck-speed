@@ -11,23 +11,71 @@
 
 #include "pin_map.h"
 
+/* The fitted-tire table. Top speed in mph happens to equal tire OD in mm at
+ * 3.5:1 with a 2441 kV motor on 4S — a coincidence of the ratio, but a handy
+ * one at the track. See pin_map.h and `gearing.py --swap`. */
+const tire_profile_t TIRE_PROFILES[TIRE_PROFILE_COUNT] = {
+    [TIRE_PROFILE_STREET] = { "street", 55.0f, 55.0f },
+    [TIRE_PROFILE_SPEED]  = { "speed",  70.0f, 70.0f },
+};
+
 void safety_init(safety_t *s)
 {
     s->flags = 0;
     s->estop_latched = false;
     s->fault_latched = false;
     s->iq_limit = IQ_LIMIT_A;
-    s->cap_mph = SPEED_CAP_CEILING_MPH;
     s->last_rc_ms = 0;
     s->overrun_count = 0;
+
+    /* Boot into the SLOWER profile. If the human forgets to select one, the
+     * failure is "the truck is slower than expected", not "the cap is set for
+     * tires that aren't fitted". */
+    s->profile = TIRE_PROFILE_DEFAULT;
+    s->cap_mph = safety_effective_ceiling(s);
+}
+
+float safety_effective_ceiling(const safety_t *s)
+{
+    /* Both gates must permit a speed. The phase gate says how far the TRUCK
+     * has been proven; the profile says what the TIRES are good for. Neither
+     * overrides the other — see safety.h. */
+    float profile_ceiling = TIRE_PROFILES[s->profile].cap_ceiling_mph;
+    return profile_ceiling < SPEED_CAP_CEILING_MPH
+               ? profile_ceiling
+               : SPEED_CAP_CEILING_MPH;
+}
+
+float safety_mph_from_rpm(const safety_t *s, float motor_rpm)
+{
+    return motor_rpm * RPM_TO_MPH_FOR(TIRE_PROFILES[s->profile].tire_od_mm);
+}
+
+bool safety_set_profile(safety_t *s, tire_profile_id_t profile)
+{
+    if (profile < 0 || profile >= TIRE_PROFILE_COUNT) {
+        return false;
+    }
+    s->profile = profile;
+
+    /* Pull the cap down if the new profile is more restrictive. Going from
+     * speed tires to street tires must never leave a 70 mph cap in place over
+     * tires rated for 55. Going the other way does NOT auto-raise the cap —
+     * that stays an explicit act. */
+    float ceiling = safety_effective_ceiling(s);
+    if (s->cap_mph > ceiling) {
+        s->cap_mph = ceiling;
+    }
+    return true;
 }
 
 bool safety_set_cap(safety_t *s, float mph)
 {
     /* The whole job of this function is to say no. The compiled ceiling moves
      * one phase gate at a time, in a commit — not from a tuning session and
-     * not from a host-side bug. See pin_map.h. */
-    if (mph <= 0.0f || mph > SPEED_CAP_CEILING_MPH) {
+     * not from a host-side bug. The profile ceiling moves only by fitting
+     * different tires. See pin_map.h. */
+    if (mph <= 0.0f || mph > safety_effective_ceiling(s)) {
         return false;
     }
     s->cap_mph = mph;

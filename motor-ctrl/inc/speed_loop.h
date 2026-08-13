@@ -85,6 +85,9 @@ typedef struct {
 
     float rpm_setpoint[AXLE_COUNT];
     float rpm_target;         /**< pre-slew, from the throttle               */
+    float max_rpm;            /**< full-throttle motor RPM. Set by the caller
+                               *   from the active cap AND tire profile — never
+                               *   from a compile-time constant. */
     float accel_limit;        /**< RPM/s. Launch control lives here.         */
 
     float split_bias;         /**< -1 all front .. +1 all rear               */

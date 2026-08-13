@@ -76,6 +76,11 @@ typedef struct {
     float    iq_limit;        /**< current ceiling, folded back on heat    */
     float    cap_mph;         /**< runtime cap, clamped to the ceiling     */
 
+    /** Which tires are fitted. Sets the speed calculation AND the cap
+     *  ceiling, together, so the two cannot be mismatched. The firmware
+     *  cannot detect this — it is a human step. See pin_map.h. */
+    tire_profile_id_t profile;
+
     uint32_t last_rc_ms;
     uint32_t overrun_count;
 } safety_t;
@@ -99,9 +104,27 @@ safety_action_t safety_check(safety_t *s,
  *  value that is actually safe to command. */
 float safety_limit_torque(safety_t *s, float iq_req, float mph);
 
-/** Set the runtime cap. Refuses anything above SPEED_CAP_CEILING_MPH — that
- *  ceiling only moves in source, in a commit. Returns false if refused. */
+/** Set the runtime cap. Refuses anything above the effective ceiling.
+ *  Returns false if refused. */
 bool safety_set_cap(safety_t *s, float mph);
+
+/** Select the fitted tire profile. Rebinds both the speed calculation and the
+ *  cap ceiling. Lowers `cap_mph` if the new profile's ceiling is below it, so
+ *  switching from speed tires to street tires can never leave a stale high cap
+ *  in place. Returns false on an unknown profile. */
+bool safety_set_profile(safety_t *s, tire_profile_id_t profile);
+
+/** The cap actually in force: the LOWER of the profile's ceiling and the
+ *  compiled phase-gate ceiling. Both must permit a speed for it to be allowed.
+ *
+ *  This is the whole safety argument for profiles. The phase gate says "this
+ *  truck has only been proven to 20 mph"; the profile says "these tires are
+ *  only good for 55". Neither can override the other. */
+float safety_effective_ceiling(const safety_t *s);
+
+/** Convert motor RPM to mph using the ACTIVE profile's tire diameter.
+ *  Never use a hardcoded constant for this — see pin_map.h. */
+float safety_mph_from_rpm(const safety_t *s, float motor_rpm);
 
 void safety_note_rc_frame(safety_t *s, uint32_t now_ms);
 void safety_estop(safety_t *s, bool engaged);

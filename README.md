@@ -51,15 +51,19 @@ cd host-tools && uv run tune.py
 
 ## The numbers this is designed around
 
-Output of `gearing.py` at the current working target — 55 mm foam tires (measured off the donor
-body's wheel arches), 2.75:1 final drive, 4S:
+**Two tire configurations, one drivetrain** — 2,441 kV on 4S, 3.5:1 final drive, and you change
+top speed by changing wheels:
+
+| Profile | Tire | Top speed | Wheel RPM |
+|---|---|---|---|
+| `street` | 55 mm, tucks in the stock arches | 55 mph | **8,537** |
+| `speed` | 70 mm, wheels proud | 70 mph | **8,537** |
+
+Wheel RPM is identical in both, because the motor's RPM ceiling divided by the final drive sets it
+outright — tire diameter only changes how far the truck travels per revolution. So the tire never
+spins faster in the fast configuration than in the slow one. Run `gearing.py --swap`.
 
 ```
-  SPEED  (the binding constraint)
-    wheel                   10,866 rpm
-    motor                   29,882 rpm
-    required motor kV        2,441 kV
-
   POWER  (confirm, don't design to)
     at the wheels              119 W
     electrical                 175 W
@@ -69,9 +73,6 @@ body's wheel arches), 2.75:1 final drive, 4S:
 Read that twice, because it reframes the whole project: **power is not the constraint.** Holding
 70 mph against drag on a body this small takes about as much power as a bright desk lamp. What
 actually stops you is RPM, tires letting go, and yaw stability on a short wheelbase.
-
-And note which number gearing can't touch: **10,866 wheel rpm** falls out of tire diameter and
-target speed alone. The 55 mm arches make the tires this project's binding constraint.
 Design accordingly — see [SAFETY.md](docs/SAFETY.md) and [MECHANICAL.md](docs/MECHANICAL.md).
 
 ## Body dimensions (measured, the donor)

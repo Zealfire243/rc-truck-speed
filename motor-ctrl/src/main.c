@@ -70,7 +70,10 @@ void control_isr(void)
         rpm[a] = observer_rpm(&g_obs[a]);
     }
 
-    float mph = rpm[AXLE_REAR] * RPM_TO_MPH;
+    /* Uses the ACTIVE tire profile, not a compile-time constant — fitting
+     * different tires without telling the firmware would make the cap fail
+     * open. See pin_map.h. */
+    float mph = safety_mph_from_rpm(&g_safety, rpm[AXLE_REAR]);
 
     /* Safety before torque, every tick, no exceptions. */
     safety_action_t act = safety_check(&g_safety, rpm, g_csense.temp_c,
@@ -85,6 +88,8 @@ void control_isr(void)
 #else
     if ((g_tick % POLICY_LOOP_DIV) == 0) {
         const rc_state_t *rc = rc_input_get();
+        g_speed.max_rpm = g_safety.cap_mph /
+                          RPM_TO_MPH_FOR(TIRE_PROFILES[g_safety.profile].tire_od_mm);
         speed_loop_policy(&g_speed, rpm, rc->valid ? rc->throttle : 0.0f,
                           CONTROL_DT * POLICY_LOOP_DIV);
     }

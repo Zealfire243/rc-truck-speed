@@ -115,13 +115,55 @@ typedef enum {
  * whenever tire diameter, mass, or gearing changes.
  * ------------------------------------------------------------------------- */
 #define POLE_PAIRS           2       /* count magnets / 2. VERIFY.           */
-#define FINAL_DRIVE          2.75f    /* motor turns per wheel turn           */
-#define TIRE_OD_MM           55.0f
-#define TIRE_CIRC_M          (3.14159265f * TIRE_OD_MM / 1000.0f)
+#define FINAL_DRIVE          3.50f   /* motor turns per wheel turn           */
 
-/* Wheel-derived speed:
- *   mph = motor_rpm / FINAL_DRIVE / 60 * TIRE_CIRC_M / 0.44704            */
-#define RPM_TO_MPH           (TIRE_CIRC_M / (FINAL_DRIVE * 60.0f * 0.44704f))
+/* -------------------------------------------------------------------------
+ * TIRE PROFILES — the two-configuration plan.
+ *
+ * One chassis, one motor, one final drive. Top speed changes by changing
+ * wheels. The reason this works, and it is not obvious:
+ *
+ *   **Wheel RPM is constant across every tire size.** Motor RPM ceiling
+ *   divided by FINAL_DRIVE sets it, full stop. Tire diameter only changes how
+ *   far the truck travels per revolution.
+ *
+ * At 2441 kV on 4S with 3.5:1, wheel RPM tops out at 8,537 in EVERY profile.
+ * Chasing 70 mph on a small tire is what pushed wheel RPM to 10,866 and put
+ * it 36% over typical 1/12 pan-car duty. Chasing it with a bigger tire and
+ * taller gearing does not. Run `gearing.py --swap`.
+ *
+ * !! TIRE OD IS NOT A COMPILE-TIME CONSTANT ANYMORE, and that is a safety
+ * !! fix, not a convenience. It feeds the speed calculation, which feeds the
+ * !! speed cap. Fit 70 mm tires with 55 mm compiled in and the truck computes
+ * !! 55 mph while actually doing 70 -- the cap fails OPEN, in the dangerous
+ * !! direction. Profile selection binds tire OD and cap ceiling together so
+ * !! they cannot be mismatched.
+ * !!
+ * !! The firmware CANNOT detect what tires are fitted. Selecting the profile
+ * !! is a human step on the pre-run checklist. See docs/SAFETY.md.
+ * ------------------------------------------------------------------------- */
+typedef struct {
+    const char *name;
+    float tire_od_mm;
+    float cap_ceiling_mph;   /**< profile's own ceiling, before the phase gate */
+} tire_profile_t;
+
+typedef enum {
+    TIRE_PROFILE_STREET = 0,   /**< 55 mm, tucks in the stock arches */
+    TIRE_PROFILE_SPEED  = 1,   /**< 70 mm, for the record attempt     */
+    TIRE_PROFILE_COUNT  = 2,
+} tire_profile_id_t;
+
+extern const tire_profile_t TIRE_PROFILES[TIRE_PROFILE_COUNT];
+
+/** Default on boot. The SLOWER profile, deliberately — booting into the fast
+ *  config with the pretty tires fitted is the failure this ordering avoids. */
+#define TIRE_PROFILE_DEFAULT  TIRE_PROFILE_STREET
+
+/* Wheel-derived speed, given a tire OD:
+ *   mph = motor_rpm / FINAL_DRIVE / 60 * (pi * od_mm / 1000) / 0.44704   */
+#define RPM_TO_MPH_FOR(od_mm) \
+    ((3.14159265f * (od_mm) / 1000.0f) / (FINAL_DRIVE * 60.0f * 0.44704f))
 
 /* -------------------------------------------------------------------------
  * PWM and control rates.

@@ -12,6 +12,7 @@ Three modes:
     uv run gearing.py                  # solve required kV at the target speed
     uv run gearing.py --solve fd       # solve final drive for a kV you have
     uv run gearing.py --sweep          # tire x final-drive table across 3S/4S/6S
+    uv run gearing.py --swap           # top speed per tire at fixed gearing
 
 Stdlib only, on purpose — this has to run on a phone-tethered laptop at a
 parking lot with no network.
@@ -35,7 +36,8 @@ required kV comes out absurd (>3500), the fix is a bigger tire or a shorter
 final drive, not a hotter motor.
 
 Sanity check on the numbers this prints: the tire is usually the real limit.
-A 55 mm tire at 70 mph is turning ~10,900 rpm. Rubber balloons and lets go
+A 55 mm tire at 70 mph is turning ~10,900 rpm -- which is why this
+build gears for 70 mph on a 70 mm tire instead (see --swap). Rubber balloons and lets go
 somewhere well below that. See docs/SAFETY.md.
 """
 
@@ -60,7 +62,7 @@ class Vehicle:
 
     # --- Rolling ----------------------------------------------------------
     tire_od_mm: float = 55.0
-    final_drive: float = 2.75  # motor turns per wheel turn
+    final_drive: float = 3.50  # motor turns per wheel turn
 
     # --- Electrical -------------------------------------------------------
     cells: int = 4
@@ -231,24 +233,61 @@ def sweep(v: Vehicle) -> None:
     print("  * outside the comfortable 1200-3500 kV band\n")
 
 
+def swap_table(v: Vehicle, kv: float) -> None:
+    """Top speed per tire size at FIXED gearing and a FIXED motor.
+
+    This is the two-configuration plan: one chassis, one motor, one final
+    drive, and you change top speed by changing wheels.
+
+    The point that makes it work — and it is not obvious — is that **wheel RPM
+    is constant across every tire size.** The motor's RPM ceiling divided by
+    the final drive sets wheel RPM, full stop. Tire diameter only changes how
+    far the car travels per revolution.
+
+    So the tire never spins faster in the fast configuration than in the slow
+    one. Chasing top speed with a SMALL tire is what drives wheel RPM into the
+    danger zone; chasing it with a BIG tire and taller gearing does not.
+    """
+    motor_rpm = kv * v.v_pack * v.rpm_load_frac
+    wheel_rpm = motor_rpm / v.final_drive
+
+    print(f"\n  FIXED: {kv:,.0f} kV, {v.cells}S @ {v.v_pack:.1f} V, "
+          f"{v.final_drive:.2f}:1 final drive")
+    print(f"  Motor ceiling {motor_rpm:,.0f} rpm -> wheel {wheel_rpm:,.0f} rpm, "
+          f"in EVERY configuration\n")
+    print("   tire      top speed    wheel rpm")
+    print("   " + "-" * 38)
+    for od in (55, 60, 65, 70, 75, 80):
+        circ = math.pi * od / 1000.0
+        mph = (wheel_rpm / 60.0 * circ) / MPH_TO_MS
+        print(f"   {od:>3.0f} mm    {mph:>6.1f} mph    {wheel_rpm:>8,.0f}")
+
+    print(f"\n  Tire RPM is the same in all rows. Pick tires by the speed you")
+    print(f"  want; the tire never sees more than {wheel_rpm:,.0f} rpm.\n")
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--mph", type=float, default=70.0)
     p.add_argument("--tire", type=float, default=55.0, help="tire OD, mm")
-    p.add_argument("--fd", type=float, default=2.75, help="final drive ratio")
+    p.add_argument("--fd", type=float, default=3.50, help="final drive ratio")
     p.add_argument("--cells", type=int, default=4)
     p.add_argument("--mass", type=float, default=0.90, help="kg")
     p.add_argument("--solve", choices=["kv", "fd"], default="kv")
     p.add_argument("--kv", type=float, default=2441.0,
                    help="motor kV, for --solve fd")
     p.add_argument("--sweep", action="store_true")
+    p.add_argument("--swap", action="store_true",
+                   help="top speed per tire at fixed gearing")
     a = p.parse_args()
 
     v = Vehicle(target_mph=a.mph, tire_od_mm=a.tire, final_drive=a.fd,
                 cells=a.cells, mass_kg=a.mass)
 
-    if a.sweep:
+    if a.swap:
+        swap_table(v, a.kv)
+    elif a.sweep:
         sweep(v)
     elif a.solve == "fd":
         fd = solve_final_drive(v, a.kv)

@@ -41,7 +41,7 @@ CRITICAL_FLAGS = frozenset({"estop", "desync", "oc_trip", "overtemp", "obs_lost"
 PARAMS = (
     "pid.kp", "pid.ki", "pid.kd", "pid.ff",
     "foc.kp_i", "foc.ki_i", "foc.id_ref",
-    "cap.mph", "limit.iq", "limit.accel",
+    "cap.mph", "limit.iq", "limit.accel", "tire.profile",
     "split.bias", "tc.gain", "tc.deadband",
     "tlm.hz",
     "bringup.duty", "bringup.freq",
@@ -67,6 +67,11 @@ class Telemetry:
     gps_sats: int | None = None
     slip: float | None = None
     flags: list[str] = field(default_factory=list)
+
+    # Which tires the firmware believes are fitted. Every mph figure above is
+    # computed from this, so a log without it is a log you cannot trust.
+    tire: str | None = None
+    tire_od: float | None = None
 
     @property
     def has_critical_flag(self) -> bool:
@@ -114,6 +119,8 @@ def as_telemetry(obj: dict[str, Any]) -> Telemetry | None:
         gps_sats=gps.get("sats"),
         slip=obj.get("slip"),
         flags=list(obj.get("flags", [])),
+        tire=obj.get("tire"),
+        tire_od=obj.get("tire_od"),
     )
 
 
@@ -159,6 +166,16 @@ class CommandBuilder:
         if axle is not None:
             kw["a"] = axle
         return self._frame(**kw)
+
+    def tire_profile(self, name: str):
+        """Declare which tires are fitted. Rebinds the speed calculation and
+        the cap ceiling together.
+
+        The firmware cannot verify this — it is a human declaration, and a
+        wrong one makes the speed cap fail open. Hosts should surface the
+        active profile prominently rather than treating it as a normal param.
+        """
+        return self.set("tire.profile", name)
 
     def mode(self, value: str):
         return self._frame(t="mode", v=value)

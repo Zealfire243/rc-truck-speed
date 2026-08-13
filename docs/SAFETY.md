@@ -43,6 +43,12 @@ Not software. Hardware.
 - [ ] Tires inspected — no cuts, no delamination starting, no chunking.
 - [ ] Battery inspected — no puffing, no damage, connectors sound.
 - [ ] Speed cap set to the phase you're actually on, verified in telemetry, not assumed.
+- [ ] **Tire profile matches the tires physically on the truck.** Check it in the `hello` frame,
+      by eye, against the wheels in front of you. The firmware cannot detect what is bolted on —
+      if it believes 55 mm while 70 mm are fitted, it computes 55 mph while you are doing 70 and
+      **the speed cap fails open.** This is the one safety property in the whole system that
+      depends entirely on a human being honest, so treat it like the failsafe test: every session,
+      out loud, no assumptions.
 - [ ] Nobody downrange. Nobody's dog downrange.
 
 ## Run site

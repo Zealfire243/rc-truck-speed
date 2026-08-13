@@ -24,6 +24,7 @@ void speed_loop_init(speed_loop_t *sl)
     }
     sl->ff = 0.0f;
     sl->rpm_target = 0.0f;
+    sl->max_rpm = 0.0f;   /* caller must set before the first policy tick */
     sl->accel_limit = 20000.0f;   /* RPM/s. Lower it for launch control. */
     sl->split_bias = 0.0f;
     sl->tc_gain = 0.0f;           /* traction control OFF until Phase 6 */
@@ -51,7 +52,7 @@ void speed_loop_policy(speed_loop_t *sl, const float rpm[AXLE_COUNT],
                        float throttle, float dt)
 {
     /* Slew the target. This IS launch control — see speed_loop.h. */
-    float want = throttle * (float)(SPEED_CAP_CEILING_MPH / RPM_TO_MPH);
+    float want = throttle * sl->max_rpm;
     float max_step = sl->accel_limit * dt;
     float delta = want - sl->rpm_target;
     if (delta > max_step) {

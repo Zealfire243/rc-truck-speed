@@ -43,42 +43,68 @@ new mass and watch how little changes.
 
 ### Tires
 
-**MEASURED: the donor body's wheel arches are exactly 55 mm.** That sets tire OD,
-and it makes the tire the binding constraint of the entire project.
+**MEASURED: the donor body's wheel arches are exactly 55 mm.**
 
-At 55 mm and 70 mph the wheel turns **10,866 rpm**, and *no choice of gearing
-changes that number* — it falls out of tire diameter and target speed alone.
-Gearing moves the load between motor kV and motor RPM; it cannot help the tire.
+That looked like it capped tire OD, and it briefly did — chasing 70 mph on a
+55 mm tire needs **10,866 wheel rpm**, which is 36% above what 1/12 pan-car
+foams normally see. That was the most dangerous number in the project.
 
-#### What the arch measurement cost
+It is retired now, by gearing rather than by compromise.
 
-`gearing.py` at 4S, everything else held constant:
+#### Two tire configurations, one drivetrain
 
-| Tire OD | Wheel RPM | Motor RPM @ 2.75:1 | Required kV |
+One chassis, one motor, one final drive. Top speed changes by changing wheels:
+
+| Profile | Tire | Top speed | Wheel RPM |
 |---|---|---|---|
-| **55 mm (fits stock)** | **10,866** | **29,882** | **2,441** |
-| 65 mm (needs trimming) | 9,195 | 25,286 | 2,065 |
-| 70 mm (needs trimming) | 8,538 | 23,480 | 1,918 |
+| `street` | 55 mm, tucks in the stock arches | 55 mph | **8,537** |
+| `speed` | 70 mm, wheels proud | 70 mph | **8,537** |
 
-Bigger tires win on every axis at once — lower wheel RPM so the tire survives,
-lower motor RPM so the bearings survive, lower kV so the motor runs cooler. The
-only cost is 2.5 mm of axle rise per 5 mm of diameter, and CG height is the one
-thing this vehicle can least afford.
+**Wheel RPM is identical in both.** That is the whole trick, and it is not
+obvious: the motor's RPM ceiling divided by the final drive sets wheel RPM
+outright. Tire diameter only changes how far the truck travels per revolution.
 
-**The arch is a soft constraint.** Trimming wheel arches is routine on speed
-builds, and it is the correct fix if Phase 6 starts destroying tires — going to
-65 mm cuts wheel RPM 15%. Do not lower the speed target before spending this
-lever.
+So the tire never spins faster in the fast configuration than in the slow one.
+Chasing top speed with a *small* tire is what drives wheel RPM into the danger
+zone; chasing it with a *big* tire and taller gearing does not. 8,537 rpm is
+only ~7% over typical pan-car duty, in both configs.
 
-#### Sourcing at 55 mm
+Run `gearing.py --swap` to regenerate this table for any motor or ratio.
 
-55 mm is 1/12-scale pan-car foam territory: purpose-built for sustained high
-RPM, glued to rims, actually spec'd. Shop there rather than for "1/18 tires."
+At 3.5:1 with a 2,441 kV motor on 4S, **top speed in mph equals tire OD in
+millimetres.** A coincidence of the ratio, but a useful one at the track.
 
-But note the duty gap — 1/12 pan cars run 40–50 mph, so their tires normally see
-7,000–8,000 rpm. You would be running **35–50% above their usual duty.** Verify
-the manufacturer's RPM rating before buying and treat this as the live risk item
-straight through Phase 6.
+#### What this costs
+
+Two sets of wheels, and the discipline to tell the firmware which is fitted.
+Tire OD feeds the speed calculation, which feeds the speed cap — so a wrong
+profile makes the cap fail *open*. It is a runtime parameter bound to the cap
+ceiling for that reason, and a pre-run checklist item in
+[SAFETY.md](SAFETY.md#every-session-before-the-first-run).
+
+#### Ride height and the tire swap
+
+Going 55 → 70 mm raises the axle 7.5 mm, and with it the CG — the one thing this
+vehicle can least afford. Ride-height adjustment exists to give that back, so
+both configurations sit at the same CG and the same rake.
+
+**For the swap alone this is a static adjustment**, and shock collars or
+adjustable-length links do it for a few grams with no failure modes. Powered
+actuators earn their weight only for changing height *in motion* — dropping at
+speed for CG, raising for launch clearance. That is a genuine capability and a
+Phase 8 refinement; it is not a prerequisite for a rolling chassis, and four
+lead-screw actuators is four new failure modes on a vehicle where a suspension
+failure at 70 mph is a crash.
+
+If they get built: lead screws are the right class precisely because they are
+self-locking. They hold position with no power and fail in place rather than
+collapsing. Verify that property on whatever is actually specified.
+
+#### Sourcing
+
+Both sizes sit in pan-car foam territory — purpose-built for sustained high RPM,
+glued to rims, actually spec'd. Shop there rather than for "1/18 tires," and get
+a manufacturer RPM number in writing for both sets before ordering.
 
 #### The rest of the tire rules
 

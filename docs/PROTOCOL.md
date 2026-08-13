@@ -61,7 +61,7 @@ consumer's.
 ### 3.1 `hello` — sent once on boot
 
 ```json
-{"t":"hello","proto":1,"fw":"0.1.0","app":"bringup","axles":2,"hz":50,"cap_mph":20.0}
+{"t":"hello","proto":1,"fw":"0.1.0","app":"bringup","axles":2,"hz":50,"cap_mph":20.0,"tire":"street","tire_od":55.0}
 ```
 
 | Field | Type | Meaning |
@@ -71,7 +71,16 @@ consumer's.
 | `app` | string | `"bringup"` or `"full"` — which build is running. |
 | `axles` | int | Axles reporting real data. `1` in Phases 1–2, `2` from Phase 3. |
 | `hz` | int | Nominal telemetry rate. |
-| `cap_mph` | float | **The compiled-in speed cap.** A host MUST display this prominently. |
+| `cap_mph` | float | **The speed cap in force.** A host MUST display this prominently. |
+| `tire` | string | Active tire profile — `"street"` (55 mm) or `"speed"` (70 mm). A host MUST display this prominently too; see the warning below. |
+| `tire_od` | float | Tire OD in mm for the active profile. Every speed figure in `tlm` is computed from it. |
+
+> **Why `tire` is displayed as loudly as `cap_mph`.** Tire OD feeds the speed
+> calculation, which feeds the cap. If 70 mm tires are fitted while the
+> firmware believes 55 mm, the truck computes 55 mph while actually doing 70 —
+> **the cap fails open.** The firmware cannot detect what is bolted on, so the
+> profile is a declaration by a human, and the display is what makes a wrong
+> declaration visible before the run rather than after.
 
 A host that sees an unknown `proto` MUST warn and continue read-only.
 
@@ -175,12 +184,13 @@ Every command carries an `id` (uint16, host-assigned, incrementing). Hosts SHOUL
 | `foc.kp_i` | float | ≥ 0 | **Current loop** proportional gain. Distinct from `pid.kp` — different loop, 10× the rate. |
 | `foc.ki_i` | float | ≥ 0 | Current loop integral gain. |
 | `foc.id_ref` | float | — | Flux current reference. Zero for everything below base speed. Negative is field weakening; do not touch before Phase 8. |
-| `cap.mph` | float | > 0 | **The speed cap.** Clamped to a compiled-in ceiling — a `set` above it is refused, so a host bug can't raise it. |
+| `cap.mph` | float | > 0 | **The speed cap.** Clamped to the *lower* of the compiled phase-gate ceiling and the active tire profile's ceiling — a `set` above that is refused, so neither a host bug nor a tire swap can raise it. |
 | `limit.iq` | float | > 0 | Torque current ceiling, amps per axle. |
 | `limit.accel` | float | > 0 | Setpoint slew limit, RPM/s. Launch traction control lives here. |
 | `split.bias` | float | -1…1 | Front/rear torque split. `0` even, `-1` all front, `+1` all rear. |
 | `tc.gain` | float | ≥ 0 | Traction control authority. `0` disables. |
 | `tc.deadband` | float | ≥ 0 | Slip ratio below which traction control does nothing. |
+| `tire.profile` | string | `street` \| `speed` | **Which tires are fitted.** Rebinds the speed calculation and the cap ceiling together so they cannot be mismatched. Selecting a lower profile immediately pulls `cap.mph` down if it was above the new ceiling; selecting a higher one never auto-raises it. |
 | `tlm.hz` | int | 1…200 | Telemetry rate. |
 | `bringup.duty` | float | -1…1 | **Phase 1 app only.** Open-loop duty. Still subject to `limit.iq`. |
 | `bringup.freq` | float | ≥ 0 | **Phase 1 app only.** Forced commutation electrical frequency, Hz. |
@@ -188,9 +198,15 @@ Every command carries an `id` (uint16, host-assigned, incrementing). Hosts SHOUL
 Parameters are **live** — they take effect on the next control tick — and are *not* persisted until
 a `save`.
 
-**`cap.mph` is special.** It is the one parameter whose whole job is to be hard to raise. The
-compiled ceiling goes up one phase gate at a time, in source, in a commit. A tuning session cannot
-talk the truck into going faster than the phase it has passed.
+**`cap.mph` is special.** It is the one parameter whose whole job is to be hard to raise. Two
+independent ceilings bound it and both must permit a speed:
+
+- the **compiled phase-gate ceiling**, which moves one gate at a time, in source, in a commit — how
+  far the *truck* has been proven;
+- the **active tire profile's ceiling** — what the *tires* are rated for.
+
+Neither overrides the other. A tuning session cannot talk the truck into going faster than the
+phase it has passed, and fitting slower tires cannot leave a fast cap behind.
 
 ---
 
