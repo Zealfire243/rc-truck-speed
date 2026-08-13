@@ -57,10 +57,18 @@ with arithmetic instead of with a shopping cart.
    **Two tire configurations, one drivetrain.** Top speed changes by changing
    wheels, and nothing else changes at all:
 
-   | Profile | Tire | Top speed | Wheel RPM |
+   | Profile | Tire | Rated RPM | Ceiling |
    |---|---|---|---|
-   | `street` | 55 mm, tucks in the stock arches | 55 mph | 8,537 |
-   | `speed` | 70 mm, for the attempt | 70 mph | 8,537 |
+   | `street` | 55 × 22, cheap | 8,600 | ~50 mph |
+   | `test` | 70 × 25, cheap | 8,600 | ~63 mph |
+   | `wide` | 70 × 35, cheap | 8,600 | ~63 mph |
+   | `record` | 70 × 25, high-rated | 12,000 | ~89 mph |
+
+   **Tire rating is a purchasing decision, and the ceiling is computed from it**
+   (rating × 0.90 derate) rather than declared. A better tire raises the cap
+   automatically; a cheap one lowers it. So you burn cheap tires through the
+   Phase 6 ladder at a cap they can survive, and fit rated tires for the
+   attempt — and the truck enforces that itself.
 
    The reason this works, and it is not obvious: **wheel RPM is constant across
    every tire size.** The motor's RPM ceiling divided by the final drive sets
@@ -191,9 +199,10 @@ with arithmetic instead of with a shopping cart.
 - [ ] Required kV lands in the 1200–3500 band, not at an edge.
 - [ ] Chosen motor's manufacturer max RPM exceeds your Phase 8 motor RPM **with margin**. This is
       the single most commonly ignored spec in speed builds.
-- [ ] **Both** tire sets are **foam** and rated above 8,600 rpm. That is only ~7% over typical
-      1/12 pan-car duty, which is the entire point of gearing this way. If a vendor won't state an
-      RPM rating, treat that as a no.
+- [ ] **Record tires rated ≥ 9,500 rpm.** At 2.5:1 the wheels turn 8,537 rpm at 70 mph, and a 10%
+      derate on an 8,600 rpm tire only licenses ~63 mph — **an ordinary pan-car foam physically
+      cannot pass the Phase 8 gate.** Get the rating in writing; if a vendor won't state one, that
+      is an answer. Cheap tires for Phases 4–6 are fine and expected; the cap follows the rating.
 - [ ] Battery, motor, and inverter current ratings agree with each other at peak, not average.
 - [ ] **Gears not yet cut.** The ratio depends on μ, and μ is a guess until Phase 4 measures it.
       Order motors and tires; defer the gear pair. Getting this out of order is how you end up
@@ -408,7 +417,9 @@ Everything is proven. Now it's tires, aero, ballast, and a long enough piece of 
 
 **Requirements before the first attempt:**
 
-- Foam tires, balanced, RPM-rated above 10,900. Fresh — not the set you did Phase 6 on.
+- The `record` tire set, rated ≥ 9,500 rpm, balanced. Fresh — not the set you did Phase 6 on.
+- `tire.profile` set to `record`. On `test` tires the cap tops out around 63 mph and the
+  attempt simply will not run, which is the interlock working, not a bug.
 - **~200 m of smooth, closed pavement.** Accelerating to 31 m/s and stopping again needs it; the
   arithmetic is in [SAFETY.md](SAFETY.md#run-site).
 - A spotter. Two-person rule, no exceptions, at these speeds.

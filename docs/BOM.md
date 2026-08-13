@@ -44,7 +44,7 @@ it for the price of one motor.
 
 | Item | Notes | ~$ |
 |---|---|---|
-| **Foam tires + wheels**, 55 mm OD (`street`) | Tucks in the stock arches, good for 55 mph. **RPM-rated above 8,600** — pan-car foams are the right category and this is only ~7% over their usual duty. If the vendor won't state a rating, buy elsewhere. | 25–50 |
+| **Cheap foam tires**, 55 mm (`street`) + 70 mm (`test`) | Consumables for Phases 4–6. Ordinary ~8,600 rpm pan-car foams are fine *because the firmware caps them to ~50 and ~63 mph accordingly*. Buy spares; the ladder destroys tires and that is its job. | 50–90 |
 | Steering servo | Fast, metal-gear, decent torque. Not a cheap nylon-gear servo. | 20–40 |
 | **CRSF / ELRS receiver + transmitter** | CRSF gets you a 2–4 ms link versus SBUS's 7–14 ms. On this vehicle the RC link is the slowest thing that isn't you, so it's worth the money. | 80–200 |
 | Bearings | Wheel and driveline. Buy quality — 10,900 rpm finds cheap bearings. | 20–40 |
@@ -92,7 +92,7 @@ Mostly consumables, because this phase is where things break. That's its job.
 | Item | Notes | ~$ |
 |---|---|---|
 | **Foam tires + wheels**, 70 mm OD (`speed`) | The second configuration — same chassis, same gearing, 70 mph. Wheels sit proud of the arches. Also rated above 8,600 rpm; wheel RPM is identical to the street set. | 25–50 |
-| **Foam tires + wheels**, 70 mm OD × ~35 mm wide (`wide`) | The grip configuration — same OD as the `speed` set, so identical top speed and wheel RPM, quicker launch. **Verify its RPM rating separately: same OD does not mean same rating**, since a wider carcass carries more mass at radius. If it comes back lower, drop that profile's ceiling. | 30–55 |
+| **Cheap wide foams**, 70 × ~35 (`wide`) | Grip configuration for the Phase 4–6 μ work. Same OD and rating as `test`, so same ceiling. **Verify its rating separately: same OD does not mean same rating**, since a wider carcass carries more mass at radius. Enter whatever it actually is into `TIRE_PROFILES`. | 30–55 |
 | Ride-height adjusters | Shock collars or adjustable links, to give back the 7.5 mm of CG the bigger tire adds. A few grams. Powered actuators are a separate, later decision — see [MECHANICAL.md](MECHANICAL.md#ride-height-and-the-tire-swap). | 15 |
 | Wheel balancer | At 10,900 rpm imbalance is a real force. | 20 |
 | Radar gun | Only if you want the number to be official. GPS is enough to know. | 100+ |

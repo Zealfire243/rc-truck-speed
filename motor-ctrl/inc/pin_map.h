@@ -183,16 +183,29 @@ typedef struct {
     const char *name;
     float tire_od_mm;
     float tire_width_mm;
-    float cap_ceiling_mph;   /**< profile's own ceiling, before the phase gate */
+    float rated_rpm;         /**< manufacturer's max. GET IT IN WRITING.      */
     float mu_nominal;        /**< grip estimate; replace with Phase 4 measurement */
 } tire_profile_t;
 
 typedef enum {
-    TIRE_PROFILE_STREET = 0,   /**< 55 x 22, tucks in the stock arches   */
-    TIRE_PROFILE_SPEED  = 1,   /**< 70 x 25, for the record attempt      */
-    TIRE_PROFILE_WIDE   = 2,   /**< 70 x 35, same speed, more grip       */
-    TIRE_PROFILE_COUNT  = 3,
+    TIRE_PROFILE_STREET = 0,   /**< 55 x 22, cheap, tucks in the stock arches */
+    TIRE_PROFILE_TEST   = 1,   /**< 70 x 25, cheap consumable for tuning      */
+    TIRE_PROFILE_WIDE   = 2,   /**< 70 x 35, cheap, grip config for tuning    */
+    TIRE_PROFILE_RECORD = 3,   /**< 70 x 25, high-rated, for the attempt      */
+    TIRE_PROFILE_COUNT  = 4,
 } tire_profile_id_t;
+
+/** Never run a tire at its rated ceiling.
+ *
+ *  Ratings are quoted at some load and temperature; a speed run is high load
+ *  (weight transfer plus whatever downforce the spoiler makes) on a tire that
+ *  has been heating for the whole run. 10% is a modest, deliberate haircut.
+ *
+ *  This constant exists because an earlier version of this file DERIVED the
+ *  ceilings straight from the rating with no margin at all, putting the record
+ *  attempt at 99.3% of rated on the most catastrophic failure mode in the
+ *  project. Do not set this to 1.0. */
+#define TIRE_RPM_DERATE   0.90f
 
 /* ---------------------------------------------------------------------------
  * WHY WIDTH IS A PROFILE FIELD BUT DOES NOT MOVE THE CAP

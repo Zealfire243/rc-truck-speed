@@ -17,10 +17,11 @@
  * rating -- 55 mm -> 55.4 mph, 70 mm -> 70.5 mph. They are derived from the
  * TIRE, so changing FINAL_DRIVE does not move them. See pin_map.h. */
 const tire_profile_t TIRE_PROFILES[TIRE_PROFILE_COUNT] = {
-    /*                      name       OD    width   cap    mu   */
-    [TIRE_PROFILE_STREET] = { "street", 55.0f, 22.0f, 55.0f, 1.05f },
-    [TIRE_PROFILE_SPEED]  = { "speed",  70.0f, 25.0f, 70.0f, 1.10f },
-    [TIRE_PROFILE_WIDE]   = { "wide",   70.0f, 35.0f, 70.0f, 1.20f },
+    /*                      name       OD    width   rated     mu   */
+    [TIRE_PROFILE_STREET] = { "street", 55.0f, 22.0f,  8600.0f, 1.05f },
+    [TIRE_PROFILE_TEST]   = { "test",   70.0f, 25.0f,  8600.0f, 1.10f },
+    [TIRE_PROFILE_WIDE]   = { "wide",   70.0f, 35.0f,  8600.0f, 1.20f },
+    [TIRE_PROFILE_RECORD] = { "record", 70.0f, 25.0f, 12000.0f, 1.10f },
 };
 
 /* `wide` shares `speed`'s OD, so it shares its ceiling and its wheel RPM
@@ -50,12 +51,21 @@ void safety_init(safety_t *s)
     s->cap_mph = safety_effective_ceiling(s);
 }
 
+float safety_profile_ceiling_mph(const tire_profile_t *p)
+{
+    /* Computed, never declared — one source of truth, so a profile whose
+     * ceiling contradicts its tire rating cannot be written. See pin_map.h. */
+    float circ_m = 3.14159265f * p->tire_od_mm / 1000.0f;
+    return p->rated_rpm * TIRE_RPM_DERATE / 60.0f * circ_m / 0.44704f;
+}
+
 float safety_effective_ceiling(const safety_t *s)
 {
     /* Both gates must permit a speed. The phase gate says how far the TRUCK
      * has been proven; the profile says what the TIRES are good for. Neither
      * overrides the other — see safety.h. */
-    float profile_ceiling = TIRE_PROFILES[s->profile].cap_ceiling_mph;
+    float profile_ceiling =
+        safety_profile_ceiling_mph(&TIRE_PROFILES[s->profile]);
     return profile_ceiling < SPEED_CAP_CEILING_MPH
                ? profile_ceiling
                : SPEED_CAP_CEILING_MPH;

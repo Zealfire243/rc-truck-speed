@@ -114,6 +114,10 @@ bool safety_set_cap(safety_t *s, float mph);
  *  in place. Returns false on an unknown profile. */
 bool safety_set_profile(safety_t *s, tire_profile_id_t profile);
 
+/** A profile's own speed ceiling, computed from its tire's rated RPM and the
+ *  derate. Profiles do not declare a ceiling — see pin_map.h. */
+float safety_profile_ceiling_mph(const tire_profile_t *p);
+
 /** The cap actually in force: the LOWER of the profile's ceiling and the
  *  compiled phase-gate ceiling. Both must permit a speed for it to be allowed.
  *

@@ -76,11 +76,28 @@ It is retired now, by gearing rather than by compromise.
 One chassis, two identical transaxles, one final-drive ratio. Top speed
 changes by changing wheels and nothing else:
 
-| Profile | Tire | Top speed | Wheel RPM at cap | μ (est.) |
+| Profile | Tire | Rated RPM | Ceiling | μ (est.) |
 |---|---|---|---|---|
-| `street` | 55 × 22, tucks in the stock arches | 55 mph | **8,537** | 1.05 |
-| `speed` | 70 × 25, wheels proud | 70 mph | **8,537** | 1.10 |
-| `wide` | 70 × 35, same OD, more grip | 70 mph | **8,537** | 1.20 |
+| `street` | 55 × 22, cheap | 8,600 | ~50 mph | 1.05 |
+| `test` | 70 × 25, cheap | 8,600 | ~63 mph | 1.10 |
+| `wide` | 70 × 35, cheap | 8,600 | ~63 mph | 1.20 |
+| `record` | 70 × 25, high-rated | 12,000 | ~89 mph | 1.10 |
+
+**Tire rating is a purchasing decision, not a constant** — and the ceiling is
+*computed* from it (rating × 0.90 derate), never declared. So a better tire
+raises the cap automatically and a cheap one lowers it, with no code change and
+no chance of the two disagreeing.
+
+That gives you the plan directly: **burn cheap tires through the Phase 6 ladder
+at a cap they can actually survive, and fit rated tires for the attempt.** The
+`test` ceiling of ~63 mph is not a restriction to work around; it is the truck
+refusing to destroy a tire you knowingly under-bought.
+
+**The purchasing spec that falls out — and it is not obvious.** At 2.5:1 the
+wheels turn 8,537 rpm at 70 mph, so a 10% derate needs a rating of at least
+**~9,500 rpm**. An 8,600 rpm tire *cannot safely do 70 mph*. Buy the record set
+to that number or above, and get it in writing.
+
 
 `speed` and `wide` share a diameter, so they are identical for every speed and
 cap purpose — same ceiling, same wheel RPM, same gearing math. They differ only

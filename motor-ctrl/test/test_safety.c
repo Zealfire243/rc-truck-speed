@@ -71,10 +71,10 @@ int main(void)
      * every ratio. */
     safety_set_profile(&s, TIRE_PROFILE_STREET);
     float mph_street = safety_mph_from_rpm(&s, 29878.0f);
-    safety_set_profile(&s, TIRE_PROFILE_SPEED);
+    safety_set_profile(&s, TIRE_PROFILE_RECORD);
     float mph_speed = safety_mph_from_rpm(&s, 29878.0f);
 
-    float want_ratio = TIRE_PROFILES[TIRE_PROFILE_SPEED].tire_od_mm /
+    float want_ratio = TIRE_PROFILES[TIRE_PROFILE_RECORD].tire_od_mm /
                        TIRE_PROFILES[TIRE_PROFILE_STREET].tire_od_mm;
     near("speed ratio tracks tire diameter ratio",
          mph_speed / mph_street, want_ratio);
@@ -82,37 +82,61 @@ int main(void)
        mph_speed > mph_street);
     ok("both are nonzero", mph_street > 0.0f && mph_speed > 0.0f);
 
-    /* And the cap ceilings must remain TIRE-derived, not gearing-derived:
-     * each is the road speed at which that tire hits ~8,600 rpm. Changing
-     * FINAL_DRIVE must never move them. */
+    /* Ceilings are COMPUTED from the tire's rated rpm and the derate, never
+     * declared -- so a profile whose ceiling contradicts its tire rating
+     * cannot be written. Gearing must not appear anywhere in it. */
     for (int i = 0; i < TIRE_PROFILE_COUNT; i++) {
-        float od_m = TIRE_PROFILES[i].tire_od_mm / 1000.0f;
-        float mph_at_rating = 8600.0f / 60.0f * (3.14159265f * od_m) / 0.44704f;
-        float declared = TIRE_PROFILES[i].cap_ceiling_mph;
-        char buf[80];
-        snprintf(buf, sizeof buf, "%s ceiling matches its tire rating",
-                 TIRE_PROFILES[i].name);
-        ok(buf, declared <= mph_at_rating + 1.0f);
+        const tire_profile_t *tp = &TIRE_PROFILES[i];
+        float od_m = tp->tire_od_mm / 1000.0f;
+        float undertated = tp->rated_rpm / 60.0f * (3.14159265f * od_m) / 0.44704f;
+        char buf[90];
+        snprintf(buf, sizeof buf, "%-6s ceiling is derated below its rating",
+                 tp->name);
+        ok(buf, safety_profile_ceiling_mph(tp) < undertated);
+
+        snprintf(buf, sizeof buf, "%-6s ceiling equals rating x derate",
+                 tp->name);
+        ok(buf, safety_profile_ceiling_mph(tp) >
+                undertated * TIRE_RPM_DERATE - 0.5f);
     }
 
-    printf("\nWIDE shares SPEED's diameter: same speed, same cap, more grip\n");
+    printf("\nTire RATING is a purchasing decision, and the cap follows it\n");
+    /* Same OD, better tire -> higher ceiling, with no code change. This is the
+     * whole reason rated_rpm is a field rather than an assumed constant. */
+    ok("record and test share an OD",
+       TIRE_PROFILES[TIRE_PROFILE_RECORD].tire_od_mm ==
+       TIRE_PROFILES[TIRE_PROFILE_TEST].tire_od_mm);
+    ok("record is rated higher than test",
+       TIRE_PROFILES[TIRE_PROFILE_RECORD].rated_rpm >
+       TIRE_PROFILES[TIRE_PROFILE_TEST].rated_rpm);
+    ok("so record gets a higher ceiling at the same diameter",
+       safety_profile_ceiling_mph(&TIRE_PROFILES[TIRE_PROFILE_RECORD]) >
+       safety_profile_ceiling_mph(&TIRE_PROFILES[TIRE_PROFILE_TEST]));
+
+    /* The two consequences that make the plan work. */
+    ok("CHEAP TEST TIRES CANNOT REACH 70 MPH (ceiling under target)",
+       safety_profile_ceiling_mph(&TIRE_PROFILES[TIRE_PROFILE_TEST]) < 70.0f);
+    ok("RECORD TIRES HAVE HEADROOM ABOVE 70 (phase gate is what binds)",
+       safety_profile_ceiling_mph(&TIRE_PROFILES[TIRE_PROFILE_RECORD]) > 70.0f);
+
+    printf("\nWIDE shares TEST's diameter: same speed, same cap, more grip\n");
     /* Width does not enter the speed calculation at all -- speed comes from OD
      * and gearing. So `wide` must be indistinguishable from `speed` everywhere
      * the cap logic looks, and differ only in grip. If a future edit gives
      * `wide` a different OD, these catch it. */
-    safety_set_profile(&s, TIRE_PROFILE_SPEED);
+    safety_set_profile(&s, TIRE_PROFILE_TEST);
     float mph_narrow = safety_mph_from_rpm(&s, 20000.0f);
     float ceil_narrow = safety_effective_ceiling(&s);
     float mu_narrow = safety_launch_accel_mps2(&s);
 
     safety_set_profile(&s, TIRE_PROFILE_WIDE);
-    near("wide reports the same speed as speed",
+    near("wide reports the same speed as test",
          safety_mph_from_rpm(&s, 20000.0f), mph_narrow);
     near("wide has the same effective ceiling",
          safety_effective_ceiling(&s), ceil_narrow);
     ok("wide is actually wider",
        TIRE_PROFILES[TIRE_PROFILE_WIDE].tire_width_mm >
-       TIRE_PROFILES[TIRE_PROFILE_SPEED].tire_width_mm);
+       TIRE_PROFILES[TIRE_PROFILE_TEST].tire_width_mm);
     ok("wide grips harder, so allows a faster launch ramp",
        safety_launch_accel_mps2(&s) > mu_narrow);
 
@@ -122,22 +146,12 @@ int main(void)
          safety_launch_accel_mps2(&s),
          TIRE_PROFILES[TIRE_PROFILE_WIDE].mu_nominal * 9.80665f);
 
-    printf("\nEvery profile's ceiling stays tire-derived\n");
-    for (int i = 0; i < TIRE_PROFILE_COUNT; i++) {
-        float od_m = TIRE_PROFILES[i].tire_od_mm / 1000.0f;
-        float mph_at_rating = 8600.0f / 60.0f * (3.14159265f * od_m) / 0.44704f;
-        char buf[80];
-        snprintf(buf, sizeof buf, "%-6s ceiling within its tire rating",
-                 TIRE_PROFILES[i].name);
-        ok(buf, TIRE_PROFILES[i].cap_ceiling_mph <= mph_at_rating + 1.0f);
-    }
-
     printf("\nEffective ceiling is the LOWER of phase gate and profile\n");
     /* Compiled phase ceiling is 20 mph (Phase 4). Neither profile may exceed
      * it, because the TRUCK has not been proven past 20 regardless of tires. */
     safety_init(&s);
     near("street profile, Phase 4 gate", safety_effective_ceiling(&s), 20.0f);
-    safety_set_profile(&s, TIRE_PROFILE_SPEED);
+    safety_set_profile(&s, TIRE_PROFILE_RECORD);
     near("speed profile cannot beat the phase gate",
          safety_effective_ceiling(&s), 20.0f);
 
@@ -153,7 +167,7 @@ int main(void)
      * A cap left where the speed profile put it would over-run the smaller
      * tire's rating. */
     safety_init(&s);
-    safety_set_profile(&s, TIRE_PROFILE_SPEED);
+    safety_set_profile(&s, TIRE_PROFILE_RECORD);
     safety_set_cap(&s, 20.0f);
     safety_set_profile(&s, TIRE_PROFILE_STREET);
     ok("cap never exceeds the new profile's ceiling",

@@ -38,10 +38,16 @@ FLAGS = (
 # Flags that mean stop what you are doing and look at the truck.
 CRITICAL_FLAGS = frozenset({"estop", "desync", "oc_trip", "overtemp", "obs_lost"})
 
-# Fitted-tire profiles. `speed` and `wide` share a 70 mm OD, so they report
-# identical speeds and carry identical caps — they differ only in grip, which
-# is why the log records width separately.
-TIRE_PROFILES = ("street", "speed", "wide")
+# Fitted-tire profiles. The cap ceiling is computed from each tire's RATED rpm
+# (times a derate), not declared — so a better tire raises the cap with no code
+# change, and a cheap one lowers it. `test` and `wide` share a 70 mm OD and a
+# rating, so they carry identical caps and differ only in grip.
+#
+#   street  55x22   8,600 rpm   ~50 mph   cheap, stock arches
+#   test    70x25   8,600 rpm   ~63 mph   cheap consumable, Phase 4-6
+#   wide    70x35   8,600 rpm   ~63 mph   cheap, grip config
+#   record  70x25  12,000 rpm   ~89 mph   the attempt; phase gate holds 70
+TIRE_PROFILES = ("street", "test", "wide", "record")
 
 PARAMS = (
     "pid.kp", "pid.ki", "pid.kd", "pid.ff",
