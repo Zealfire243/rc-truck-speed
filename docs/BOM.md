@@ -46,14 +46,35 @@ therefore the final drive ratio.
 
 | Item | Notes | ~$ |
 |---|---|---|
-| **STM32G4 dev board** | ⚠ **Order this first — lead times run months.** A **B-G431B-ESC1** discovery is the strong pick: it's a complete single-channel FOC test rig with gate driver, FETs, and current sensing already laid out and known-good. Being able to trust the hardware while you debug your own FOC is worth a great deal in Phase 1. A Nucleo-G474RE is the alternative if you'd rather build the power stage yourself. | 25–35 |
-| **One brushless motor** | Target ~2,440 kV, 4S, 28–30 mm can. A **28 × 47 mm 2400 kV inrunner** (e.g. HobbyKing B28-47-16S: 2400 kV, 28 A max, 470 W, 3–4S) matches the design point closely — the truck needs ~23 A at the traction limit and ~400 W peak. **Check max RPM against 21,345 at the cap with margin**; it is the spec most often omitted. | 30–60 |
+| **Nucleo-G474RE** | **The final MCU, bought on day one.** G474 is what the vehicle ships with — TIM1 and TIM8 both free for dual-channel FOC, five ADCs, and no port from a different part later. Also actually in stock, which the B-G431B-ESC1 currently is not. | 20–25 |
+| **X-NUCLEO-IHM08M1** | Known-good 3-phase power stage that plugs straight onto the Nucleo. L6398 gate drivers + STL220N6F7 FETs, 8–48 V, three-shunt current sensing (jumpers J5/J6 to the 3-Sh side) — exactly the topology `current_sense.h` assumes, laid out by people who do this for a living. | 30–40 |
 | Bench supply, current-limited | Essential, not optional. You will be glad of the current limit. | 60–120 |
 | Oscilloscope access | For deadtime verification. Borrowed is fine; this is a handful of measurements. | — |
 | ST-Link / SWD debugger | On-board on both dev boards above. | — |
 | 4S LiPo + balance charger | Get the charger right; it's a fire-safety item. | 60–100 |
 
-**Buy two, from the same batch — but only open one.**
+### Why not the B-G431B-ESC1?
+
+It was the earlier recommendation here and it is no longer the better buy. Its whole value was
+being a known-good integrated power stage for Phase 1 — but the Nucleo + IHM08M1 pair gives you
+the same property, from the same vendor, with the same reference documentation, and adds two
+things the ESC1 cannot:
+
+- **It is the final MCU.** The ESC1's G431 is a Phase 1–2 platform you leave behind at Phase 3,
+  because its gate drivers are hard-wired to its own onboard MCU. Starting on G474 means no port.
+- **It is available.** ESC1 distributor stock is running months out. That is the deciding factor:
+  a cheaper board you cannot get is not cheaper.
+
+The ESC1 remains a perfectly good fallback if you find one in stock cheap and want a second bench
+rig.
+
+> **Note the IHM08M1's rating: 15 A RMS nominal, 30 A peak.** That is ample for Phase 1–2, where
+> the bench supply is current-limited to a few amps anyway, and marginal for the vehicle's 25 A
+> launch bursts. Treat it as a bring-up and bench tool, not necessarily the flight hardware — the
+> Phase 3 power stages are still a design decision, and by then you will have measured the motor
+> and know what current you actually need.
+
+**Buy two motors, from the same batch — but only open one.**
 
 An earlier version of this file said buy one, to limit the loss if Phase 2 revealed the kV or RPM
 ceiling was wrong. That under-weighted the other side:
@@ -80,7 +101,7 @@ the answer may be a sensored motor, which is a different part. That is the real 
 | Item | Notes | ~$ |
 |---|---|---|
 | Second motor | Identical to the first. Order the *same* part, same batch if possible. | 30–60 |
-| **Nucleo-G474RE** + **2 × 3-phase power stage** | This is where the B-G431B-ESC1 runs out, and not in a way you can work around: it is single-channel, and its gate drivers are hard-wired to its own onboard G431. You cannot drive two of them from one external G4 without cutting traces. Phase 3 wants a G474 with TIM1+TIM8 free (Nucleo-G474RE exposes them) plus two separate power stages — bought modules or one custom board. **Size the FETs for ~30 A continuous per channel.** `accel.py` shows launch force meets the traction ceiling at ~23 A — below that you are genuinely slower, above it you gain nothing. So 30 A is headroom over a real requirement, not a guess, and 45 A would be wasted copper. | 40–150 |
+| **2nd 3-phase power stage** | The Nucleo already has TIM8 free, so Phase 3 is one more power stage, not a new controller. Only one shield can plug onto the Nucleo, so the second wires to the morpho headers. **Size for ~30 A continuous per channel** — above the 25 A limit and the IHM08M1's 15 A RMS, so this is where the bring-up hardware likely gets replaced on both channels. `accel.py` shows launch force meets the traction ceiling at ~23 A — below that you are genuinely slower, above it you gain nothing. So 30 A is headroom over a real requirement, not a guess, and 45 A would be wasted copper. | 40–150 |
 | Gate drivers, FETs, shunts, bulk caps | If rolling your own power stage. | — |
 
 ---

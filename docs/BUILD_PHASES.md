@@ -224,9 +224,10 @@ exact analogue of the crawler's "prove you can read an encoder" — same reasoni
 One motor. **No wheel, no load, motor clamped.** A spinning wheel on a bench supply is how bench
 work becomes an injury.
 
-**Hardware:** STM32G4 (a B-G431B-ESC1 discovery board is a ready-made single-channel FOC rig and an
-excellent Phase 1 target), one motor, a current-limited bench supply. Current limit set low —
-start at 2 A. See [WIRING.md](WIRING.md).
+**Hardware:** Nucleo-G474RE + X-NUCLEO-IHM08M1 (three-shunt jumpers set to 3-Sh), one motor, a
+current-limited bench supply. Current limit set low — start at 2 A. Starting on the G474 rather
+than a G431 board means no port at Phase 3, and TIM8 sits free for the second channel from day
+one. See [WIRING.md](WIRING.md) and [BOM.md](BOM.md).
 
 **Steps:**
 
