@@ -53,8 +53,25 @@ therefore the final drive ratio.
 | ST-Link / SWD debugger | On-board on both dev boards above. | — |
 | 4S LiPo + balance charger | Get the charger right; it's a fire-safety item. | 60–100 |
 
-**Buy one motor, not two.** If Phase 2 reveals the kV or the RPM ceiling is wrong, you've learned
-it for the price of one motor.
+**Buy two, from the same batch — but only open one.**
+
+An earlier version of this file said buy one, to limit the loss if Phase 2 revealed the kV or RPM
+ceiling was wrong. That under-weighted the other side:
+
+- **Batch matching matters here.** Kt, R and L vary between production runs, and this is a
+  dual-motor design where both channels ideally share gains and where the desync interlock watches
+  the difference between two axles. A mismatched pair makes every one of those harder.
+- **A specific SKU can go out of stock**, leaving you to pair a motor with something that is not
+  quite the same part.
+- **Bench work kills motors.** A spare has value whatever happens.
+
+The spec risk that motivated "buy one" is genuinely low — a 28 × 47 mm 2400 kV inrunner is a close
+match to the design point. So buy the pair, characterise the first one on the bench, and **leave
+the second sealed until Phase 3** so it can still go back if Phase 2 changes the spec.
+
+**The Phase 2 outcome that would change the motor** is the sensorless observer failing to track
+this particular motor — low saliency or high inductance can make handover nasty. If that happens
+the answer may be a sensored motor, which is a different part. That is the real risk, not kV.
 
 ---
 
@@ -63,7 +80,7 @@ it for the price of one motor.
 | Item | Notes | ~$ |
 |---|---|---|
 | Second motor | Identical to the first. Order the *same* part, same batch if possible. | 30–60 |
-| Custom dual inverter board | This is where the B-G431B-ESC1 runs out — it's single-channel. Either two of them driven by one G4, or a purpose-built dual board. **Size the FETs for ~30 A continuous per channel.** `accel.py` shows launch force meets the traction ceiling at ~23 A — below that you are genuinely slower, above it you gain nothing. So 30 A is headroom over a real requirement, not a guess, and 45 A would be wasted copper. | 40–150 |
+| **Nucleo-G474RE** + **2 × 3-phase power stage** | This is where the B-G431B-ESC1 runs out, and not in a way you can work around: it is single-channel, and its gate drivers are hard-wired to its own onboard G431. You cannot drive two of them from one external G4 without cutting traces. Phase 3 wants a G474 with TIM1+TIM8 free (Nucleo-G474RE exposes them) plus two separate power stages — bought modules or one custom board. **Size the FETs for ~30 A continuous per channel.** `accel.py` shows launch force meets the traction ceiling at ~23 A — below that you are genuinely slower, above it you gain nothing. So 30 A is headroom over a real requirement, not a guess, and 45 A would be wasted copper. | 40–150 |
 | Gate drivers, FETs, shunts, bulk caps | If rolling your own power stage. | — |
 
 ---
