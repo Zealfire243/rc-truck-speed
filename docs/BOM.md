@@ -168,12 +168,24 @@ like-for-like:
 
 | Motor | Poles | Rating | A @ μ1.1 | A @ μ1.5 | μ ceiling | Sensored |
 |---|---|---|---|---|---|---|
-| XK2845-1980KV *(current)* | 4 | 24 A / 220 W | 20.0 | 26.7 | **1.34** | no |
-| [QuicRun 3650 G2 17.5T](https://www.hobbywingdirect.com/products/quicrun-3650-sensored-2-pole-brushless-motor) — 2170 kV | 2 | 25 A / 420 W cont. | 21.8 | 29.1 | **1.28** | **yes** |
-| QuicRun 3650 G2 13.5T — 2850 kV | 2 | 25 A / 420 W cont. | 28.1 | 37.8 | 0.97 | yes |
-| [GoolRC 3650 3100KV](https://www.amazon.com/GoolRC-Sensorless-Brushless-ESC%EF%BC%88Electric-Controller%EF%BC%89/dp/B0832DK6P7) | 4 | **56 A / 900 W**, 2–4S | 30.5 | 41.0 | **2.07** | no |
+| XK2845-1980KV | 4 | 24 A / 220 W | 24.0 | 32.0 | **1.10** | no |
+| [QuicRun 3650 G2 17.5T](https://www.hobbywingdirect.com/products/quicrun-3650-sensored-2-pole-brushless-motor) — 2170 kV | 2 | 25 A / 420 W cont. | 26.2 | 34.9 | **1.05** | **yes** |
+| QuicRun 3650 G2 13.5T — 2850 kV | 2 | 25 A / 420 W cont. | 33.7 | 45.4 | 0.82 | yes |
+| [GoolRC 3650 3100KV](https://www.amazon.com/GoolRC-Sensorless-Brushless-ESC%EF%BC%88Electric-Controller%EF%BC%89/dp/B0832DK6P7) | 4 | **56 A / 900 W**, 2–4S | 36.6 | 49.2 | **1.68** | no |
 
 *"μ ceiling" = the grip beyond which that motor's current rating binds.*
+
+> **⚠ This table got 20% worse when the mass estimate was corrected.** Traction
+> force is `μmg`, so current scales linearly with mass and the μ ceiling scales
+> inversely. The [packaging study](MECHANICAL.md#drive-unit-packaging--phase-4a)
+> took the truck from 840 g to **1,080 g** — two 3650-class cans are ~200 g
+> *each*, where this document had budgeted 160 g for the pair.
+>
+> **The XK2845's μ ceiling fell from 1.34 to 1.10**, which means it can no
+> longer even use the baseline grip estimate. Both QuicRuns are now *below*
+> μ 1.1 on their continuous ratings. Only the GoolRC still has real headroom,
+> and it dropped from 2.07 to 1.68. **This strengthens the recommendation
+> below rather than changing it.**
 
 **The awkward finding: the sensored options do not solve the current problem.**
 The sensored 3650s are ROAR racing motors with modest *continuous* ratings, and
@@ -296,7 +308,9 @@ opened.
 | **2 × gear differential** + silicone diff oil, assorted weights | One per drive unit, both identical. Tunable oil gives limited-slip behaviour — a Phase 6 tuning knob rather than a fixed choice. Buy a range of weights. | 40–70 |
 | Half-shafts / CVDs, 1/16–1/18 class | One per corner, independent suspension. A known weak point at speed. | 25–45 |
 | Bearings | Wheel bearings see 8,537 rpm at the cap; driveline and motor bearings see up to ~20,000. Buy quality — those speeds find cheap bearings. | 20–40 |
-| Drive gears, single spur pair, no bevel | **Do not cut these until μ is measured.** Ratio depends on measured grip and the motor's current rating — 2.34:1 with the XK2845 at μ 1.1. Same ratio for every tire profile; the gearing never changes with tires. See `accel.py --match`. | 20–50 |
+| Drive gears, single spur pair, no bevel | **Do not cut these until μ is measured.** Ratio depends on measured grip and the motor's current rating. Same ratio for every tire profile; the gearing never changes with tires. See `accel.py --match`. **Steel pinion is not optional** — the spur runs at 17.7 m/s pitch-line. | 20–50 |
+| **Gear diffs ×2, 1/18 class** | Buy on *width*, not torque — the across-the-cups dimension sets half-shaft length, which bounds Phase 8 actuator travel. Worst-case load is 0.2 N·m per output, so 1/18 is still overbuilt. Plus heavy silicone oil for the limited-slip behaviour. See [MECHANICAL.md](MECHANICAL.md#independent-uprights--settled-not-open). | 25–50 |
+| **CVDs ×4, real constant-velocity — not dogbones** | A dogbone is not truly CV and produces a velocity fluctuation at angle; at 8,537 wheel rpm that is a vibration source into the bearings. A proper CV joint takes 30–40° against the 14.1° the geometry asks for. Cheapest fix in the suspension. | 20–40 |
 | **Static ride-height adjusters** | Shock collars or adjustable links — sets ride height through Phases 4–7 and absorbs the 7.5 mm of axle rise on a tire swap. A few grams, no failure modes. Powered actuators are Phase 8. | 15 |
 | ABS or ASA filament | **Not PLA.** See [MECHANICAL.md](MECHANICAL.md#material). | 25–35 |
 | Fasteners, thread-lock, nutserts | Buy more than you think. | 30 |
@@ -309,7 +323,69 @@ opened.
 |---|---|---|
 | ESP32 DevKit | Any of them. It's doing nothing hard. | 8–15 |
 | **10 Hz GPS module** | 10 Hz, not 1 Hz. A 1 Hz module samples once every 31 meters at target speed, which tells you nothing useful. | 20–40 |
+| **6-axis IMU** (MPU-6500 / ICM-42688 / LSM6DSO class) | **Yaw rate, ≥200 Hz.** See below — this is the cheapest high-value part in the BOM. | 3–10 |
 | microSD module + card | Logging. | 10 |
+
+### Why the IMU, specifically
+
+The whole directional-stability analysis in
+[MECHANICAL.md](MECHANICAL.md#-directional-stability--the-layout-as-drawn-is-divergent-at-50-mph)
+rests on numbers nobody has measured: the body's `dCy/dβ`, where its centre of
+pressure actually sits, and the front and rear lift coefficients. The predicted
+critical speed has already moved once on better inputs (36 → ~50 mph), and it
+is the difference between a wobble and an unrecoverable spin at 70 mph.
+
+**A gyro measures the answer directly.** Yaw rate at 200 Hz gives you:
+
+- **Damping, empirically.** Hit a seam, watch the yaw-rate decay envelope. That
+  is `ζ` and `f_n` measured rather than estimated, at every rung of the ladder.
+- **Divergence, before it bites.** As speed approaches critical the decay slows
+  and then reverses. Plotted against speed across the Phase 6 ladder, it
+  *extrapolates* — you see the critical speed coming rather than discovering it.
+- **The rake and ballast experiments become real experiments.** Change one
+  thing, run the same disturbance, compare decay. Without a gyro these are
+  matters of opinion.
+- **Yaw rate is the missing traction-control signal.** Slip is currently
+  inferred from inter-axle RPM difference alone, which a differential corrupts
+  (see MECHANICAL.md). Yaw rate is an independent measurement of what the
+  vehicle is actually doing.
+
+**What it does not measure: angle.** A 6-axis IMU gives angular *rate* (gyro)
+and *specific force* (accelerometer — vehicle acceleration and gravity mixed
+together, inseparably). There is no angle output. That is fine for everything
+above, which all reads yaw *rate* directly, but it has two consequences:
+
+- **Heading angle needs integration and drifts.** Over a 1–2 s disturbance
+  event a calibrated part (~0.2 °/s residual bias) accumulates ~0.4° against a
+  ~3.4° disturbance — acceptable. Over a 30 s run it is useless. Use short
+  windows, and if you want true heading, fuse against **GPS course-over-ground**,
+  which is already in this BOM and is absolute whenever the truck is moving.
+  Do *not* reach for a 9-axis part — two brushless motors will swamp the
+  magnetometer.
+- **⚠ Do not close the Phase 8 ride-height/rake loop on IMU pitch.**
+  Accelerometer-derived pitch is corrupted by longitudinal acceleration, and at
+  a 1.1 g launch the sensor cannot distinguish that from a 48° nose-up attitude
+  — the estimate is worst exactly when you most want it. **Rake and ride height
+  want position feedback on the actuators**: lead screws give it nearly free
+  via step counting or a cheap encoder plus an endstop reference. See
+  [MECHANICAL.md](MECHANICAL.md#rake-is-aero-control-not-just-cg-control).
+
+**The capability worth naming explicitly: sideslip.** Lateral acceleration, yaw
+rate and wheel speed together give sideslip *rate* directly, `β̇ = a_y/V − r`.
+`β` is the actual state variable that diverges above the critical speed — so the
+IMU measures the state, not just a symptom of it. Integrated over the short
+windows that matter, that is `β` itself.
+
+**Keep it on the supervisor, not in the control path.** The
+[architecture rule](ARCHITECTURE.md) is that the ESP32 has no authority over the
+motors, and an IMU does not change that — it is an instrument, and everything
+above is analysis you do on the logs afterwards. If a yaw-rate signal ever
+earns a place in a control loop, it moves to the G4 and gets its own interlock;
+that is a Phase 8 conversation and not this line item.
+
+Mount it near the CG, rigidly, and record its orientation. At 8,537 wheel rpm
+there is a lot of vibration to alias — pick a part with a configurable low-pass
+and set it well below the sample rate.
 
 ---
 
@@ -330,7 +406,7 @@ Mostly consumables, because this phase is where things break. That's its job.
 | Item | Notes | ~$ |
 |---|---|---|
 | **5052-H32 sheet**, 1.5 mm and 2.0 mm | For anything with a bend in it. | — |
-| 6061-T6 plate | Flat parts only — it cracks when bent tightly. | — |
+| 6061-T6 plate | Flat parts only — it cracks when bent tightly. The main chassis plate is one of these. | — |
 | Cut and bend | In-house. | — |
 | Nutserts + setting tool | Thin sheet has no thread engagement worth trusting. | 40 |
 
@@ -390,7 +466,7 @@ not a failure to shop properly.
 | **Custom DRV8353 / DRV8323 board** | Gate driver with integrated current-sense amplifiers, your FETs, your shunts, your layout. The route that gives real current headroom in a package that mounts cleanly. The risk is layout — shunt placement, Kelvin connections, and keeping analog away from switching nodes are what decide whether Phase 1's current readings are honest. |
 | Drone ESC hardware | Right size, right weight, right current, cheap. Either repurpose the power stage with your own gate drive, or take the documented off-ramp: flash **AM32** and command it over bidirectional DShot behind `inverter.h`. |
 | VESC / Flipsky (incl. dual-channel) | Open-source FOC, excellent firmware, and dual-channel boards exist. But they are built for e-skateboards — 200–300 g and rated for several times the current needed. Mass is not the objection (it cancels in traction-limited acceleration); bulk and cost are. |
-| ODrive S1 / Pro | Excellent hardware, open source, high current. Same problem: sized and priced for robotics, not for a 900 g truck. |
+| ODrive S1 / Pro | Excellent hardware, open source, high current. Same problem: sized and priced for robotics, not for a ~1 kg truck. |
 
 ## Deliberately not on this list
 

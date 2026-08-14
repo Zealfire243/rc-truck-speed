@@ -462,7 +462,7 @@ def main() -> None:
     p.add_argument("--r", type=float, default=0.030, help="phase ohms")
     p.add_argument("--l", type=float, default=20e-6, help="phase henries")
     p.add_argument("--mu", type=float, default=1.10)
-    p.add_argument("--mass", type=float, default=0.90)
+    p.add_argument("--mass", type=float, default=1.08)
     p.add_argument("--sweep", action="store_true")
     p.add_argument("--match", action="store_true",
                    help="matched final drive vs grip")

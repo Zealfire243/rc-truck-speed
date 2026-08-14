@@ -52,7 +52,7 @@ cd host-tools && uv run tune.py
 
 ## The numbers this is designed around
 
-**Two tire configurations, one drivetrain** — 2,441 kV on 4S, 3.5:1 final drive, and you change
+**Two tire configurations, one drivetrain** — 2,441 kV on 4S, 2.5:1 final drive, and you change
 top speed by changing wheels:
 
 | Profile | Tire | Top speed | Wheel RPM |
@@ -66,15 +66,18 @@ spins faster in the fast configuration than in the slow one. Run `gearing.py --s
 
 ```
   POWER  (confirm, don't design to)
-    at the wheels              119 W
-    electrical                 158 W
-    pack current              11.0 A   (5.5 A per motor, steady state)
+    at the wheels              150 W
+    electrical                 200 W
+    pack current              13.9 A   (6.9 A per motor, steady state)
 ```
 
 Read that twice, because it reframes the whole project: **power is not the constraint.** Holding
 70 mph against drag on a body this small takes about as much power as a bright desk lamp. What
-actually stops you is RPM, tires letting go, and yaw stability on a short wheelbase.
-Design accordingly — see [SAFETY.md](docs/SAFETY.md) and [MECHANICAL.md](docs/MECHANICAL.md).
+actually stops you is RPM, tires letting go, and **directional stability** — with the body measured,
+the 50/50 layout goes yaw-divergent around **50 mph**, and the fix is ~60% front weight bias, not the
+spoiler. Design accordingly — see
+[MECHANICAL.md](docs/MECHANICAL.md#-directional-stability--the-layout-as-drawn-is-divergent-at-50-mph)
+and [SAFETY.md](docs/SAFETY.md).
 
 ## Body dimensions (measured, the donor)
 
@@ -83,9 +86,16 @@ Design accordingly — see [SAFETY.md](docs/SAFETY.md) and [MECHANICAL.md](docs/
 | Bumper to bumper | 273 mm (10¾ in) |
 | Wheel well centers, front to back | 165 mm (6½ in) |
 | Wheel arch opening | **55 mm** — sets max tire OD |
-| Width | 105 mm |
+| Width, skinniest (cab/bed sides) | 105 mm |
+| Width, widest (fender flares) | **124.3 mm** |
+| Height, body bottom to cab top | 80 mm |
+| Spoiler | 54 × 160 mm crescent, pressure point **20 mm behind the rear axle** |
 
-The chassis under it is deliberately **not** 165 mm. It stretches to ~190 mm wheelbase and ~125 mm
-track, with the body sitting over it and the wheels slightly proud of the wells — yaw stability
-scales hard with wheelbase, and that stretch is the cheapest stability in the entire project. The
-reasoning is in [MECHANICAL.md](docs/MECHANICAL.md#geometry).
+The chassis under it is deliberately **not** 165 mm. It stretches to ~190 mm wheelbase and
+**~135 mm track**, with the body sitting over it. The wheelbase stretch helps yaw stability, though
+less than an earlier draft of this claimed — it is a weak linear lever, worth ~5% between 180 and
+190 mm, and kept at 190 because it is free here rather than because it buys much. The track went to
+135 mm to buy
+half-shaft length for the Phase 8 ride-height actuators; it costs **5.35 mm per side** of hub
+standing proud of the fender flares, and it raises the rollover CG ceiling from 57 to 61 mm as a
+bonus. The reasoning is in [MECHANICAL.md](docs/MECHANICAL.md#geometry).

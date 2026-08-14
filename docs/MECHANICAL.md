@@ -46,19 +46,44 @@ Two things fall out of it that are worth designing around:
   They are a known weak point at speed and want sourcing from the 1/16–1/18
   class along with the hubs.
 
-> **⚠ Half-shaft angle bounds the usable actuator range, and at this scale it
-> bounds it tightly.** Half-shafts on a 1/16-class car are short — call it
-> 45 mm — so ride-height change turns into driveshaft angle fast: ±10 mm is
-> already ±13°. Cheap dogbone "CVDs" are not truly constant-velocity, so at
-> angle they produce a second-order velocity fluctuation, and at 8,537 wheel
-> rpm that is a vibration source feeding straight into bearings and chassis
-> resonance.
+> **⚠ Half-shaft angle bounds the usable actuator range, and the geometry was
+> chosen to protect it.** Half-shafts on a chassis this size are short, so
+> ride-height change turns into driveshaft angle fast. The number is not a
+> guess — it falls out of the diff width and the track:
 >
-> So the Phase 8 actuator travel is limited by what the half-shafts tolerate at
-> speed, not by what the actuators can physically do. Set static ride height
-> with the links in Phases 4–7 and keep the actuators for modest changes around
-> that — see [ride height and the tire swap](#ride-height-and-the-tire-swap).
-> Measure the vibration before trusting a large range.
+> | | Inner joint | Outer joint | Shaft | Angle at ±10 mm |
+> |---|---|---|---|---|
+> | 1/16 gear diff, 125 track | ±17 | ±50 | 33 mm | 17.6° |
+> | 1/18 gear diff, 125 track | ±14 | ±50 | 36 mm | 16.1° |
+> | **1/18 gear diff, 135 track** | **±14** | **±55** | **41 mm** | **14.1°** |
+> | ball diff, 135 track, offset wheels | ±11 | ±57 | 46 mm | 12.6° |
+>
+> **Settled: 1/18-class gear diff on a 135 mm track — 41 mm of shaft, 14.1° at
+> ±10 mm.** The diff is not sized by torque (see
+> [drive unit packaging](#drive-unit-packaging--phase-4a) — the worst case in
+> the project is 0.2 N·m per output, which a 1/18 diff shrugs off); it is sized
+> purely to get the inner joints inboard. Widening the track 10 mm bought the
+> other 5 mm per side, and threw in 4 mm of
+> [CG ceiling](#the-hard-cg-ceiling) as a bonus.
+>
+> **Buy real CVDs, not dogbones — this is the cheap half of the fix.** The
+> problem was never the angle as such; it is that a dogbone is *not* truly
+> constant-velocity, so at angle it produces a second-order velocity
+> fluctuation, and at 8,537 wheel rpm that is a vibration source feeding
+> straight into bearings and chassis resonance. A proper CV joint tolerates
+> 30–40° without it, which is well past the 14.1° the geometry now asks for.
+> Costs nothing in weight or packaging.
+>
+> The ball diff row stays on the table as reserve. It is narrower still and it
+> shrinks spur diameter too — which is the only lever on the
+> [17.7 m/s gear speed](#the-gear-pair-sets-the-motor-offset) — but it trades
+> the oil-tuned limited-slip for thrust-screw preload and adds a rebuild
+> interval. Hold it for Phase 6, if the spur runs hot.
+>
+> Even so: set static ride height with the links in Phases 4–7 and keep the
+> actuators for modest changes around that — see
+> [ride height and the tire swap](#ride-height-and-the-tire-swap). Measure the
+> vibration before trusting a large range.
 
 ### Spool vs differential — decided: differentials both ends
 
@@ -75,6 +100,13 @@ with heavy silicone oil behaves as a limited-slip: it resists rapid speed
 differences (a spinning wheel) while still permitting the slow ones (cornering).
 That recovers most of what a spool would have given you without any of the
 steering penalty, and it turns a fixed mechanical choice into a tuning knob.
+
+**Buy 1/18-class diffs, not 1/16.** Not for weight — for width. The diff's
+across-the-cups dimension is what sets how much half-shaft you have left, and
+that is the binding constraint on Phase 8 actuator travel. Torque is a
+non-issue: the worst case in the whole project is **0.2 N·m per diff output**
+(μ 1.5, full rear bias, at launch), so a 1/18 diff is still overbuilt. See
+[the half-shaft table](#independent-uprights--settled-not-open).
 
 Starting point, to be tuned in Phase 6:
 
@@ -114,7 +146,7 @@ driveshafts, servos, and motor cans all come in class-shaped sizes.
 | | This build | 1/18 | 1/16 | 1/10 |
 |---|---|---|---|---|
 | Wheelbase | **190 mm** | ~160 | ~198 | 255–290 |
-| Track | **125 mm** | ~120 | ~150 | 190–200 |
+| Track | **135 mm** | ~120 | ~150 | 190–200 |
 | Body length | **273 mm** | ~250 | ~290 | 400–450 |
 | Tire OD | **55–70 mm** | 55–65 | 65–70 | 60–68 (touring) |
 
@@ -132,8 +164,9 @@ exactly why the wheels end up proud of the arches.
   1/10 parts are too big and too heavy, and their mass lands in the worst
   possible places for a truck this size.
 - **Motors are 1/16-class, not 1/10-class.** Two motors at ~400 W peak each
-  wants roughly 28–30 mm diameter cans (380 / 28xx size). A 1/10 540-can is
-  overkill, heavy, and will not fit two-across in a 105 mm body.
+  wants roughly 28–36 mm diameter cans (380 / 28xx through 3650). A 1/10
+  540-can is overkill, heavy, and will not clear the 97 mm centre bay the
+  [packaging study](#drive-unit-packaging--phase-4a) leaves between the axles.
 - **Tires cross classes on purpose.** 55 mm is 1/10 pan-car *front*; 70 mm is
   1/10 pan-car rear or small 1/8. (Not 1/12 — those foams are 39–43 mm. See
   [Sourcing](#sourcing).) The `record` config runs 1/10-sized rubber on a 1/16
@@ -155,20 +188,100 @@ The donor body, measured:
 | Bumper to bumper | 273 mm |
 | Wheel well centers, front to back | 165 mm |
 | Wheel arch opening | **55 mm** |
-| Width | 105 mm |
+| Width, skinniest point (cab/bed sides) | 105 mm |
+| Width, widest point (fender flares) | **124.3 mm** |
+
+> **Measure the flares, not the sides.** An earlier draft of this document
+> treated 105 mm as *the* body width, and that number propagated into the
+> frontal-area estimate, the "wheels proud" language, and the packaging study.
+> The body is 124.3 mm across the fenders — nearly 20 mm wider than assumed —
+> which is why the 135 mm track below costs far less visually than it looks
+> like it should.
 
 The chassis under it is deliberately not those numbers:
 
 | | Body says | Chassis is | Why |
 |---|---|---|---|
-| Wheelbase | 165 mm | **~190 mm** | Straight-line yaw stability scales hard with wheelbase. This is the cheapest stability in the project. |
-| Track | ≤105 mm | **~125 mm** | Roll stability and a wider stability triangle against yaw upset. |
-| Wheels vs. wells | tucked in | slightly proud | The cost of the above. Accept it. |
+| Wheelbase | 165 mm | **~190 mm** | Yaw stability improves with wheelbase — but only weakly. Kept at 190 mm because it is free *here*, not because it buys much. See [what wheelbase actually buys](#what-wheelbase-actually-buys). |
+| Track | ≤124.3 mm | **~135 mm** | Roll stability, a wider stability triangle against yaw upset, and ~5 mm per side of extra half-shaft length. |
+| Hub vs. fender flare | under it | **5.35 mm proud per side** | The cost of the above, and it is small. |
+
+**How proud is "proud", exactly?** Two different measurements, and the honest
+one is the first:
+
+| | Overall width | Sidewall vs. flare | Hub vs. flare |
+|---|---|---|---|
+| `street` 55 × 22 | 157 mm | 16.35 mm/side | **5.35 mm/side** |
+| `test` 70 × 25 | 160 mm | 17.85 mm/side | **5.35 mm/side** |
+| `wide` 70 × 35 | 170 mm | 22.85 mm/side | **5.35 mm/side** |
+
+The hub column is what the track stretch actually cost — 5.35 mm per side, and
+at the 125 mm track it considered earlier the hubs sat *flush* with the flares
+to within half a millimetre. The sidewall column is larger but it is not the
+stretch's fault: a wide tire on any track sticks out past the bodywork, and it
+would do so at 125 mm too.
 
 At 31.3 m/s a truck travels its own wheelbase in **6 milliseconds**. Any yaw disturbance — a seam
 in the pavement, a gust, a momentary traction difference between axles — has to be resisted by
-geometry, because nothing else is fast enough to help. Stretching the wheelbase 15% is free
-stability; every other fix costs weight or money.
+geometry and aero, because nothing else is fast enough to help.
+
+#### What wheelbase actually buys
+
+**Corrected.** Earlier drafts of this document claimed yaw stability "scales
+hard with wheelbase" and called the stretch "the cheapest stability in the
+project." Both overstate it. Worked through properly, wheelbase is a **weak,
+linear** lever:
+
+| | 190 mm | 185 mm | 180 mm |
+|---|---|---|---|
+| Yaw inertia `I_z` | 4.05e-3 | 3.83e-3 | 3.62e-3 kg·m² |
+| Damping ratio `ζ` | 0.267 | 0.260 | 0.254 |
+| Heading kept after a hit | 3.43° | 3.53° | 3.62° |
+| **vs. 190 mm** | — | −2.5% | **−5.1%** |
+
+The error was reading `N_r = L²C/2V` and stopping there. Yaw damping does go as
+`L²` — but **yaw inertia grows with wheelbase too**, and the two very nearly
+cancel. Work the disturbance response through and `I_z` drops out entirely:
+
+```
+ψ = F·Δt·V / (L·C)      heading kept after a yaw impulse
+```
+
+**Linear in 1/L.** Going 190 → 180 mm costs 5.6% more heading error and 5.1% of
+damping ratio. That is not "scales hard," and it is not worth distorting the
+layout for.
+
+That −5.1% is robust even though the absolute numbers are not: sweeping spoiler
+arm 15–40 mm, body `dCy/dβ` 2.5–3.5, and tire cornering stiffness 35–75 N/rad
+moves `ζ` between 0.16 and 0.36, but the 180-vs-190 gap stays −5.1% in every
+case. The uncertain terms cancel in the ratio.
+
+**Keep 190 mm anyway** — it costs nothing here, and the
+[packaging study](#drive-unit-packaging--phase-4a) wants every millimetre of
+centre bay it can get, which argues the same direction. Just do not spend
+anything else to protect it.
+
+> **⚠ The number that should worry you is `ζ ≈ 0.27`, and it barely moves with
+> wheelbase.** That is a lightly damped **2.3 Hz** yaw oscillation: ~42%
+> overshoot on a disturbance and 0.77 s to settle, which at 31.3 m/s means **a
+> single pavement seam rings for 24 metres of track.**
+>
+> The levers that actually move it, at 190 mm:
+>
+> | Change | Effect on `ζ` |
+> |---|---|
+> | Wheelbase 190 → 180 mm | −5.1% |
+> | Tire compound, `C` 55 → 75 N/rad | **+36.4%** |
+> | Cold/greasy tires, `C` 55 → 35 N/rad | **−36.4%** |
+>
+> **Tire compound is a 7× bigger lever than the entire wheelbase question**, and
+> it cuts both ways: a cold first run of the day is a materially less stable
+> truck than a warm one. Worth knowing before a Phase 8 attempt — see
+> [SAFETY.md](SAFETY.md).
+>
+> Caveats: `C = 55 N/rad` is derived from the μ estimate and an assumed 6°
+> peak-slip angle, and the aero terms are estimated against an unmeasured body
+> height. Absolute `ζ` could be 0.16 or 0.36. The *comparisons* hold regardless.
 
 ### CG and the spoiler
 
@@ -183,29 +296,238 @@ The spoiler is doing real work on rule 2 — it adds rear side-area and pushes t
 back. It came with the body and it happens to be exactly what a speed truck wants. Don't remove it
 for weight.
 
+#### ⚠ Directional stability — the layout as drawn is divergent at ~50 mph
+
+**This is the most important number in this document.** The truck as currently
+laid out is **aerodynamically unstable in yaw above roughly 50 mph**, and the
+fix is weight distribution, not the spoiler.
+
+The measured body:
+
+| | |
+|---|---|
+| Bottom of body to top of cab | 80 mm |
+| Bottom of body to windshield base | 48 mm |
+| Bottom of body to front of hood | 36 mm (most of the slope in the front 20 mm of a 78 mm hood) |
+| Spoiler | 54 mm chord × 160 mm wide, crescent, ends wrapping the body, sitting above the cab |
+| Spoiler pressure point | 27 mm from the rear of the body ≈ **20 mm behind the rear axle** |
+
+##### The side profile is not a box, and that matters
+
+Integrating the measured profile — 36 mm at the hood front, 48 mm at the
+windshield base, 80 mm over the cab, ~50 mm bed rails:
+
+| | Side area | Area centroid |
+|---|---|---|
+| Naive 273 × 80 box | 21,840 mm² | 136.5 mm from nose |
+| **Measured profile** | **15,312 mm² (70%)** | **138.1 mm from nose** |
+
+**The centroid lands essentially on the CG** (136.5 mm), because the low hood
+removes area from exactly the place a destabilising moment would come from.
+An earlier draft of this document put the CP at "25% of length," which is an
+aircraft-fuselage rule and badly wrong here. Bluff road-vehicle bodies carry
+their CP **10–20% of length ahead of the area centroid**, giving an arm of
+26–53 mm rather than the 68 mm first assumed.
+
+##### The spoiler is well placed, but arm alone cannot win
+
+With the CG at mid-wheelbase, the spoiler acts **110 mm behind it**. At 160 mm
+wide it reaches ~18 mm outboard of the flares into clean air, and sitting above
+the cab keeps it out of the cab wake. It is a genuinely well-placed device.
+
+But yaw stiffness is area × arm, and the body's side area is ~6× the spoiler's
+crescent fins. Net aero is **destabilising** — which is normal. Most road cars
+are the same, and they are stable because their **tires** supply the missing
+yaw stiffness through forward weight bias. This truck must do the same.
+
+##### Critical speed vs. front weight bias
+
+Above the critical speed, a yaw disturbance grows instead of decaying. From the
+linear bicycle model with the aero moment included, and with **tire load
+sensitivity `C ∝ N^0.8`**:
+
+| Front axle load | CG ahead of mid | CP 15% ahead | CP 10% ahead |
+|---|---|---|---|
+| **50% (as drawn)** | 0 mm | **48 mph** | **57 mph** |
+| 55% | 9.5 mm | 59 mph | 78 mph |
+| 57% | 13.3 mm | 64 mph | 86 mph |
+| **60%** | **19.0 mm** | **72 mph** | **97 mph** |
+| 65% | 28.5 mm | 82 mph | 114 mph |
+
+> **The load-sensitivity exponent is not a detail — it is the whole mechanism.**
+> If cornering stiffness were strictly proportional to load, then `a·C_f = b·C_r`
+> at *every* CG position and weight bias would produce exactly zero yaw
+> stiffness. Forward bias works only because real tires are load-sensitive
+> (`C ∝ N^0.8`), and the entire effect lives in that exponent.
+
+**Every item in the [CG build-up](BUILD_PHASES.md#check-4--cg-height-budget) is
+symmetric about mid-wheelbase, so the layout as drawn is 50/50 — and ~50 mph is
+inside the Phase 6 ladder.** That is not a disaster; it means the ladder finds
+this exactly where it should. But do not be surprised by it, and do not
+attribute it to a bad tune.
+
+##### What to do about it
+
+**Target 60% front, and treat it as a requirement rather than a trim option.**
+It clears 70 mph even on the pessimistic column.
+
+1. **Battery as far forward in the bay as it goes.** Already the plan; now it is
+   load-bearing. Worth ~4 mm of CG shift on its own — real, not sufficient.
+2. **Steering servo in the front overhang.** Already the plan for packaging
+   reasons; it also happens to be ballast in the right place.
+3. **Nose ballast to make up the rest.** ~150 g at the front bumper gets 60%.
+   **It costs nothing measurable in top speed** — 1,080 g vs 1,200 g is 150 W vs
+   151 W at the wheels, because the run is drag-limited and mass enters only
+   through rolling resistance. Do not agonise over it.
+4. **The spoiler is not the lever.** Doubling its fin area buys about **6 mph**.
+   Keep it — it is free and it helps — but weight distribution is worth ten
+   times more.
+
+##### Vertical aero: why lift matters, and the front-lift trap
+
+Downforce and lift produce **no yaw moment at all**. They matter only through
+tire normal load → cornering stiffness → yaw damping and understeer. At this
+scale that channel is huge:
+
+**q·A = 8.34 N at 70 mph against 10.59 N of vehicle weight.** A `C_L` of 1.27
+would lift the truck off the ground outright. A modest front lift coefficient of
+0.20 removes **26% of the front axle load**.
+
+- **The hood and windshield probably make lift, not downforce.** The raked
+  windshield pushes down locally, but the hood's upper surface accelerates flow
+  and generates lift, and that dominates. Net front lift is what most car-like
+  bodies produce. Do not count on downforce from that shape without measuring.
+- **⚠ Front lift is directionally *stabilising*, and that is a trap.** Less
+  front grip means more understeer, which raises the critical speed — the model
+  shows no divergence at all with `CLf = 0.20` up to front lift-off. But
+  "stable" there means "cannot steer." **And this is 4WD** — the front axle is
+  also a *driven* axle, so front lift costs drive traction as well as steering
+  and cornering grip. Stability bought by unloading the front is not stability
+  worth having.
+- **The spoiler's downforce is unambiguously good**: more rear load, more `C_r`,
+  more understeer, more stability, and more traction on the rear axle. That is
+  a third way the spoiler earns its keep, on top of side area and arm.
+
+##### The load balance inverts with speed — and it happens during the launch
+
+Static 60/40 front, with `CLf = +0.20` and `CLr = −0.25` from the wing:
+
+| mph | q·A | Front | Rear | Balance | `split.bias` to match |
+|---|---|---|---|---|---|
+| 0 | 0.00 N | 6.35 N | 4.24 N | **60/40** | −0.20 |
+| 10 (0.44 s) | — | — | — | 59.6/40.4 | −0.19 |
+| 30 (1.36 s) | 1.53 N | 6.05 N | 4.62 N | 56.7/43.3 | −0.13 |
+| 50 (2.36 s) | 4.25 N | 5.50 N | 5.30 N | 50.9/49.1 | −0.02 |
+| **70** | **8.34 N** | **4.69 N** | **6.32 N** | **43/57** | **+0.15** |
+
+**The truck is front-biased at launch and rear-biased at top speed**, crossing
+over around 50 mph — and because it reaches 50 mph in about 2.4 seconds, *the
+entire 60/40 → 51/49 swing happens inside the launch event.* This is not a
+separate high-speed regime to schedule for later.
+
+`split_bias` in `speed_loop.h` is currently a single static tunable initialised
+to `0.0f`. **A constant split is wrong at both ends.** The right shape is a
+function of measured speed, and the launch controller is already the thing that
+has to compute it — the same machinery that makes traction control work at
+launch handles the balance shift for free, because they are the same event.
+
+> **Uncertainty, stated plainly.** `dCy/dβ` is estimated at 2.0, CP position at
+> 10–20% of length ahead of the centroid, and the lift coefficients are guesses.
+> The critical speed has already moved once on better inputs (36 → ~50 mph). The
+> *shape* of the result — destabilising body, insufficient spoiler, weight bias
+> as the dominant lever, front lift as a trap — is robust across the whole
+> plausible range. The exact number is not.
+>
+> **This is why the [IMU](BOM.md) is in the Phase 5 BOM.** Yaw rate measured
+> directly turns the Phase 6 ladder into an experiment that settles these
+> numbers, instead of a ladder that inherits them.
+>
+> It also supersedes the `ζ ≈ 0.27` quoted in
+> [what wheelbase actually buys](#what-wheelbase-actually-buys), which assumed a
+> *stabilising* aero moment. At a stable 60% front bias, `ζ ≈ 0.35` at
+> `f_n ≈ 1.8 Hz`.
+
+#### How much the spoiler is worth — and why `ζ` misreads it
+
+Quantified at 190 mm, against a 2 N / 10 ms hit at the front axle:
+
+| Spoiler arm | `ζ` | Peak yaw excursion | Settling |
+|---|---|---|---|
+| **0 mm (none)** | — | **3.43°, permanent** | **never** |
+| 15 mm | 0.345 | 1.51° | 0.77 s |
+| 25 mm | 0.267 | 1.28° | 0.77 s |
+| 40 mm | **0.211** | **1.08°** | 0.77 s |
+
+**More spoiler lowers `ζ` while improving everything that matters.** That looks
+like a contradiction and is not — it is the reason `ζ` alone is the wrong metric
+for this vehicle, so it is worth being explicit about the mechanism:
+
+```
+ζ = N_r / (2·√(N_β · I_z))
+```
+
+- **`N_r` — yaw damping, from the tires.** A yaw *rate* puts the front and rear
+  tires at opposite slip angles, which resists the rotation.
+- **`N_β` — yaw stiffness, from aero.** A sideslip *angle* puts the centre of
+  pressure to one side of the CG, creating a restoring moment. This is the
+  arrow-fletching term, and it is what the spoiler adds.
+
+The spoiler raises `N_β` and leaves `N_r` untouched, so the *ratio* falls even
+though the spring got stiffer. Exactly what happens to a car fitted with
+stiffer springs and unchanged dampers: less damped relative to the new
+stiffness, not worse in absolute terms.
+
+**And the decay envelope does not move at all:**
+
+```
+ζ·ω_n = N_r / (2·I_z)        — N_β does not appear
+```
+
+which is why the settling column reads 0.77 s in every row. The spoiler changes
+the *frequency* of the ringing and the *amplitude* of the excursion; it cannot
+change how fast the envelope collapses. More spoiler buys a smaller peak at a
+higher frequency inside an identical envelope.
+
+**The top row is the actual argument.** With no spoiler `N_β = 0`, so there is
+no restoring moment and `ζ` is undefined. The tires damp the yaw *rate* to zero
+but nothing pulls the *heading* back — the truck stops rotating and then drives
+away at its new 3.43° angle, permanently. That is the arrow-fletching principle
+stated precisely: **tires give damping, aero gives stiffness, and only stiffness
+restores a heading.**
+
+So: don't remove the spoiler, and if anything **add rear side area rather than
+trimming it.** A bigger spoiler reading `ζ = 0.21` is a better-behaved truck
+than a smaller one reading `ζ = 0.35`.
+
 #### The hard CG ceiling
 
 Track sets a limit that has nothing to do with feel. A vehicle rolls rather
 than slides when lateral acceleration exceeds `(track/2) / CG height`, so with
-a 125 mm track:
+a 135 mm track:
 
 | CG height | Rolls at | Verdict |
 |---|---|---|
-| 30 mm | 2.08 g | Slides first — good |
-| 40 mm | 1.56 g | Slides first — good |
-| 50 mm | 1.25 g | Slides first — thin |
-| **57 mm** | **1.10 g** | **Marginal — equals grip** |
-| 65 mm | 0.96 g | **Rolls first** |
+| 30 mm | 2.25 g | Slides first — good |
+| 40 mm | 1.69 g | Slides first — good |
+| 50 mm | 1.35 g | Slides first — good |
+| **56 mm** | **1.21 g** | **Marginal at μ 1.20 (`wide`)** |
+| **61 mm** | **1.11 g** | **Marginal at μ 1.10** |
+| 65 mm | 1.04 g | **Rolls first** |
 
-**Keep CG under ~57 mm**, and under ~52 mm once the `wide` tires raise μ to
+**Keep CG under ~61 mm**, and under ~56 mm once the `wide` tires raise μ to
 1.20. Above that the truck stops sliding when it loses grip and starts tipping
 instead, which at speed is the difference between a spin and a tumble.
 
+> Going 125 → 135 mm track bought 4 mm of this ceiling (57 → 61 at μ 1.10,
+> 52 → 56 at μ 1.20). That was not the reason for the change — half-shaft
+> length was — but it is a real second dividend, and it is why widening is
+> the one geometry lever here that improves two things at once.
+
 **In practice this ceiling is not close.** A first-pass build-up with 70 mm
-tires puts CG around **31 mm** — most of the truck's mass sits at or below axle
+tires puts CG around **32 mm** — most of the truck's mass sits at or below axle
 height and there is very little room to put anything high. Even a
 Nucleo-with-shield stack, 40 mm tall and ~150 g at a 35 mm centre, only moves it
-to 32.9 mm. Treat 57 mm as a check to run in
+to ~33 mm. Treat 61 mm as a check to run in
 [Phase 4a](BUILD_PHASES.md#check-4--cg-height-budget), not a constraint that
 shapes the layout.
 
@@ -215,11 +537,13 @@ robustness** — shield stacks, header pins, and Arduino footprints are awkward 
 mount and fragile in a vehicle that crashes — not any performance budget.
 
 And note the actuators buy rollover margin too: **ride height lowers CG 1:1**,
-so dropping 10 mm at speed takes the roll threshold from 1.9 g to 2.7 g.
+so dropping 10 mm at speed takes the roll threshold from 2.1 g to 3.1 g
+(CG 32 → 22 mm on the 135 mm track).
 
-Ballast, if needed, goes **forward and low**. Adding 50 g at the front bumper is a legitimate
-stability fix and costs you almost nothing in top speed — go back and re-run `gearing.py` with the
-new mass and watch how little changes.
+Ballast goes **forward and low**, and on the numbers above it is not optional — see
+[directional stability](#-directional-stability--the-layout-as-drawn-is-divergent-at-50-mph).
+It costs almost nothing in top speed: re-run `gearing.py` with the new mass and watch how little
+changes.
 
 ### Tires
 
@@ -295,6 +619,43 @@ Tire OD feeds the speed calculation, which feeds the speed cap — so a wrong
 profile makes the cap fail *open*. It is a runtime parameter bound to the cap
 ceiling for that reason, and a pre-run checklist item in
 [SAFETY.md](SAFETY.md#every-session-before-the-first-run).
+
+#### Rake is aero control, not just CG control
+
+Per-corner ride height was justified by CG management. With the aero worked out
+it is doing something larger: **changing rake changes the lift distribution**,
+which is a direct lever on the exact problem above.
+
+The mechanism: nose-down rake adds front downforce and reduces front lift. That
+is precisely the counter to the front-lift trap — it keeps the front axle
+loaded, which preserves steering, cornering grip, *and* front drive traction on
+a 4WD truck, all of which the aero is taking away at speed.
+
+**And rake is remarkably cheap on this geometry:**
+
+| Front | Rear | Rake | CG change | Half-shaft angle |
+|---|---|---|---|---|
+| −5 mm | +5 mm | **+3.01°** | **0.0 mm** | **7.0°** |
+| −10 mm | +10 mm | +6.01° | 0.0 mm | 14.1° |
+| −10 mm | 0 mm | +3.01° | −5.0 mm | 14.1° |
+
+**Differential ride height costs nothing in CG** — only the *mean* height moves
+the CG, so a symmetric rake trim is free on that axis. And ±5 mm buys 3° of
+rake for 7° of half-shaft angle, which is **half** the 14.1° budget from
+[independent uprights](#independent-uprights--settled-not-open). Three degrees
+is a lot of rake for a vehicle; most cars run 1–3°.
+
+So the actuator budget is better than the earlier framing implied. The tight
+constraint is *mean* ride-height change (CG, and both shafts at angle
+simultaneously); *differential* change is cheap and is where the aero authority
+lives.
+
+**Do not try to use this actively before it is measured.** The magnitude of the
+lift shift per degree of rake is unknown and needs the
+[IMU](BOM.md) plus Phase 6 data. The mechanism is real and the authority is
+there; the gain is not yet known. Treat rake as a **static trim to find in Phase
+6** first, and only consider moving it mid-run once the sign and size are
+confirmed.
 
 #### Ride height and the tire swap
 
@@ -402,6 +763,124 @@ Two practices from the speed-run community that are worth adopting:
 - **Balance the wheels.** At nearly 11,000 rpm a small imbalance is a large force, and it goes
   into your bearings and your chassis resonance.
 - Fresh tires for Phase 8. Not the set you did the Phase 6 ladder on.
+
+---
+
+## Drive unit packaging — Phase 4a
+
+The 2D study [Phase 4a](BUILD_PHASES.md#4a--the-packaging-study) asks for, done
+at 190 mm wheelbase / 135 mm track with the recommended GoolRC-class 3650
+(36 × 50 mm can). It answers *what is left in the middle*, and it moves three
+numbers elsewhere in the project.
+
+### The gear pair sets the motor offset
+
+The spur gear **is** the diff case, so it cannot be small — a 1/16-class gear
+diff needs roughly 38 mm of ring gear. That floor forces an unusually large
+pinion for a 2.34:1 single reduction, and the resulting centre distance is the
+motor offset for the whole layout.
+
+| 48-pitch, 32T pinion / 75T spur | |
+|---|---|
+| Ratio | 2.344:1 |
+| Pinion PD / spur OD | 16.9 mm / **40.7 mm** |
+| **Centre distance (= motor offset)** | **28.3 mm** |
+| Motor rpm at the cap | 20,009 |
+| Pitch-line velocity | **17.7 m/s** |
+
+> **⚠ 17.7 m/s is at the top of what a plastic spur tolerates** (~15–20 m/s is
+> the usual ceiling). **Steel pinion is mandatory**, and the spur wants hardened
+> steel or a very good POM. Gear temperature after a run is a Phase 6 inspection
+> item, alongside the printed-part checks below.
+>
+> Going taller makes it worse, not better: 32T/80T for 2.50:1 is 18.9 m/s.
+> Going the other way, 30T/70T holds 2.33:1 at 16.6 m/s and a 26.5 mm centre
+> distance — but a 37 mm spur is right at the diff-packaging floor. **If the
+> spur runs hot, that is the swap**, and it costs bay length.
+
+### Where the motor offset points — DECIDED: inboard and horizontal
+
+The offset magnitude is fixed by the gears. Its *direction* is a real choice,
+and it trades bay length against CG:
+
+| Offset direction | Middle bay | CG | Can top |
+|---|---|---|---|
+| **A — inboard, horizontal** | **97 mm** | 31.9 mm | 53 mm |
+| C — inboard, 45° up | 114 mm | 39.3 mm | 73 mm |
+| D — straight up | 154 mm | 42.4 mm | 81 mm |
+| B — outboard, horizontal | 149 mm | 31.9 mm | 53 mm |
+
+**B is ruled out on packaging, not preference.** The can reaches 46.3 mm ahead
+of the front axle and the body only gives 41.5 mm of overhang there
+((273 − 190) / 2), so it comes through the bumper. It also takes the one
+location the steering servo can occupy.
+
+**C and D buy bay length by spending CG margin**, which is the one thing this
+truck cannot buy back — see [the hard CG ceiling](#the-hard-cg-ceiling). D also
+puts the can top at 81 mm, straight into the wheel arches.
+
+**Status: DECIDED — A, motors inboard and horizontal.** C is the documented
+fallback if the electronics genuinely cannot be decked, and it costs ~7 mm of
+CG height.
+
+### What is left
+
+Taking A, with the front axle as the origin:
+
+```
+        41.5             97 mm bay              41.5
+      |<---->|<--------------------------->|<---->|
+      |  servo  [M]                   [M]  |  rx  |
+  ────┴────────(O)───────────────────(O)───┴──────    ground
+   bumper    front axle           rear axle   bumper
+              x=0                   x=190
+```
+
+| Volume | Size | For |
+|---|---|---|
+| Middle bay | **97 × ~100 mm**, floor at ~10 mm, open to full height | Pack + electronics |
+| Front overhang | 41.5 mm × up to 124.3 mm | **Steering servo** |
+| Rear overhang | 41.5 mm × up to 124.3 mm | Receiver, antenna |
+| At the axle line | ±14 mm diff cups, then 41 mm of half-shaft to ±55 mm | Drive unit |
+
+> **The bay is 100 mm wide even though the body is 124.3 mm.** The 124.3 is at
+> the fender flares, which sit over the *wheels*; between the axles the body
+> necks in to its 105 mm cab/bed section, and that is the section the bay lives
+> under. The wide number buys wheel clearance, not packaging volume.
+
+> **The purchasing consequence: a standard 4S hardcase pack does not fit.**
+> Those are ~105 mm long and the bay is 97 mm, in either orientation — turning
+> the pack sideways does not help, because the plate is only ~100 mm across the
+> bay. **Buy a 4S 850–1000 mAh softpack**, roughly 72 × 35 × 28 mm.
+>
+> That is not a compromise. At the 12.2 A cruise current, 1,000 mAh is nearly
+> 5 minutes of holding 70 mph and runs last seconds. **Buy the C-rating, not
+> the capacity** — the 40 A launch off a 1,000 mAh pack is 40C, so spec 60C or
+> better.
+
+That leaves ~25 mm of bay length beside the pack, which is **not** enough for
+two inverters plus the G4 plus the ESP32 laid flat. **Electronics go on a deck
+above the pack.** The [CG budget](#the-hard-cg-ceiling) already shows a board
+stack costs only a millimetre or two of CG height, so this is effectively free —
+and it is another reason the constraint on dev boards is packaging rather than
+mass.
+
+### Two numbers this changes elsewhere
+
+- **Half-shafts, and why the track went to 135 mm.** The motor is offset
+  28.3 mm fore/aft of the axle line, so it is *not* in the half-shaft's plane
+  and its 50 mm length does not constrain shaft length — only the diff's own
+  width does. A 1/16 gear diff (cups at ±17) on the original 125 mm track gives
+  33 mm of shaft and 17.6° at ±10 mm of ride height. Dropping to a
+  **1/18-class diff** (±14) and widening to **135 mm track** gives **41 mm and
+  14.1°**, which is better than the 45 mm/13° the project originally assumed.
+  See [independent uprights](#independent-uprights--settled-not-open).
+- **Mass goes 840 g → ~1,080 g.** The [CG budget](#the-hard-cg-ceiling) allows
+  160 g for both motors; two 3650s are ~200 g **each**. CG barely moves
+  (31 → 31.9 mm — they already sit at axle height), but `gearing.py` and
+  `accel.py` both default to `mass_kg = 0.90` and want re-running at 1.08.
+  Acceleration is traction-limited so this mostly cancels there; it is top speed
+  and the rolling-resistance term that shift.
 
 ---
 

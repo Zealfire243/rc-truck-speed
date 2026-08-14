@@ -52,7 +52,7 @@ with arithmetic instead of with a shopping cart.
    | Motor RPM at the 70 mph cap | 21,345 (61% of no-load) |
    | **Wheel RPM at the cap — every configuration** | **8,537** |
    | Wheel RPM the drivetrain could reach *uncapped* | 11,951 (**+39% over tire rating**) |
-   | Steady-state draw | 158 W, 5.5 A per motor |
+   | Steady-state draw | 200 W, 6.9 A per motor |
 
    **Two tire configurations, one drivetrain.** Top speed changes by changing
    wheels, and nothing else changes at all:
@@ -321,7 +321,7 @@ Print every structural part as the **flat-pattern-folded** geometry it will even
 aluminum. That constraint costs you almost nothing now and means Phase 7 is a material change
 rather than a redesign.
 
-**Mechanical:** ~190 mm wheelbase, ~125 mm track, body sitting over it. **Independent uprights at
+**Mechanical:** ~190 mm wheelbase, ~135 mm track, body sitting over it. **Independent uprights at
 all four corners**, half-shaft from each drive unit to its upright — settled, because Phase 8's
 per-corner ride-height control requires it. Steering servo with real Ackermann. Battery as low and
 as far forward as it will go. See [MECHANICAL.md](MECHANICAL.md#independent-uprights--settled-not-open).
@@ -332,6 +332,17 @@ as far forward as it will go. See [MECHANICAL.md](MECHANICAL.md#independent-upri
 work. It answers the question that could invalidate the whole layout: *do two drive units, a 4S
 pack, two inverters, the G4 and the ESP32 actually fit inside 105 mm of width at a 190 mm
 wheelbase?* Find that out in 2D in an hour, not in 3D after a week.
+
+(105 mm is the right number for this question even though the body is 124.3 mm at the fender
+flares — the flares sit over the wheels, and the bay lives under the necked-in cab/bed section.)
+
+> **Done — the answer is yes, with two purchasing consequences.** The layout,
+> the motor-offset decision, and what is left in the middle are written up in
+> [MECHANICAL.md § Drive unit packaging](MECHANICAL.md#drive-unit-packaging--phase-4a).
+> Headlines: motors go **inboard and horizontal**, leaving a **97 mm bay**; a
+> standard 4S hardcase pack **does not fit** (buy an 850–1000 mAh softpack);
+> electronics deck **above** the pack; and the gear pair runs at 17.7 m/s
+> pitch-line, so the **pinion must be steel**.
 
 Three decisions come out of it, and all three are inputs to housing geometry — which is a
 cut-and-bend part you want to design once.
@@ -390,12 +401,28 @@ wheel on its axle (see [MECHANICAL.md](MECHANICAL.md#spool-vs-differential--deci
 A wider tire at fixed track either pushes the wheels further out (more frontal area, more wheel
 wake) or further in (fouling the chassis). Decide it here, with all three tire sets in the drawing.
 
+#### Decision 3 — weight distribution — **TARGET: 60% front**
+
+Not a trim option. Net aero yaw moment is destabilising and the tires have to
+supply the stability through forward weight bias. **At 50/50 the critical speed
+is ~50 mph — inside this ladder.** 60% front clears 70 mph even on the
+pessimistic aero assumption.
+
+Weigh the build-up and compute the split on the 2D drawing, then add nose
+ballast to hit it (~150 g at the bumper for 60%). It costs ~1 W of top speed.
+
+**Note the balance does not stay put.** Aero load at 70 mph is 79% of vehicle
+weight, so a static 60/40 becomes ~43/57 at the cap — and since the truck
+reaches 50 mph in ~2.4 s, the whole swing happens *inside the launch*. That
+makes the torque split a launch-controller output, not a static tune. See
+[MECHANICAL.md](MECHANICAL.md#-directional-stability--the-layout-as-drawn-is-divergent-at-50-mph).
+
 #### Check 4 — CG height budget
 
 Do this once, on the 2D side view, by weighing parts and reading heights off the drawing.
 
 A vehicle rolls rather than slides when lateral acceleration exceeds `(track/2) / h`. With a
-125 mm track that is **57 mm at μ 1.10, and 52 mm at μ 1.20** with the `wide` tires. Above it the
+135 mm track that is **61 mm at μ 1.10, and 56 mm at μ 1.20** with the `wide` tires. Above it the
 truck stops sliding when it runs out of grip and starts tipping — at speed, a tumble instead of a
 spin.
 
@@ -411,10 +438,17 @@ A first-pass build-up with 70 mm tires (axle centreline at 35 mm):
 | Electronics, flat | 100 | 20 mm |
 | **Total** | **840** | **31 mm** |
 
-**So the ceiling is not close, and this is a check rather than a design driver.** 31 mm against a
-57 mm limit is 26 mm of headroom, and the truck rolls at 2.0 g against 1.1 g of grip. Swapping the
-flat electronics for a Nucleo-with-shield stack — 40 mm tall, ~150 g, centre at 35 mm — moves CG to
-32.9 mm. That is **1.9 mm**, not the "most of the budget" an earlier draft of this claimed.
+> **The motor line is optimistic if you buy the recommended motor.** 160 g for
+> both assumes a 28xx can; two GoolRC-class 3650s are ~200 g **each**, taking
+> the total to **~1,080 g**. CG barely moves — 31 → **31.9 mm**, because they
+> already sit at axle height — so nothing below changes. But `gearing.py` and
+> `accel.py` default to `mass_kg = 0.90` and want re-running at 1.08. See
+> [MECHANICAL.md § Drive unit packaging](MECHANICAL.md#drive-unit-packaging--phase-4a).
+
+**So the ceiling is not close, and this is a check rather than a design driver.** ~32 mm against a
+61 mm limit is 29 mm of headroom, and the truck rolls at 2.1 g against 1.1 g of grip. Swapping the
+flat electronics for a Nucleo-with-shield stack — 40 mm tall, ~150 g, centre at 35 mm — moves CG by
+under 2 mm. That is not the "most of the budget" an earlier draft of this claimed.
 
 The reason it barely matters: most of the truck's mass is at or below axle height already, and
 almost nothing can sit high in a chassis this shallow. Ballast and the body shell are the only
@@ -428,7 +462,7 @@ things naturally up there.
 | −5 mm | 27.9 mm | 2.24 g |
 | −10 mm | 22.9 mm | 2.73 g |
 
-- [ ] Build-up done from real weights once parts arrive, and the result under 52 mm.
+- [ ] Build-up done from real weights once parts arrive, and the result under 56 mm.
 - [ ] Re-check after any ballast is added — ballast goes forward **and low** for this reason.
 
 #### Decision 3 — where the μ measurement happens

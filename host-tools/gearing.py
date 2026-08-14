@@ -29,7 +29,7 @@ them is the classic speed-run mistake:
 
   2. Can it PUSH hard enough?   P = (F_aero + F_roll) * v
      At this scale the answer is almost always yes with margin. Drag on a
-     ~0.011 m^2 frontal area is small; see the printed power figure.
+     ~0.0139 m^2 frontal area is small; see the printed power figure.
 
 So: gear for RPM, then confirm the power number isn't embarrassing. If the
 required kV comes out absurd (>3500), the fix is a bigger tire or a shorter
@@ -70,9 +70,20 @@ class Vehicle:
     rpm_load_frac: float = 0.85  # fraction of no-load RPM reached at top speed
 
     # --- Mass and aero ----------------------------------------------------
-    mass_kg: float = 0.90
+    mass_kg: float = 1.08  # two 3650-class cans, not the 28xx the first pass
+                           # assumed. See docs/BOM.md motor sizing.
     cd: float = 0.55  # blunt truck body with a spoiler; optimistic if anything
-    frontal_area_m2: float = 0.011  # 105 mm body + wheels proud of the wells
+    frontal_area_m2: float = 0.0139
+    # Built from the measured body silhouette, not guessed:
+    #   body to windshield base  124.3 x 48 mm   = 5,966 mm^2
+    #   cab                      ~100  x 32 mm   = 3,200 mm^2
+    #   wheels proud of flares   2 x 17.85 x 70  = 2,499 mm^2
+    #   under-body gap, ~half blocked            =   746 mm^2
+    #   spoiler blade            160 x ~9 mm     = 1,440 mm^2
+    # at 135 mm track on the 25 mm `test` tire. Add ~4% for the 35 mm `wide`.
+    # Cab width (~100 mm) and the spoiler's projected thickness are the only
+    # estimates left; everything else is measured. Aero drag is ~4.6 N, so a
+    # 10% area error is under 10 W against a 150 W budget -- do not over-refine.
     crr: float = 0.020  # foam tires on asphalt
 
     # --- Efficiency -------------------------------------------------------
@@ -300,7 +311,7 @@ def main() -> None:
     p.add_argument("--tire", type=float, default=55.0, help="tire OD, mm")
     p.add_argument("--fd", type=float, default=2.50, help="final drive ratio")
     p.add_argument("--cells", type=int, default=4)
-    p.add_argument("--mass", type=float, default=0.90, help="kg")
+    p.add_argument("--mass", type=float, default=1.08, help="kg")
     p.add_argument("--solve", choices=["kv", "fd"], default="kv")
     p.add_argument("--kv", type=float, default=2441.0,
                    help="motor kV, for --solve fd")

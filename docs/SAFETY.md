@@ -1,7 +1,7 @@
 # Safety
 
-A 900 g truck at 70 mph carries roughly the kinetic energy of a baseball thrown by a professional
-pitcher — about 440 joules — and unlike a baseball it does not stop when it hits something. It is
+A 1,080 g truck at 70 mph carries roughly **530 joules** — more than a baseball thrown by a
+professional pitcher, and unlike a baseball it does not stop when it hits something. It is
 also travelling faster than you can react: at 31 m/s it covers **6 meters** during a 200 ms human
 reaction. You are not going to steer out of anything.
 
@@ -49,6 +49,14 @@ Not software. Hardware.
       **the speed cap fails open.** This is the one safety property in the whole system that
       depends entirely on a human being honest, so treat it like the failsafe test: every session,
       out loud, no assumptions.
+- [ ] **Nose ballast fitted and the front-bias target met.** The truck is aerodynamically
+      yaw-divergent without it — at 50/50 weight the critical speed is ~50 mph, and above the
+      critical speed a disturbance *grows* instead of decaying. This is not a handling preference;
+      it is the difference between a wobble and an unrecoverable spin. See
+      [MECHANICAL.md](MECHANICAL.md#-directional-stability--the-layout-as-drawn-is-divergent-at-50-mph).
+- [ ] **Tires warm before any run near the cap.** Cornering stiffness is the single biggest term in
+      yaw damping — cold or greasy tires are a materially less stable truck, and the first run of
+      the day is the one most likely to bite.
 - [ ] Nobody downrange. Nobody's dog downrange.
 
 ## Run site
