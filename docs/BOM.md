@@ -210,6 +210,41 @@ a motor that runs out of current at μ 1.3 means buying motors again.
 > `pin_map.h` currently has). Get this wrong and every RPM and angle the
 > observer produces is out by 2×. Count the magnets and set it before Phase 1.
 
+#### The bundled 60 A ESC — keep it, don't plan around it
+
+The GoolRC motor ships as a combo with a 60 A ESC. **It is not part of this
+architecture** and cannot become one: like the B-G431B-ESC1, its gate drivers
+are wired to its own onboard MCU, so the G474 cannot reach them. It takes a
+throttle signal, not gate commands. 60 A is comfortably above the 30–41 A you
+would draw, but that is beside the point.
+
+It is still worth having, for three things:
+
+1. **Motor characterisation before any of your firmware exists.** Spin the motor
+   on the ESC with a servo tester and a bench supply and you can read off
+   **kV** (rpm ÷ volts at no load) and **`i_noload`** (the supply current while
+   it spins free). Both feed straight into `accel.py`, and `i_noload` is
+   currently a guess that anchors the entire thermal model. This is Phase 0 work
+   you can do while waiting on the Nucleo.
+2. **A known-good reference during Phases 1–2.** When your FOC does something
+   inexplicable, putting the same motor on the ESC answers "is it my code or my
+   motor?" in about a minute. During observer bring-up that is worth a lot.
+3. **The documented off-ramp.** If the sensorless observer turns into a swamp,
+   commercial ESCs get the truck rolling while you keep developing FOC behind
+   `inverter.h`. That was already listed as a legitimate fallback.
+
+**Buying rule:** if the combo costs roughly what a bare motor does, take the
+combo — uses 1 and 2 alone justify it. If bare motors are meaningfully cheaper,
+buy bare and skip it.
+
+> ⚠ **Check the voltage rating on the exact listing.** Some 3650 3100 kV motors
+> are sold as 2S–4S, others as 2S–3S, with otherwise identical specs. That
+> rating is really an *RPM and thermal* limit at typical 1/10 gearing, and you
+> are geared to ~20,000 rpm at the cap against a 44,640 rpm no-load — so the
+> motor never goes near the speed the 3S rating is protecting. The firmware cap
+> enforces that. Worth confirming with the vendor anyway, and note the **bundled
+> ESC** may be 3S-only even where the motor is not.
+
 **Sensored is still worth paying for where you can get it.** Hall sensors cost nothing to ignore if sensorless works,
 and the single biggest risk in Phase 2 is the observer failing to track *this particular motor* —
 low saliency or high inductance make the startup handover nasty. A sensored motor turns that from
