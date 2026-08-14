@@ -160,7 +160,57 @@ ratio tall enough to protect the motor. A 30–35 mm can rather than a 28 will
 usually get you there, and the extra ~100 g is irrelevant — mass cancels in
 traction-limited acceleration.
 
-**Strongly consider a sensored motor.** Hall sensors cost nothing to ignore if sensorless works,
+#### Candidates at ≥ 30 A / ≥ 350 W
+
+HobbyKing does not carry one. Looking wider, the 1/10 **3650** class (36 mm can)
+is where the ratings live. Compared at a fixed 2.34:1 so the columns are
+like-for-like:
+
+| Motor | Poles | Rating | A @ μ1.1 | A @ μ1.5 | μ ceiling | Sensored |
+|---|---|---|---|---|---|---|
+| XK2845-1980KV *(current)* | 4 | 24 A / 220 W | 20.0 | 26.7 | **1.34** | no |
+| [QuicRun 3650 G2 17.5T](https://www.hobbywingdirect.com/products/quicrun-3650-sensored-2-pole-brushless-motor) — 2170 kV | 2 | 25 A / 420 W cont. | 21.8 | 29.1 | **1.28** | **yes** |
+| QuicRun 3650 G2 13.5T — 2850 kV | 2 | 25 A / 420 W cont. | 28.1 | 37.8 | 0.97 | yes |
+| [GoolRC 3650 3100KV](https://www.amazon.com/GoolRC-Sensorless-Brushless-ESC%EF%BC%88Electric-Controller%EF%BC%89/dp/B0832DK6P7) | 4 | **56 A / 900 W**, 2–4S | 30.5 | 41.0 | **2.07** | no |
+
+*"μ ceiling" = the grip beyond which that motor's current rating binds.*
+
+**The awkward finding: the sensored options do not solve the current problem.**
+The sensored 3650s are ROAR racing motors with modest *continuous* ratings, and
+their lower Kt means they draw slightly **more** current than the XK2845 for the
+same wheel force. The 17.5T's μ ceiling of 1.28 is worse than what you have.
+
+Only the high-current sensorless class removes the motor from the equation, and
+it does so completely — μ 2.07 is beyond anything a foam tire will produce.
+
+> **Continuous ≠ burst.** 25 A continuous is a thermal rating; a 2–3 second
+> launch at 29 A is very likely fine. So the QuicRun is not really disqualified,
+> it is just unverified. If you can get a burst figure from Hobbywing, it may
+> well clear.
+
+**So the two preferences pull opposite ways**, and which you buy depends on
+which risk you would rather carry:
+
+- **Buy grip headroom** → GoolRC-class, 3650 sensorless, ≥ 50 A. Meets your
+  stated spec outright and you never revisit the motor. Cost: sensorless, and
+  3100 kV gives ~36% less back-EMF per rpm than 1980 kV (`Ke = 1/kV`), which
+  makes the Phase 2 observer *harder* — on the exact axis that is already the
+  project's long pole.
+- **Buy schedule certainty** → QuicRun 3650 G2 17.5T, sensored, 2170 kV. Halls
+  eliminate the biggest Phase 2 risk entirely, and 2170 kV is in the sweet spot.
+  Cost: you may hit its current limit around μ 1.3 and be back here later.
+
+**Recommendation: the GoolRC-class motor**, because it is the only one that
+meets the spec you asked for, and because a sensorless observer that will not
+track is recoverable — you can bolt an encoder or hall set to the shaft — while
+a motor that runs out of current at μ 1.3 means buying motors again.
+
+> ⚠ **Pole count changes firmware.** The QuicRun 3650 is **2-pole**
+> (`POLE_PAIRS = 1`); the GoolRC is **4-pole** (`POLE_PAIRS = 2`, which is what
+> `pin_map.h` currently has). Get this wrong and every RPM and angle the
+> observer produces is out by 2×. Count the magnets and set it before Phase 1.
+
+**Sensored is still worth paying for where you can get it.** Hall sensors cost nothing to ignore if sensorless works,
 and the single biggest risk in Phase 2 is the observer failing to track *this particular motor* —
 low saliency or high inductance make the startup handover nasty. A sensored motor turns that from
 "buy a different motor and restart the phase" into "use the halls." Cheap insurance on the long
