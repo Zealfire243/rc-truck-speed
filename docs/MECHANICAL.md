@@ -56,7 +56,7 @@ Two things fall out of it that are worth designing around:
 > | 1/16 gear diff, 125 track | ±17 | ±50 | 33 mm | 17.6° |
 > | 1/18 gear diff, 125 track | ±14 | ±50 | 36 mm | 16.1° |
 > | **1/18 gear diff, 135 track** | **±14** | **±55** | **41 mm** | **14.1°** |
-> | ball diff, 135 track, offset wheels | ±11 | ±57 | 46 mm | 12.6° |
+> | ball diff, 135 track | ±11 | ±55 | 44 mm | 13.1° |
 >
 > **Settled: 1/18-class gear diff on a 135 mm track — 41 mm of shaft, 14.1° at
 > ±10 mm.** The diff is not sized by torque (see
@@ -705,9 +705,13 @@ Be honest about the magnitude though: 22 → 35 mm is a 59% width increase and
 buys perhaps 5–10% of μ from load sensitivity alone. **Compound is the bigger
 lever.** The `wide` profile is specced at μ = 1.20 assuming both.
 
-Packaging cost: a wider tire at fixed track either pushes the wheels further
-out (more frontal area, more wheel wake) or further in (fouling the chassis).
-Decide which in the [Phase 4 packaging study](BUILD_PHASES.md#4a--the-packaging-study), not at the track. Just check the grip is usable at your gearing first —
+Packaging cost: **settled — no wheel offset.** A wider tire at fixed track could
+push the wheels further out (more frontal area, more wheel wake) or further in
+(fouling the chassis); instead both widths share one centreline and the `wide`
+tire grows 5 mm each way. What that costs is a waisted front chassis plate, not
+a second hub spec — see
+[steering sweep](#steering-sweep--what-the-front-tires-can-hit). Just check the
+grip is usable at your gearing first —
 [BUILD_PHASES.md Phase 0](BUILD_PHASES.md#phase-0--numbers-before-parts) has the
 matched-ratio table.
 
@@ -864,6 +868,73 @@ above the pack.** The [CG budget](#the-hard-cg-ceiling) already shows a board
 stack costs only a millimetre or two of CG height, so this is effectively free —
 and it is another reason the constraint on dev boards is packaging rather than
 mass.
+
+### Steering sweep — what the front tires can hit
+
+**Decided: no wheel offset.** Both tire widths share one centreline at ±67.5 mm,
+so the `wide` tire grows 5 mm outboard *and* 5 mm inboard — inner face 55 mm →
+**50 mm** from centreline. One hub spec, one upright, and the `wide` swap is a
+tire change rather than a corner rebuild.
+
+That is affordable because the binding constraint is the **chassis plate
+outline**, which is free to change, and not the drive unit, which is not.
+
+Swept envelope of a steered front tire at ±30° lock — nothing may sit outboard
+of these, measured from the vehicle centreline:
+
+| x from front axle | `test` 70 × 25 | `wide` 70 × 35 |
+|---|---|---|
+| ±30 mm | 45.1 mm | 42.1 mm |
+| **±22 mm** | **40.1 mm** | **34.8 mm** |
+| ±15 mm | 44.1 mm | 38.4 mm |
+| 0 (axle line) | 52.9 mm | 47.0 mm |
+
+**The pinch is 22 mm fore and aft of the axle, not at the axle line.** At the
+axle itself there is 47 mm of room; the tightest point is where the tire's
+leading and trailing corners swing through. It is symmetric fore/aft because
+steering goes both ways.
+
+Checked against the layout above:
+
+| | Position | Verdict |
+|---|---|---|
+| Front motor can | ±25 mm, x = 10.3–46.3 | **clear**, 10 mm spare |
+| Chassis plate at ±37.5–40 mm | axle station | **conflicts by 3–5 mm** |
+
+##### Plate width vs. steering lock
+
+| Front station half-width | Max lock (`wide`) | Turning radius |
+|---|---|---|
+| 30 mm | 44° | — |
+| 32.5 mm | 36° | — |
+| **35 mm (70 mm wide)** | **30°** | **329 mm** |
+| 37.5 mm | 23° | 448 mm |
+| 40 mm | 18° | 585 mm |
+
+**Waist the front axle station to 70 mm.** That gives 30° of lock and a 33 cm
+turning circle — far more than a truck built for 70 mph will ever ask for, and
+even 20° would give 522 mm. The middle bay stays ~100 mm because nothing sweeps
+between the axles, and **the rear station needs no waist at all** — no steering
+means no sweep, so it only has to clear the static 50 mm inner face and can stay
+~90 mm wide.
+
+If plate stiffness argues against narrowing the whole station, scallop just the
+two corners at x = ±22 mm. That is where the pinch actually is.
+
+> **⚠ Three things this envelope does not model. Verify in CAD before cutting.**
+>
+> 1. **The tire is rotated about the wheel centre here.** A real kingpin has
+>    scrub radius and inclination, so the wheel centre itself translates as it
+>    steers. Positive scrub pushes it outboard and makes the sweep *worse* than
+>    the table.
+> 2. **Ackermann means the inside wheel exceeds nominal lock.** These are
+>    per-wheel numbers — apply them to the inside wheel at full lock, not to the
+>    average of the pair.
+> 3. **The tie rod lives in exactly this zone.** It runs from the rack to the
+>    steering arm, which puts it around x = ±22 mm, and it moves with both
+>    steering *and* suspension travel. With ride-height actuators it sweeps a
+>    taller envelope than a fixed setup would. This is the one most likely to
+>    bite.
 
 ### Two numbers this changes elsewhere
 

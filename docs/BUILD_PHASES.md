@@ -396,10 +396,27 @@ Both consequences are already absorbed: the desync detector tolerates a wheel
 lift (see `pin_map.h`), and telemetry readers know motor RPM tracks the fastest
 wheel on its axle (see [MECHANICAL.md](MECHANICAL.md#spool-vs-differential--decided-differentials-both-ends)).
 
-#### Decision 2 — wheel offset for the `wide` tires
+#### Decision 2 — wheel offset for the `wide` tires — **DECIDED: no offset**
 
 A wider tire at fixed track either pushes the wheels further out (more frontal area, more wheel
-wake) or further in (fouling the chassis). Decide it here, with all three tire sets in the drawing.
+wake) or further in (fouling the chassis). **Neither: both tires share one centreline at ±67.5 mm,
+and the `wide` tire simply grows 5 mm each way** — inner face 55 → 50 mm from centreline.
+
+That keeps one hub spec, one upright, and makes the `wide` swap a tire change rather than a corner
+rebuild. It is affordable because the binding constraint turned out to be the **chassis plate
+outline**, which is free to change, rather than the drive unit, which is not. See
+[MECHANICAL.md](MECHANICAL.md#steering-sweep--what-the-front-tires-can-hit).
+
+The plate consequence, which is the part to carry into the drawing:
+
+- **Front axle station waisted to 70 mm wide** (±35 mm) → 30° of lock on the `wide` tire, a 329 mm
+  turning radius. Far more than this truck needs; even 20° gives 522 mm.
+- **Middle bay stays ~100 mm** — nothing sweeps between the axles.
+- **Rear axle station needs no waist at all.** No steering means no sweep, so it only has to clear
+  the static 50 mm inner face and can stay ~90 mm wide.
+
+Front waisted, rear not. If plate stiffness argues against narrowing the whole station, scallop
+just the two corners at x = ±22 mm instead — that is where the pinch actually is.
 
 #### Decision 3 — weight distribution — **TARGET: 60% front**
 
