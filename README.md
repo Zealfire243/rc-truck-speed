@@ -1,12 +1,22 @@
 # rc-truck-speed
 
 A scratch-built RC speed truck: an inherited **Nikko 14620B** body (with its very good spoiler) over
-a stretched, scratch-built chassis with **two brushless motors, each parallel to the axle it drives**, both commutated by a
-single **STM32G4 running custom dual-channel FOC**. An ESP32 rides along as a supervisor — GPS,
-telemetry, logging — with no authority over the motors. Printed ABS/ASA chassis first, cut-and-bend
+a stretched, scratch-built chassis with **two brushless motors, each parallel to the axle it
+drives**, each commutated by its own controller running **custom FOC firmware you wrote** —
+STM32F405 on VESC-class hardware, one per axle. An ESP32 rides along as a supervisor — GPS,
+telemetry, logging, and an advisory ground-speed estimate that can only ever *reduce* torque,
+never raise it. Printed ABS/ASA chassis first, cut-and-bend
 aluminum later.
 
-**Target: past 70 mph, GPS-verified.** Not on the first outing, and not on printed parts.
+**Target: past 70 mph, GPS-verified.** Not on the first outing, and not on printed parts. It also
+has to survive **3–5 minute RC-course runs**, which is a different and in places harder thermal
+problem than the speed run — see [BOM.md](docs/BOM.md#two-vehicles-one-truck).
+
+> **The hardware plan moves once, deliberately.** Phases 1–2 are a Nucleo-G474RE + X-NUCLEO-IHM08M1
+> bench rig at ≤10 A, because that is a cheap place to make expensive mistakes. From Phase 2b the
+> same firmware runs on Flipsky FSESC6.7 Pro boards — an STM32F405 bolted to a 70 A inverter — one
+> per motor. **You write the FOC; you never design a PCB.** Full reasoning in
+> [BOM.md](docs/BOM.md#the-three-stage-hardware-plan).
 
 **Start here: [docs/BUILD_PHASES.md](docs/BUILD_PHASES.md).** Phase-by-phase, each one ending in a
 specific checkable result, from "one motor spinning under your own current loop" through a printed
@@ -20,7 +30,7 @@ mule to an aluminum chassis at speed.
 
 | Path | What |
 |---|---|
-| [`motor-ctrl/`](motor-ctrl/) | STM32G4 (C) — the hard real-time layer. Dual 3-phase FOC, current sensing, rotor observer, RC input, and every safety interlock. Owns the motors outright. |
+| [`motor-ctrl/`](motor-ctrl/) | Motor controller firmware (C) — the hard real-time layer. Single-axle 3-phase FOC, current sensing, rotor observer, RC input, and every safety interlock. Owns the motors outright. **Builds for G474 on the bench, F405 in the truck; the vehicle runs two copies, one per axle.** |
 | [`supervisor/`](supervisor/) | ESP32 (ESP-IDF, C) — GPS, telemetry logging, WiFi streaming, host link. **Not in the control path.** You must be able to yank it at speed and have nothing happen. |
 | [`host-tools/`](host-tools/) | Laptop-side Python — the gearing solver, the acceleration simulator, live telemetry plotting, and interactive gain tuning over the serial link. |
 | [`hardware/`](hardware/) | CAD (`cad/`) and print-ready (`print/`) files. Every structural part is designed as a flat blank plus bend lines from day one — see [MECHANICAL.md](docs/MECHANICAL.md). |
@@ -40,6 +50,7 @@ That prints the tire × final-drive × pack table the whole build is designed ar
 
 ```bash
 # Motor controller — needs arm-none-eabi-gcc and STM32CubeG4 at $CUBE_G4_PATH
+# (Stage 1 / bench target. Stage 2 switches to STM32CubeF4 — see motor-ctrl/README.md)
 cd motor-ctrl && cmake -B build && cmake --build build
 
 # Supervisor — needs ESP-IDF v5.5+

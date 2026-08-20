@@ -9,18 +9,31 @@ them exist because skipping them destroys hardware or hurts someone.
 |---|---|---|
 | [**P0**](#phase-0--numbers-before-parts) | Lock the gearing math, then buy | BOM committed, numbers close with headroom |
 | [P1](#phase-1--one-motor-current-sensing-proven) | One motor, phase current measured true | Currents read zero at rest and sum to zero spinning |
-| [P2](#phase-2--closed-loop-foc-on-one-motor) | Torque then velocity control, sensorless | Holds commanded RPM through the whole range |
-| [P3](#phase-3--both-channels-on-one-g4) | Dual-motor FOC, synchronized | Both axles track one setpoint; desync trips the interlock |
+| [P2](#phase-2--closed-loop-foc-on-one-motor) | Torque then velocity control | Holds commanded RPM through the whole range |
+| [**P2b**](#phase-2b--port-to-the-flight-power-stage) | Same firmware, flight hardware | Every P1 and P2 gate re-passed on the FSESC, at full current |
+| [P3](#phase-3--both-channels) | Dual-motor FOC, synchronized | Both axles track one setpoint; desync trips the interlock |
 | [P4](#phase-4--printed-rolling-chassis-20-mph-cap) | Printed mule, rolling, capped | Straight line at 20 mph, failsafe proven |
-| [P5](#phase-5--supervisor-tier--gps) | ESP32, GPS, logging | Yank the ESP32 at speed and nothing happens |
+| [P5](#phase-5--supervisor-tier--gps) | ESP32, GPS, IMU fusion, logging | Yank the ESP32 at speed and the truck drives on, TC degraded |
 | [P6](#phase-6--the-speed-ladder-on-printed-parts) | 30 → 40 → 50 mph, gated | Each step survived and logged; find what breaks |
 | [P7](#phase-7--aluminum-chassis) | Cut-and-bend aluminum | Re-validates every earlier gate on metal |
 | [P8](#phase-8--70-mph) | The number | GPS-verified 70+ mph, truck intact |
 
-**Two things carry the whole plan.** First: the **speed cap lives in the STM32G4**, is enforced in
-firmware below the RC input, and goes up exactly one step per phase gate. Second: **the ESP32 has
-no authority over the motors, ever** — if that ever stops being true, the architecture has failed.
-See [ARCHITECTURE.md](ARCHITECTURE.md).
+**Two things carry the whole plan.** First: the **speed cap lives in the motor-control MCU**, is
+enforced in firmware below the RC input, and goes up exactly one step per phase gate. Second:
+**the ESP32 is never the reason something is safe, and never the reason the truck can go faster.**
+It may supply *advisory* data that can only ever **reduce** a torque limit — enforced by a `min()`,
+not by discipline — and it can never raise one, command torque, or clear a fault. See
+[the supervisor exception](ARCHITECTURE.md#the-supervisor-exception--advisory-input-that-can-only-subtract).
+
+> **The hardware moves once, deliberately, at P2b.** Phases 1–2 run on a Nucleo-G474RE +
+> X-NUCLEO-IHM08M1 at ≤ 10 A, because that is a cheap place to make expensive mistakes and ST
+> ships a reference manual for it. Phases 2b onward run your same firmware on Flipsky Mini
+> FSESC6.7 Pro boards — STM32F405 attached to a 70 A inverter — one per motor. The full
+> reasoning is in [BOM.md](BOM.md#the-three-stage-hardware-plan).
+>
+> **`foc.c`, `observer.c`, `speed_loop.c` and `safety.c` port unchanged.** Only `pin_map.h`,
+> `inverter.c` and `current_sense.c` are hardware. Keep that boundary clean from Phase 1 and
+> P2b is a week rather than a month.
 
 ---
 
@@ -43,6 +56,20 @@ with arithmetic instead of with a shopping cart.
    ```
 2. Pick a tire diameter and final drive that put required kV inside the 1200–3500 band with the
    pack you want. The current working point:
+
+   > ⚠ **These numbers predate the motor decision and need re-running.** The worked example below
+   > solves for a ~2,440 kV motor at 2.5:1. [BOM.md](BOM.md#decided--quicrun-3650-g2-135t-on-4s)
+   > now specifies the **QuicRun 3650 G2 13.5T at 2850 kV, 2-pole**, chosen on motor constant and
+   > ERPM rather than on required-kV. Re-run both solvers against 2850 kV before committing to a
+   > ratio, and add two constraints the solvers do not currently know about:
+   >
+   > - **`kV × V_max ≤ ~48,000 rpm`** — the 3650 can's mechanical ceiling. At 4S that is satisfied
+   >   exactly (47,880), so there is no headroom above 4S for this winding.
+   > - **ERPM = rpm × pole pairs** against the controller's loop rate. At 1 pole pair this is
+   >   comfortable; it would not be at 2.
+   >
+   > Nothing in this section is settled — including the 2.5:1 ratio, the tire diameter, and the
+   > cell count. Treat the tables below as a worked method, not as decisions.
 
    | | |
    |---|---|
@@ -99,9 +126,13 @@ with arithmetic instead of with a shopping cart.
    shorter does the reverse. 2.5:1 is the current pick and it is provisional
    until Phase 4 measures μ.
 
-   6S at 4.0:1 is the upgrade path if Phase 6 shows heat as the limiter; the
-   extra ~80 g costs almost nothing at top speed, which is aero-limited, not
-   mass-limited.
+   ⚠ **6S at 4.0:1 was listed here as the upgrade path if Phase 6 showed heat as
+   the limiter. It no longer works with the chosen motor**: 2850 kV × 25.2 V is
+   71,820 rpm against the 3650 can's ~48,000 rpm ceiling. Going above 4S means a
+   higher-turn winding — 21.5T at 1800 kV gives `1800 × 25.2 = 45,360` ✓ — and
+   that trade is neutral on motor heating and *reduces* current, so it is a real
+   option. It is a **motor swap**, not a pack swap. See
+   [BOM.md](BOM.md#the-one-number-that-actually-ranks-motors).
 
    **Gearing costs nothing off the line, so spend it on motor longevity.**
    `accel.py` puts 0-50 mph at ~2.4 s across every ratio from 2.5:1 to 5:1,
@@ -225,9 +256,21 @@ One motor. **No wheel, no load, motor clamped.** A spinning wheel on a bench sup
 work becomes an injury.
 
 **Hardware:** Nucleo-G474RE + X-NUCLEO-IHM08M1 (three-shunt jumpers set to 3-Sh), one motor, a
-current-limited bench supply. Current limit set low — start at 2 A. Starting on the G474 rather
-than a G431 board means no port at Phase 3, and TIM8 sits free for the second channel from day
-one. See [WIRING.md](WIRING.md) and [BOM.md](BOM.md).
+current-limited bench supply. Current limit set low — start at 2 A. See [WIRING.md](WIRING.md)
+and [BOM.md](BOM.md).
+
+> ⚠ **`IQ_LIMIT_A` = 10 A for this whole stage, and the reason is not thermal.** The IHM08M1's
+> current-sense amplifier saturates near **12 A** — 10 mΩ shunt × ~13.7 gain against ±1.65 V of
+> swing. Past that the reading silently stops being true, which is precisely the failure this
+> phase exists to catch. Cooling does not help; you cannot cool a clipped op-amp.
+>
+> **Verify the gain for your jumper configuration before computing `amps_per_count`.** UM1996
+> lists JP2 as "op-amp gain modification" and the FOC configuration wants JP1/JP2 *closed*, so
+> 13.7× may not be your number. Measure it.
+
+> ⚠ **`POLE_PAIRS = 1` for the QuicRun 3650.** It is a **2-pole** motor. `pin_map.h` currently
+> has 2, which was right for the 4-pole cans previously under consideration. Get this wrong and
+> every RPM and angle the observer produces is out by 2×. Count the magnets before you start.
 
 **Steps:**
 
@@ -275,8 +318,15 @@ the full RPM range.
 **Pass criteria:**
 
 - [ ] Holds a commanded RPM within ~3% unloaded, from the observer handover threshold up to
-      **full Phase 8 motor RPM** — 30,000. Test the top of the range now, on the bench, with no
-      wheel. Finding an observer that falls apart at 28,000 rpm is much cheaper here.
+      **the full motor RPM your chosen gearing implies at the Phase 8 cap.** Test the top of the
+      range now, on the bench, with no wheel. Finding an observer that falls apart near the top
+      is much cheaper here. For reference the 13.5T's no-load ceiling on 4S is 47,880 rpm; you
+      will be geared well below that, but know both numbers.
+- [ ] **Sanity-check ERPM against your loop rate.** `ERPM = rpm × pole pairs`, and below roughly
+      20 control updates per electrical revolution the angle estimate lags and the motor
+      desyncs. At 2 pole pairs you would have half the headroom — the 2-pole QuicRun is why this
+      is comfortable rather than marginal. If the observer degrades at the top of the range,
+      raise the switching frequency before you touch the gains.
 - [ ] Startup ramp hands over to the observer cleanly, **20 attempts in a row**, no stalls and no
       audible cogging at handover.
 - [ ] Recovers from a step change without overshooting into current limit.
@@ -285,29 +335,86 @@ the full RPM range.
 
 ---
 
-## Phase 3 — Both channels on one G4
+## Phase 2b — Port to the flight power stage
 
-Second motor, second inverter, same chip. TIM1 and TIM8 both running FOC off one control tick.
+**Still one motor.** Same algorithms, new hardware under them. This phase exists so that the
+port is debugged against a known-good single-motor baseline, rather than tangled up with
+dual-channel bring-up or a rolling chassis.
 
-Split out as its own phase because dual-channel timing is where the "one G4 instead of two" bet
-either pays off or doesn't, and debugging it alongside a rolling chassis is miserable.
+**Hardware:** one Flipsky Mini FSESC6.7 Pro, standalone SWD debugger, the same motor and bench
+supply. **Keep the Nucleo rig assembled and working** — it is your reference when the new board
+misbehaves, and that comparison is the whole reason Stage 1 happened.
+
+**Before you power anything:**
+
+1. **Get the schematic for your exact board revision.** You need the pin mapping, the gate driver
+   part number (DRV8301 and DRV8323 variants both exist, with different register interfaces), and
+   the current-sense scaling. `amps_per_count` comes straight out of it. If no schematic is
+   obtainable, stop and buy hardware where one is — do not reverse-engineer a 70 A inverter.
+2. **Confirm SWD access.** Without it you cannot debug, only flash blind.
+3. **Confirm the 14 V floor** against your pack choice. See [BOM.md](BOM.md#-verify-before-ordering--any-one-of-these-can-sink-the-plan).
 
 **Steps:**
 
-1. Bring up channel B standing alone; re-run every Phase 1 and Phase 2 criterion on it. Yes, all of
+1. Rewrite `pin_map.h` for the F405. Timer, ADC and sensor pins all move.
+2. Rewrite `inverter.c` — same TIM1 complementary-PWM structure, different deadtime register
+   values and a gate driver that needs SPI initialisation the IHM08M1 did not.
+3. Rewrite `current_sense.c` for the new shunt value and amplifier gain.
+4. **Nothing else.** If you find yourself editing `foc.c` or `observer.c`, stop and work out why —
+   the algorithms are hardware-independent and a change there means something is wrong in the HAL.
+
+**Pass criteria:**
+
+- [ ] **Every Phase 1 criterion re-passed**, current-limited, at low current. Zero at rest, sum to
+      zero spinning, sinusoidal, scope-verified deadtime. A new power stage is a new sensor chain.
+- [ ] **Every Phase 2 criterion re-passed**, including 20 clean observer handovers.
+- [ ] `amps_per_count` **validated against a clamp meter or bench-supply reading**, not just
+      derived from the schematic. This is the number the old board could not give you honestly
+      above 12 A, and the entire point of the port is that it now can.
+- [ ] Current ramped past the old 12 A ceiling — **to 30 A at minimum** — with the readings still
+      linear and the residual still near zero. Do this on the bench supply, motor clamped.
+- [ ] Thermal check: run the motor at ~20 A for five minutes and record controller and motor
+      temperature. This is the course-running duty cycle and the first real data on it.
+
+> ⚠ **Your bugs now cost $125 a board plus a motor.** A shoot-through at 70 A on 4S is
+> spectacular rather than educational. Keep the bench supply current-limited through this entire
+> phase; do not connect a LiPo until every criterion above passes.
+
+---
+
+## Phase 3 — Both channels
+
+Second motor, second FSESC. **Two independent controllers, one per motor**, coordinated by the
+ESP32 supervisor.
+
+Split out as its own phase because inter-axle coordination is where the desync interlock either
+works or doesn't, and debugging it alongside a rolling chassis is miserable.
+
+> **This phase got substantially easier.** The original plan ran both motors from one G474 on
+> TIM1 and TIM8, which required a second IHM08M1 hand-remapped with cut traces and flying leads —
+> both shields hardwire to the same morpho pins. Two separate boards remove that problem
+> completely, and add independent failure domains, a full timer and ADC set per motor, and two
+> genuinely independent telemetry streams for the interlock.
+
+**Steps:**
+
+1. Bring up channel B standing alone; re-run every Phase 1, 2 and 2b criterion on it. Yes, all of
    them. This is fast and it's where you catch a swapped phase.
-2. Run both channels off the same control ISR. Confirm the loop still meets its deadline with two
-   FOC instances — instrument it, don't assume.
+2. Establish the two UART links to the ESP32 and confirm both telemetry streams are live,
+   timestamped, and distinguishable. See [PROTOCOL.md](PROTOCOL.md).
 3. Implement the torque split and the **sync interlock** (`safety.c`).
 
 **Pass criteria:**
 
-- [ ] Both channels pass Phase 1 + 2 criteria independently.
+- [ ] Both channels pass Phase 1 + 2 + 2b criteria independently.
 - [ ] Both hold the same commanded RPM within ~2% of each other, unloaded.
-- [ ] Control loop meets its deadline with both channels live, measured, with margin.
+- [ ] Each control loop meets its deadline with margin — measured on both boards, not assumed.
 - [ ] **The sync interlock actually fires.** Test it deliberately: stall one motor by hand at low
       speed and confirm *both* channels cut, not just the stalled one. An axle losing torque at
       70 mph while the other keeps pushing is a spin.
+- [ ] **The interlock survives a dead link.** Unplug one controller's UART mid-run and confirm
+      both axles cut. With two independent MCUs this is a new failure mode that one-G4 did not
+      have, and it is the one that matters most.
 - [ ] Front/rear torque split responds to the commanded bias.
 
 ---
@@ -330,8 +437,8 @@ as far forward as it will go. See [MECHANICAL.md](MECHANICAL.md#independent-upri
 
 **Do this in 2D before any 3D modelling.** Side view and top view, real dimensions, an hour of
 work. It answers the question that could invalidate the whole layout: *do two drive units, a 4S
-pack, two inverters, the G4 and the ESP32 actually fit inside 105 mm of width at a 190 mm
-wheelbase?* Find that out in 2D in an hour, not in 3D after a week.
+pack, two FSESC controllers (67 × 39 × 18.7 mm each) and the ESP32 actually fit inside 105 mm of
+width at a 190 mm wheelbase?* Find that out in 2D in an hour, not in 3D after a week.
 
 (105 mm is the right number for this question even though the body is 124.3 mm at the fender
 flares — the flares sit over the wheels, and the bay lives under the necked-in cab/bed section.)
@@ -456,11 +563,16 @@ A first-pass build-up with 70 mm tires (axle centreline at 35 mm):
 | **Total** | **840** | **31 mm** |
 
 > **The motor line is optimistic if you buy the recommended motor.** 160 g for
-> both assumes a 28xx can; two GoolRC-class 3650s are ~200 g **each**, taking
-> the total to **~1,080 g**. CG barely moves — 31 → **31.9 mm**, because they
-> already sit at axle height — so nothing below changes. But `gearing.py` and
-> `accel.py` default to `mass_kg = 0.90` and want re-running at 1.08. See
+> both assumes a 28xx can. The chosen **QuicRun 3650 G2 13.5T is 186 g each** —
+> 372 g for the pair, taking the total to **~1,050 g**. CG barely moves —
+> 31 → ~31.9 mm, because they already sit at axle height — so nothing below
+> changes. But `gearing.py` and `accel.py` default to `mass_kg = 0.90` and want
+> re-running at ~1.05. See
 > [MECHANICAL.md § Drive unit packaging](MECHANICAL.md#drive-unit-packaging--phase-4a).
+>
+> ⚠ **Mass feeds back into the motor sizing.** Traction force is `μmg`, so required current
+> scales linearly with mass and the usable-μ ceiling scales inversely. Re-run the motor numbers
+> in [BOM.md](BOM.md#decided--quicrun-3650-g2-135t-on-4s) against the final mass, not against 0.90.
 
 **So the ceiling is not close, and this is a check rather than a design driver.** ~32 mm against a
 61 mm limit is 29 mm of headroom, and the truck rolls at 2.1 g against 1.1 g of grip. Swapping the
@@ -490,8 +602,10 @@ Plan the measurement now: a straight, a known start line, and GPS logging — se
 ### 4b — Build it
 
 1. Print and assemble the chassis, drive units, uprights, and steering.
-2. Wire the CRSF receiver **directly to the G4** — not through the ESP32. See
-   [ARCHITECTURE.md](ARCHITECTURE.md#why-the-receiver-goes-to-the-g4).
+2. Wire the CRSF receiver **directly to the motor controllers** — not through the ESP32. See
+   [ARCHITECTURE.md](ARCHITECTURE.md#why-the-receiver-goes-to-the-controllers). With two controllers this
+   means deciding which one owns the receiver and how the other gets its setpoint; whichever way
+   you go, the ESP32 must not be in that path.
 3. Fit **static** ride-height adjusters — shock collars or adjustable links. Powered actuators are
    Phase 8; see [MECHANICAL.md](MECHANICAL.md#ride-height-and-the-tire-swap).
 4. Set `tire.profile` to match what is actually fitted, and the speed cap to **20 mph**. Confirm
@@ -526,9 +640,16 @@ Add the ESP32, the GPS, and the logging. None of it touches the motors.
 
 **Steps:**
 
-1. Mount the ESP32 and the 10 Hz GPS module. Wire G4 ↔ ESP32 over UART (**common ground required**).
+1. Mount the ESP32, the 10 Hz GPS, and the IMU. Wire **both controllers** ↔ ESP32
+   (**common ground required**) — one CAN bus preferred over two UARTs.
 2. Bring up logging and the WiFi telemetry stream.
 3. Correlate GPS ground speed against wheel-RPM-derived speed on a Phase 4 run.
+4. **Bring up the fused ground-speed estimate** — 200 Hz IMU integration, corrected by the 10 Hz
+   GPS — and publish the advisory frame. Log it alongside raw GPS and wheel speed so you can see
+   the fusion working before anything consumes it.
+5. **Wire the advisory frame into the controllers' `min()` last**, after you have logged it for a
+   full session and trust it. It can only subtract, but an over-eager estimator that subtracts
+   constantly is still a truck that will not accelerate.
 
 **Pass criteria:**
 
@@ -537,6 +658,13 @@ Add the ESP32, the GPS, and the logging. None of it touches the motors.
       they *disagree* is wheelspin, and that's the signal you'll tune traction control against.
 - [ ] **Killing the ESP32 mid-run does not affect driving.** Pull its power at 20 mph and keep
       driving. This is the whole justification for the two-tier split — test it explicitly.
+      **The test is now graded, not binary:** the truck must keep driving normally, with traction
+      control degraded to inter-axle slip plus the wheel-acceleration threshold. You should feel
+      the difference at launch and nowhere else. Anything more than that means supervisor data has
+      leaked out of the `min()` and into the baseline.
+- [ ] **The advisory frame degrades cleanly when stale**, not just when absent. Delay or corrupt it
+      deliberately and confirm the `seq` freshness check drops the term rather than acting on old
+      data.
 
 ---
 
@@ -549,11 +677,15 @@ out is survivable.
 **Steps:**
 
 1. Raise the cap one step. Run it. Read the logs before raising it again.
-2. Tune launch and traction control against the GPS-vs-wheel-RPM slip signal from Phase 5.
+2. Tune launch and traction control against the Phase 5 signals. **Three slip detectors, tuned in
+   this order:** inter-axle difference first (it is the simplest and needs no supervisor), then the
+   wheel-acceleration threshold against measured μ, then the supervisor's ground-speed estimate.
+   Each one covers a case the previous cannot — see
+   [ARCHITECTURE.md](ARCHITECTURE.md#traction-control-across-two-axles).
 3. **Tune diff oil**, front and rear. Heavier resists one-wheel spin; lighter preserves steering.
    Start front-light / rear-heavy and adjust against launch traces. This is a mechanical tuning
-   knob that does the job electronic traction control cannot — the firmware can shift torque
-   *between* axles but has no authority *within* one.
+   knob that does the job electronic traction control cannot — the firmware can reduce torque
+   *per axle* but has no authority over which wheel *on* that axle receives it.
 3. After every run: check wheel retention, tire condition, motor and inverter temps, and every
    printed part for cracks, creep, or elongated holes.
 
@@ -642,12 +774,21 @@ Everything is proven. Now it's tires, aero, ballast, and a long enough piece of 
 
 Not yet decided. Resurface these rather than assuming they're settled:
 
-- **G4 ↔ ESP32 transport.** UART with the JSON-lines protocol today, because it reuses the crawler's
-  host tools nearly unchanged. FDCAN is the upgrade path if UART framing gets tight at high
-  telemetry rates — the G4 has it natively and the ESP32's TWAI peripheral speaks classic CAN.
-- **Sensorless vs. sensored.** The plan is sensorless with a forced-commutation startup. If the
-  Phase 2 handover proves nasty, hall sensors or an encoder are the fallback — decide it with
-  Phase 2 data, not in advance.
+- **Controller ↔ ESP32 transport.** UART with the JSON-lines protocol today, because it reuses the
+  crawler's host tools nearly unchanged. **Two controllers means two links**, which is more wiring
+  but also the independence the interlock wants. CAN is the upgrade path and is now more attractive
+  than it was: one bus serves both controllers and the ESP32, the F405 has bxCAN natively, and the
+  ESP32's TWAI peripheral speaks classic CAN. Revisit at Phase 3 when both links are real.
+
+- **Which controller owns the RC receiver.** One of them must, since the ESP32 cannot. Options are
+  a designated primary that relays the setpoint, or a split CRSF line into both. Decide with Phase
+  3 data on link timing.
+- **Sensorless vs. sensored.** ~~The plan is sensorless~~ — **the chosen motor has halls and the
+  chosen controller reads them**, so this is now a firmware choice rather than a hardware bet. Bring
+  up sensorless with a forced-commutation startup as planned, because it is the more interesting
+  problem and the halls are free to ignore. But the fallback is now genuinely free, and on a course
+  the halls carry the low-speed corner exits where observers are weakest — so sensored may win on
+  merit rather than as a retreat. Decide with Phase 2 data.
 - **Center diff vs. independent axles.** Two motors on two axles with no mechanical coupling means
   the electronic torque split *is* the differential. Whether that wants a mechanical center diff
   as backup is a Phase 6 question.

@@ -4,9 +4,9 @@
 
 **Two motors, one per axle, each mounted parallel to the axle it drives** —
 motor, reduction, and axle as one drive unit, front and rear identical. Settled
-early, and everything else is downstream of it: the [dual-channel FOC on one
-G4](ARCHITECTURE.md#why-one-g4-instead-of-two), the electronic torque split,
-the inter-axle slip signal traction control uses, and the desync interlock that
+early, and everything else is downstream of it: the
+[one controller per axle](ARCHITECTURE.md#why-two-controllers-instead-of-one), the electronic
+torque split, the inter-axle slip signal traction control uses, and the desync interlock that
 cuts both channels rather than one.
 
 **Motor parallel to axle means a single spur reduction and no bevel gears.**
@@ -532,9 +532,14 @@ to ~33 mm. Treat 61 mm as a check to run in
 shapes the layout.
 
 So neither mass nor height rules out mounting dev boards in the mule. The reason
-the Nucleo and IHM08M1 are still bring-up hardware is **packaging and
-robustness** — shield stacks, header pins, and Arduino footprints are awkward to
-mount and fragile in a vehicle that crashes — not any performance budget.
+the Nucleo and IHM08M1 are still bring-up hardware is **packaging, robustness, and a 12 A
+measurement ceiling** — shield stacks, header pins, and Arduino footprints are awkward to mount
+and fragile in a vehicle that crashes, and the shield cannot read the currents this truck pulls.
+See [BOM.md](BOM.md#-the-ihm08m1-tops-out-near-12-a-and-no-amount-of-cooling-changes-that).
+
+The flight controllers are a large improvement on all three counts: a **Flipsky Mini FSESC6.7 Pro
+is 67 × 39 × 18.7 mm including its heatsink** — smaller than the shield it replaces — with no
+header stack and screw-terminal-free phase connections.
 
 And note the actuators buy rollover margin too: **ride height lowers CG 1:1**,
 so dropping 10 mm at speed takes the roll threshold from 2.1 g to 3.1 g
@@ -773,9 +778,19 @@ Two practices from the speed-run community that are worth adopting:
 ## Drive unit packaging — Phase 4a
 
 The 2D study [Phase 4a](BUILD_PHASES.md#4a--the-packaging-study) asks for, done
-at 190 mm wheelbase / 135 mm track with the recommended GoolRC-class 3650
-(36 × 50 mm can). It answers *what is left in the middle*, and it moves three
-numbers elsewhere in the project.
+at 190 mm wheelbase / 135 mm track with a 3650-class can (36 × 50 mm). It
+answers *what is left in the middle*, and it moves three numbers elsewhere in
+the project.
+
+> **The motor changed but the envelope did not.** The study was drawn around a
+> GoolRC-class 3650; the chosen motor is now a **QuicRun 3650 G2 13.5T at
+> 36 × 52.8 mm and 186 g** — 2.8 mm longer, same diameter, same class. Nothing
+> in this study moves. See [BOM.md](BOM.md#decided--quicrun-3650-g2-135t-on-4s).
+>
+> ⚠ **The gear pair below is *not* settled.** The 32T/75T at 2.344:1 is a worked
+> example that satisfies the diff-case floor and the pitch-line limit — it is not
+> a decision, and neither is the ratio, the tire diameter, or the cell count.
+> Re-run the solvers against 2850 kV before cutting anything.
 
 ### The gear pair sets the motor offset
 
@@ -863,11 +878,19 @@ Taking A, with the front axle as the origin:
 > better.
 
 That leaves ~25 mm of bay length beside the pack, which is **not** enough for
-two inverters plus the G4 plus the ESP32 laid flat. **Electronics go on a deck
-above the pack.** The [CG budget](#the-hard-cg-ceiling) already shows a board
-stack costs only a millimetre or two of CG height, so this is effectively free —
-and it is another reason the constraint on dev boards is packaging rather than
-mass.
+two controllers plus the ESP32 laid flat. **Electronics go on a deck above the
+pack.** The [CG budget](#the-hard-cg-ceiling) already shows a board stack costs
+only a millimetre or two of CG height, so this is effectively free.
+
+**Two FSESC6.7 Pro boards at 67 × 39 mm sit side by side in 78 × 67 mm**, which
+fits the deck comfortably — and there is no longer a separate motor-control board
+to find room for, because the controllers *are* the MCUs. That is one fewer board
+than the layout was drawn around.
+
+> **Cooling wants deck space too.** Passive heatsinks on the controllers plus a
+> front-inlet duct exiting under the spoiler are the plan; the outlet must be at
+> least as large as the inlet. Course running, not the speed run, is what sizes
+> this — see [BOM.md](BOM.md#cooling--the-numbers-before-you-over-build-it).
 
 ### Steering sweep — what the front tires can hit
 

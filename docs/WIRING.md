@@ -1,113 +1,181 @@
 # Wiring
 
 > **Status: proposed, not yet built.** Nothing here has been wired, because nothing has been
-> bought. Every pin below is a starting point that must be checked against the actual STM32G474
-> datasheet and your board's schematic in CubeMX before you commit to a harness. Alternate-function
-> conflicts on the G4 are dense — several of these pins have three plausible uses.
+> bought.
+>
+> **This document covers two different machines.** Stage 1 is a Nucleo-G474RE + X-NUCLEO-IHM08M1
+> bench rig; Stage 3 is two Flipsky FSESC6.7 Pro controllers in the truck. They share almost no
+> wiring. See [BOM.md](BOM.md#the-three-stage-hardware-plan).
 
-## Power topology
+---
+
+## Stage 1 — bench rig (Nucleo-G474RE + IHM08M1)
+
+**One motor, one power stage, no vehicle.** The pin map below is largely *dictated* by the
+IHM08M1 shield rather than chosen — the shield hardwires its gate drive and current sense to
+specific morpho pins.
+
+> ⚠ **Check every pin against UM1996's morpho tables (CN7 and CN10) and the G474 datasheet in
+> CubeMX before wiring.** Alternate-function conflicts on the G4 are dense — several of these
+> pins have three plausible uses — and the shield's assignments win, because they are copper.
+
+### TIM1 — the only axle at Stage 1
+
+| Function | Pin | Notes |
+|---|---|---|
+| PWM CH1 | PA8 | IHM08M1 UH, CN10-23 |
+| PWM CH2 | PA9 | IHM08M1 VH, CN10-21 |
+| PWM CH3 | PA10 | IHM08M1 WH, CN10-33 |
+| PWM CH1N | PB13 | UL, CN10-15 — complementary |
+| PWM CH2N | PB14 | VL, CN7-34 — complementary |
+| PWM CH3N | PB15 | WL, CN10-24 — complementary |
+| **Break in (BKIN)** | PB12 | **overcurrent → gates off in hardware.** Shield BKIN on CN10-13/14 |
+
+> **There is no TIM8 axle.** An earlier version of this document mapped a rear axle onto TIM8 on
+> the same chip. That plan is gone — the second motor now has its own controller. Stage 1 is
+> deliberately one motor, and Phase 3's second channel is a second board, not a second timer.
+
+### Analog
+
+| Function | Pin | ADC | Shield pin |
+|---|---|---|---|
+| Phase A current | PA0 | ADC1_IN1 | Curr_fdbk_PhA, CN7-28 |
+| Phase B current | PA1 | ADC1_IN2 | Curr_fdbk_PhB, CN7-36 |
+| Phase C current | PA2 | ADC1_IN3 | Curr_fdbk_PhC, CN7-38 |
+| Pack voltage sense | PA3 | ADC1_IN4 | VBUS_sensing, CN7-30 |
+| Inverter temp | PC0 | ADC1_IN6 | Temperature feedback, CN7-35 |
+
+**All three current channels are sampled by injected conversion triggered off the timer update
+event**, so every phase is measured at the same instant in the PWM cycle. This is not a detail —
+it's the difference between Phase 1 passing and Phase 1 producing plausible-looking garbage. See
+`current_sense.h`.
+
+> ⚠ **The IHM08M1's honest measurement ceiling is ~12 A**, set by amplifier saturation, not heat.
+> `IQ_LIMIT_A` stays at 10 A for this entire stage. Set the three-shunt jumpers **J5/J6 to 3-Sh**
+> and note that **JP2 modifies the op-amp gain** — measure your actual gain before computing
+> `amps_per_count`. Full reasoning in [BOM.md](BOM.md#-the-ihm08m1-tops-out-near-12-a-and-no-amount-of-cooling-changes-that).
+
+### Digital / comms
+
+| Function | Pin | Notes |
+|---|---|---|
+| Host USB serial | PA2 / PA3 | via ST-Link VCP, 921600 — bench telemetry before the ESP32 exists |
+| Hall sensors | CN7-17, CN10-31, CN10-25 | H1/H2/H3, shield JP3 closed for pull-ups |
+| SWD | PA13 / PA14 | leave alone |
+
+### Overcurrent comparator
+
+The G4's internal comparators can route to the timer break inputs **without leaving the chip**.
+Feed a comparator from the same shunt-amplifier output the ADC reads, set the reference above your
+peak operating current with margin, and route COMP → BKIN internally.
+
+Verify this routing in CubeMX for your exact part — the comparator-to-timer matrix is specific and
+not every COMP reaches every TIM.
+
+> The shield also has its own OCP, trip point set by **CURRENT REF on CN10-27, a DAC output.** That
+> threshold is firmware, not silicon — but it protects the shield, not your algorithm, and it does
+> not raise the 12 A measurement ceiling.
+
+### Bring-up order — Stage 1
+
+Do not skip ahead. Each step is cheap; the failures they prevent are not.
+
+1. **G474 alone.** Blink an LED, get SWD working, get the UART printing.
+2. **PWM with no gate driver connected.** Scope every one of the six outputs. Confirm complementary
+   pairs are actually complementary and **confirm deadtime**.
+3. **Gate driver, no power stage.** Scope the gate outputs.
+4. **Power stage on a current-limited supply at 2 A, no motor.** Nothing should draw current.
+5. **Motor connected, clamped, no wheel.** Now you're at Phase 1.
+
+---
+
+## Stage 3 — the vehicle (2 × FSESC6.7 Pro + ESP32)
+
+### ⚠ The flight pin map cannot be written yet
+
+It comes out of the **FSESC6.7 Pro schematic for your exact board revision**, which is a
+[Phase 2b gate](BUILD_PHASES.md#phase-2b--port-to-the-flight-power-stage) precisely because
+nothing below it can be specified without it. You need:
+
+- F405 port assignments for TIM1 complementary outputs and BKIN
+- ADC channels and the current-sense **shunt value and amplifier gain** — `amps_per_count` comes
+  straight out of this
+- The gate driver part number (DRV8301 and DRV8323 variants both exist, different SPI registers)
+- Hall/encoder input pins, and which pins are free for the peer link and fault line
+
+**If no schematic is obtainable, buy hardware where one is.** Reverse-engineering a 70 A inverter
+is not a reasonable use of your time and the current-sense scaling is not guessable.
+
+### Power topology
 
 ```
-   4S LiPo ──┬── main switch ── bulk caps ──┬── front inverter ── front motor
-             │                              └── rear inverter  ── rear motor
+   4S LiPo ──┬── main switch ── anti-spark ──┬── FRONT FSESC ── front motor
+             │                               └── REAR  FSESC ── rear motor
              │
-             └── 5V BEC ──┬── STM32G4
-                          ├── CRSF receiver
+             └── 5V BEC ──┬── CRSF receiver
                           ├── steering servo
                           └── ESP32 + GPS
 ```
 
 Rules that matter:
 
-- **Bulk capacitance at each inverter, physically close.** Long leads from the pack to the FETs are
-  inductance, and switching into inductance is voltage spikes across your FETs. This is the most
-  common way a working bench inverter dies in a vehicle.
+- **Each FSESC has its own bulk capacitance on-board, but check the lead length from the pack.**
+  Long leads to the FETs are inductance, and switching into inductance is voltage spikes across
+  your FETs. This is the most common way a working bench inverter dies in a vehicle.
 - **Star ground at the pack negative.** Power ground and signal ground meet at exactly one point.
-  Current-sense accuracy dies to ground loops, and current-sense accuracy is Phase 1's entire
-  pass criterion.
-- **Separate BEC for logic**, not a tap off something that also feeds a motor.
-- **Common ground between the G4 and the ESP32** on the UART link. Two boards with separate
-  supplies and no shared reference do not communicate.
+- **Separate BEC for logic.** The FSESC's on-board regulator can feed its own logic; do not chain
+  the servo off it.
+- **Common ground between both controllers and the ESP32.** Three boards with separate supplies
+  and no shared reference do not communicate.
+- **12 AWG for phase and battery runs.** At 50 A peak this is not the place to save grams.
 
-## STM32G474 pin map (proposed)
+### The three links that make the architecture work
 
-### Front axle — TIM1
+| Link | From → to | Carries | Why it exists |
+|---|---|---|---|
+| **CRSF split** | receiver TX → *both* controllers' RX | Throttle, steering, failsafe | Both decode independently; neither depends on the other. ⚠ **Only one controller may drive the receiver's RX line** — CRSF telemetry is a shared bus and two transmitters collide. |
+| **Peer link** | controller ↔ controller | RPM, current, heartbeat | The desync interlock's *data*. CAN preferred (one bus, also carries the ESP32); UART point-to-point acceptable. |
+| **Fault lines** | each controller's fault out → the other's **TIM1 BKIN** | Nothing — it is a wire | The desync interlock's *cut*. Hardware, no software, no link. Same path as an overcurrent trip. |
 
-| Function | Pin | Notes |
-|---|---|---|
-| PWM CH1 | PA8 | |
-| PWM CH2 | PA9 | |
-| PWM CH3 | PA10 | |
-| PWM CH1N | PB13 | complementary |
-| PWM CH2N | PB14 | complementary |
-| PWM CH3N | PB15 | complementary |
-| **Break in (BKIN)** | PB12 | **overcurrent → gates off in hardware** |
+See [ARCHITECTURE.md](ARCHITECTURE.md#the-desync-interlock-across-two-controllers) for why the
+cut must be hardware and why the ESP32 cannot mediate any of this.
 
-### Rear axle — TIM8
-
-| Function | Pin | Notes |
-|---|---|---|
-| PWM CH1 | PC6 | |
-| PWM CH2 | PC7 | |
-| PWM CH3 | PC8 | |
-| PWM CH1N | PA7 | complementary |
-| PWM CH2N | PB0 | complementary |
-| PWM CH3N | PB1 | complementary |
-| **Break in (BKIN)** | PB6 | **overcurrent → gates off in hardware** |
-
-### Analog
-
-| Function | Pin | ADC |
-|---|---|---|
-| Front phase A current | PA0 | ADC1_IN1 |
-| Front phase B current | PA1 | ADC1_IN2 |
-| Front phase C current | PA2 | ADC1_IN3 |
-| Rear phase A current | PA4 | ADC2_IN17 |
-| Rear phase B current | PA5 | ADC2_IN13 |
-| Rear phase C current | PA6 | ADC2_IN3 |
-| Pack voltage sense | PA3 | ADC1_IN4, divider |
-| Front inverter temp | PC0 | ADC1_IN6, thermistor |
-| Rear inverter temp | PC1 | ADC1_IN7, thermistor |
-
-**All six current channels are sampled by injected conversion triggered off the timer update
-event**, so every phase is measured at the same instant in the PWM cycle. This is not a detail —
-it's the difference between Phase 1 passing and Phase 1 producing plausible-looking garbage. See
-`current_sense.h`.
-
-### Digital / comms
-
-| Function | Pin | Notes |
-|---|---|---|
-| CRSF receiver | PB10 / PB11 | USART3 TX/RX. Receiver goes **here**, not to the ESP32. |
-| Link to ESP32 | PC10 / PC11 | UART4 TX/RX, 921600, common ground |
-| Steering servo | PC9 | TIM3 CH4, 50 Hz |
-| Status LED | PA5 | shared with an ADC channel on Nucleo — move it |
-| SWD | PA13 / PA14 | leave alone |
-
-### Overcurrent comparator
-
-The G4's internal comparators can route to the timer break inputs **without leaving the chip**.
-Feed each comparator from the same shunt-amplifier output the ADC reads, set the reference above
-your peak operating current with margin, and route COMP → BKIN internally.
-
-Verify this routing in CubeMX for your exact part — the comparator-to-timer matrix is specific and
-not every COMP reaches every TIM.
-
-## ESP32 pin map (proposed)
+### ESP32 pin map (proposed)
 
 The supervisor. Nothing here can hurt anything.
 
 | Function | GPIO | Notes |
 |---|---|---|
-| Link to G4 — RX | 16 | UART2 RX |
-| Link to G4 — TX | 17 | UART2 TX |
-| GPS RX | 4 | UART1 RX, 10 Hz module |
-| GPS TX | 5 | UART1 TX, for configuration |
+| Front controller — RX | 16 | UART2 RX |
+| Front controller — TX | 17 | UART2 TX |
+| Rear controller — RX | 25 | UART1 RX *(or drop both for a single CAN bus)* |
+| Rear controller — TX | 26 | UART1 TX |
+| GPS RX | 4 | 10 Hz module |
+| GPS TX | 5 | for configuration |
 | SD card | 18/19/23/13 | SPI, logging |
 | Status LED | 2 | strapping pin, must be low/floating at boot |
 
+> **Two controllers means two UART links, or one CAN bus.** CAN is the better answer here and
+> [ARCHITECTURE.md](ARCHITECTURE.md#the-desync-interlock-across-two-controllers) now prefers it —
+> one bus serves both controllers and the ESP32, the F405 has bxCAN natively, and the ESP32's TWAI
+> peripheral speaks classic CAN. The UART rows above are the fallback.
+
 ESP32 GPIO ground rules carry over unchanged from the crawler: **6–11 are the SPI flash, never use
 them**; 34/35/36/39 are input-only with no internal pull-ups; 0, 2, 12, 15 are strapping pins.
+
+### Bring-up order — Stage 3
+
+1. **One controller, on the bench, with the Nucleo rig still assembled beside it.** That is Phase
+   2b, and the old rig is your reference when the new board misbehaves.
+2. **Second controller standing alone.** Re-run every Phase 1, 2 and 2b criterion on it.
+3. **Peer link only**, both controllers powered, motors disconnected. Confirm heartbeats both ways
+   and confirm a heartbeat timeout faults both.
+4. **Fault lines.** Assert each controller's fault output by hand and confirm the *other* board's
+   gates go off. Scope it.
+5. **CRSF split.** Confirm both controllers decode the same frames and both fail safe on link loss.
+6. **Motors connected, clamped, no wheels.** Now you're at Phase 3.
+
+---
 
 ## Strain relief and harness routing
 
@@ -139,29 +207,41 @@ Five things, in rough order of how much they buy you:
    the transition.
 5. **Route so flexing happens mid-span**, not at a termination.
 
-On the Nucleo morpho headers specifically: **do not use bare Dupont jumpers.**
-The crimps walk off 0.1 in pins under vibration, and a gate-drive line going
-open at speed is a half-bridge in an undefined state. Use latching or
-friction-lock connectors, or solder direct with the strain relief above.
+On the Nucleo morpho headers at Stage 1: **do not use bare Dupont jumpers.** The crimps walk off
+0.1 in pins under vibration. Use latching or friction-lock connectors, or solder direct with the
+strain relief above.
 
-### Keep the analog away from the gate drive
+In the vehicle the equivalent risk moved to the **JST connectors on the FSESC boards** — hall
+inputs, comms, and the fault lines. A fault line going open at speed silently removes the
+cross-controller interlock, and nothing will tell you. **Test the fault lines as part of the
+pre-run checklist**, not just once at Phase 3.
 
-Routing matters electrically here, not just mechanically. The second stage's
-harness carries six gate-drive lines — hard, fast switching edges — and three
-current-sense lines that feed the ADC.
+### Keep the signal wiring away from the phase leads
 
-**Do not run them in the same bundle.** Switching edges couple capacitively into
-adjacent conductors, and what you would be injecting noise into is the phase
-current measurement, which is the entire pass criterion for
-[Phase 1](BUILD_PHASES.md#phase-1--one-motor-current-sensing-proven). A harness
-that looks tidy and reads garbage currents is a genuinely miserable thing to
-debug, because nothing about it looks wrong.
+Routing matters electrically here, not just mechanically.
 
-- Analog on its own twisted pair or shielded run, shield grounded **at one end
-  only** (the controller end) so it cannot become a ground loop.
-- Physical separation from the PWM lines wherever possible; cross at right
-  angles rather than running parallel if they must meet.
-- Keep the analog run as short as the layout allows.
+> **This got much better.** The old plan ran a second power stage on flying leads from the morpho
+> headers — six gate-drive lines and three analog current-sense lines in one harness, which is
+> about the worst thing you can build. **With integrated controllers, gate drive and current sense
+> never leave the PCB.** The harness now carries only motor phase leads, hall cables, and comms.
+
+What is left still needs care. The three phase leads carry hard switching edges at 50 A, and they
+run alongside **hall sensor cables** and the **peer link**:
+
+- **Hall cables and phase leads must not share a bundle.** A corrupted hall signal is a rotor
+  angle error, and the sensored fallback exists precisely so you have something to trust when the
+  observer does not.
+- Signal runs on their own twisted pair or shielded run, shield grounded **at one end only** (the
+  controller end) so it cannot become a ground loop.
+- Cross phase leads at right angles rather than running parallel if they must meet.
+- **Twist the three phase leads together.** Their fields largely cancel when twisted, which cuts
+  what they radiate into everything else.
+- Keep signal runs as short as the layout allows.
+
+The same reasoning still applies inside Phase 1's pass criterion — phase current measurement is
+[what Phase 1 is for](BUILD_PHASES.md#phase-1--one-motor-current-sensing-proven), and a harness
+that looks tidy and reads garbage is a genuinely miserable thing to debug, because nothing about
+it looks wrong.
 
 ## Bring-up order
 

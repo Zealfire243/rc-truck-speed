@@ -6,9 +6,22 @@ names changed and nothing else.
 
 | Side | Role | Implementation |
 |---|---|---|
-| STM32G4 | producer of `tlm`/`evt`/`ack`, consumer of commands | [`motor-ctrl/inc/protocol.h`](../motor-ctrl/inc/protocol.h), [`link.c`](../motor-ctrl/src/link.c) |
+| Motor controller **×2** | producer of `tlm`/`evt`/`ack`, consumer of commands | [`motor-ctrl/inc/protocol.h`](../motor-ctrl/inc/protocol.h), [`link.c`](../motor-ctrl/src/link.c) |
 | ESP32 supervisor | relay + consumer + GPS injector | [`supervisor/main/protocol.h`](../supervisor/main/protocol.h) |
 | Host toolkit | consumer + tuner | [`host-tools/protocol.py`](../host-tools/protocol.py) |
+
+> ⚠ **There are now two producers, not one.** The architecture moved from one dual-channel G474 to
+> **two independent controllers, one per axle** — see
+> [ARCHITECTURE.md](ARCHITECTURE.md#why-two-controllers-instead-of-one). This document still
+> describes the single-producer v1 wire format, and **§2's two-element axle arrays are the part
+> that no longer fits**: each controller knows only its own axle.
+>
+> **This needs a v2 and it is not designed yet.** The open question is whether each controller
+> emits single-axle frames that the ESP32 merges into the existing two-element shape (keeps
+> `host-tools/` unchanged, makes the ESP32 a stitcher), or whether frames carry an explicit
+> `axle` field and consumers do the merging (honest, but every consumer changes). Decide it at
+> [Phase 3](BUILD_PHASES.md#phase-3--both-channels) with both links real. Until then Phases 1–2b
+> are single-controller and v1 is correct as written.
 
 ---
 
@@ -31,13 +44,73 @@ All reference parsers do this.
 
 | Transport | Notes |
 |---|---|
-| **G4 ↔ ESP32 UART** | The internal link. `921600`, 8N1, no flow control. Common ground required. |
-| **G4 ↔ host USB serial** | Direct connection for bench work in Phases 1–3, before the ESP32 exists. `921600`. |
-| **ESP32 WiFi (TCP)** | Port **3737**, one client. The ESP32 relays G4 frames verbatim and adds its own. |
+| **Controller ↔ ESP32 UART** | The internal link. `921600`, 8N1, no flow control. Common ground required. **One per controller** — two links, or one CAN bus. |
+| **Controller ↔ host USB serial** | Direct connection for bench work in Phases 1–2b, before the ESP32 exists. `921600`. |
+| **ESP32 WiFi (TCP)** | Port **3737**, one client. The ESP32 relays controller frames verbatim and adds its own. |
 | **ESP32 WiFi (UDP)** | Port **3738**, lossy telemetry-only for high-rate plotting. Commands are never accepted over UDP. |
 
-FDCAN between the G4 and ESP32 is the upgrade path if UART framing gets tight — see
+**CAN is now the preferred transport, not merely an upgrade path**, because two controllers plus
+the ESP32 on one bus beats three point-to-point UARTs — and the controllers need a peer link to
+each other regardless, for the desync interlock. The F405 has bxCAN natively; the ESP32's TWAI
+peripheral speaks classic CAN. See
+[ARCHITECTURE.md](ARCHITECTURE.md#the-desync-interlock-across-two-controllers) and
 [BUILD_PHASES.md § Open items](BUILD_PHASES.md#open-items).
+
+> **The peer link is not this protocol.** Heartbeat and cross-axle RPM/current between the two
+> controllers is a safety path with a hard latency budget; JSON lines are the wrong tool. Keep it
+> binary, fixed-length, and separate. And the *cut* is a hardware fault line, not a message at
+> all.
+
+---
+
+## 1.3 The two binary buses — NOT this protocol
+
+Two links on this vehicle carry control-loop inputs with hard latency budgets. **They are not JSON
+lines and must never become them.** Documented here because this is where people will look, not
+because they share a format.
+
+| Bus | From → to | Rate | Payload |
+|---|---|---|---|
+| **Peer frame** | controller ↔ controller | 500–1000 Hz | 8 bytes, below |
+| **Advisory frame** | ESP32 → both controllers | 200 Hz | 8 bytes, below |
+
+Both fit one classic CAN frame exactly. On a 1 Mbit bus an 8-byte frame is ~130 µs on the wire, so
+two controllers at 1 kHz plus the supervisor at 200 Hz is roughly 29% bus load with worst-case
+latency around 260 µs — an order of magnitude inside a 2 ms TC period. See
+[ARCHITECTURE.md](ARCHITECTURE.md#traction-control-across-two-axles).
+
+### Peer frame — controller ↔ controller
+
+```
+  wheel_speed    int16   0.01 m/s    this axle's wheel speed
+  iq             int16   0.01 A      q-axis current
+  motor_temp     int8    °C
+  state_flags    uint8   running | faulted | observer_locked | sensored
+  seq            uint8   wraps; used for staleness detection
+  reserved       uint8
+```
+
+Carries the *data* half of the desync interlock. The *cut* half is a hardware fault line, not a
+message — see
+[ARCHITECTURE.md](ARCHITECTURE.md#the-desync-interlock-across-two-controllers).
+
+### Advisory frame — ESP32 → both controllers
+
+```
+  v_ground_est   int16   0.01 m/s    IMU-integrated, GPS-corrected
+  a_x            int16   0.01 m/s²   raw, so controllers can sanity-check
+  yaw_rate       int16   0.01 rad/s
+  flags          uint8   gps_lock | imu_ok | confidence
+  seq            uint8   wraps; staleness detection
+```
+
+> ⚠ **This frame can only ever *reduce* torque.** It enters the controllers as one term in a
+> `min()` and there is no code path by which it raises a limit. Stale `seq` or cleared flags mean
+> the term is **skipped entirely** — not clamped, not extrapolated. See
+> [the supervisor exception](ARCHITECTURE.md#the-supervisor-exception--advisory-input-that-can-only-subtract).
+
+> **Steering angle is deliberately absent.** It is already in the CRSF frame both controllers
+> decode; routing it through the supervisor would add latency and a dependency for nothing.
 
 ---
 
@@ -45,10 +118,13 @@ FDCAN between the G4 and ESP32 is the upgrade path if UART framing gets tight �
 
 Every array of per-axle values is **exactly 2 elements**, always in this order:
 
-| Index | Axle | Short | Timer |
+| Index | Axle | Short | Owned by |
 |---|---|---|---|
-| 0 | Front | `F` | TIM1 |
-| 1 | Rear | `R` | TIM8 |
+| 0 | Front | `F` | Front controller, its TIM1 |
+| 1 | Rear | `R` | Rear controller, its TIM1 |
+
+⚠ **Both controllers use TIM1.** An earlier version of this table assigned the rear axle to TIM8,
+which was correct when one chip drove both. Each controller now has its own TIM1 and its own ADCs.
 
 Sign convention: **positive = forward**, always, regardless of how the motor phases are wired.
 Correcting for a reversed motor is the firmware's job (`pin_map.h` → `MOTOR_INVERT_*`), not the

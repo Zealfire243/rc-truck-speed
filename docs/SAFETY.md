@@ -26,17 +26,29 @@ get hurt on this project, and it happens during "quick tests."
 
 Not software. Hardware.
 
-- [ ] **Overcurrent comparator tied to the TIM1/TIM8 break input.** This kills the gates whether or
-      not the ISR is still running. Software overcurrent protection has to survive the software
-      being wrong; this doesn't.
+- [ ] **Overcurrent comparator tied to the TIM1 break input, on each controller.** This kills the
+      gates whether or not the ISR is still running. Software overcurrent protection has to survive
+      the software being wrong; this doesn't.
+- [ ] **Cross-wired fault lines** — each controller's fault output into the *other* controller's
+      TIM1 break input. This is the hardware half of the axle-desync interlock, and it exists
+      because the two controllers no longer share a tick. A fault on either must kill both, through
+      copper, with no software and no link involved. See
+      [ARCHITECTURE.md](ARCHITECTURE.md#the-desync-interlock-across-two-controllers).
+- [ ] **Peer heartbeat timeout implemented and tested**, because a controller that loses power
+      cannot assert its fault line. Silence from the other axle must be treated as a fault, not a
+      warning — it is the backstop for the backstop.
 - [ ] **Deadtime configured in the timer**, not in software.
 - [ ] **A physical means of cutting power** that does not involve the transmitter or the firmware.
       An accessible pack connector counts.
-- [ ] **Receiver failsafe configured and tested at the receiver**, so it holds even if the G4 is
-      confused.
+- [ ] **Receiver failsafe configured and tested at the receiver**, so it holds even if a controller
+      is confused. Both controllers decode CRSF independently, so both must fail safe.
 
 ## Every session, before the first run
 
+- [ ] **Fault-line continuity.** Assert one controller's fault output and confirm the *other*
+      board's gates go off. A fault line broken at a connector silently removes the interlock and
+      nothing else will tell you. This is new with the two-controller architecture and it belongs
+      in the per-session checklist, not just at Phase 3.
 - [ ] **RC failsafe test: turn the transmitter off, confirm the truck stops.** Every session. Not
       "I tested it last week."
 - [ ] Wheel nuts checked. Thread-locked, and physically checked.
