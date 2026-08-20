@@ -43,10 +43,26 @@ typedef enum {
     AXLE_COUNT = 2,
 } axle_id_t;
 
-/** How many axles are physically populated. Phases 1-2 = 1, Phase 3+ = 2. */
-#ifndef AXLES_POPULATED
-#define AXLES_POPULATED 1
+/** Which axle THIS controller drives.
+ *
+ *  Each controller drives exactly one motor — the vehicle runs two copies of
+ *  this firmware, one per axle, coordinated over the peer link. Set at build
+ *  time: -DAXLE_SELF=AXLE_FRONT or -DAXLE_SELF=AXLE_REAR.
+ *
+ *  This replaces AXLES_POPULATED, which counted how many axles one chip drove.
+ *  Nothing counts them any more; the answer is always one. What varies is
+ *  WHICH one, because it decides peer-link identity and the torque-split sign.
+ *
+ *  AXLE_COUNT stays 2: the arrays below still hold two axles' worth of STATE
+ *  (own, measured + peer, received over the link), which is what the desync
+ *  interlock and the telemetry format in docs/PROTOCOL.md §2 both need. Two
+ *  axles of data, one axle of drive. */
+#ifndef AXLE_SELF
+#define AXLE_SELF AXLE_FRONT
 #endif
+
+/** The other axle — the one on the far end of the peer link. */
+#define AXLE_PEER ((AXLE_SELF) == AXLE_FRONT ? AXLE_REAR : AXLE_FRONT)
 
 /* -------------------------------------------------------------------------
  * Front axle — TIM1
@@ -114,7 +130,7 @@ typedef enum {
  * Run `cd host-tools && uv run gearing.py` to regenerate the working point
  * whenever tire diameter, mass, or gearing changes.
  * ------------------------------------------------------------------------- */
-#define POLE_PAIRS           2       /* count magnets / 2. VERIFY.           */
+#define POLE_PAIRS           1       /* QuicRun 3650 G2 is 2-POLE. VERIFY.   */
 #define FINAL_DRIVE          2.50f   /* motor turns per wheel turn           */
 
 /* -------------------------------------------------------------------------

@@ -25,7 +25,7 @@ set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 project(speed-motor-ctrl C ASM)
 
 option(BRINGUP_APP "Build the Phase 1 bench app" ON)
-set(AXLES_POPULATED "1" CACHE STRING "Axles physically wired: 1 or 2")
+set(AXLE_SELF "AXLE_FRONT" CACHE STRING "Which axle this build drives: AXLE_FRONT or AXLE_REAR")
 
 if(NOT DEFINED ENV{CUBE_G4_PATH})
     message(FATAL_ERROR
@@ -86,7 +86,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     STM32G474xx
     USE_HAL_DRIVER
-    AXLES_POPULATED=${AXLES_POPULATED}
+    AXLE_SELF=${AXLE_SELF}
     $<$<BOOL:${BRINGUP_APP}>:BRINGUP_APP>
 )
 

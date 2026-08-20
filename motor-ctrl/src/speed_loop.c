@@ -40,7 +40,8 @@ void speed_loop_step(speed_loop_t *sl, foc_axle_t axles[AXLE_COUNT],
     if (!sl->closed_loop) {
         return;   /* open-loop apps write iq_ref directly */
     }
-    for (int a = 0; a < AXLES_POPULATED; a++) {
+    {
+        const int a = AXLE_SELF;   /* this controller drives one motor */
         float err = sl->rpm_setpoint[a] - rpm[a];
         float iq = pi_update(&sl->pi_vel[a], err, dt);
         iq += sl->ff * sl->rpm_setpoint[a];

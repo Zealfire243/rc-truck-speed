@@ -66,17 +66,30 @@ void control_isr(void)
     csense_read(&g_csense);
 
     float rpm[AXLE_COUNT] = {0};
-    for (int a = 0; a < AXLES_POPULATED; a++) {
+    {
+        const int a = AXLE_SELF;   /* this controller drives one motor */
         rpm[a] = observer_rpm(&g_obs[a]);
     }
 
     /* Uses the ACTIVE tire profile, not a compile-time constant — fitting
      * different tires without telling the firmware would make the cap fail
-     * open. See pin_map.h. */
-    float mph = safety_mph_from_rpm(&g_safety, rpm[AXLE_REAR]);
+     * open. See pin_map.h.
+     *
+     * AXLE_SELF, not AXLE_REAR: each controller derives speed from the axle it
+     * actually measures. Reading AXLE_REAR here would leave a FRONT controller
+     * computing mph from an rpm slot its own observer never writes — zero until
+     * the peer link fills it, which is the cap failing OPEN. Both controllers
+     * enforce the cap independently on their own measurement; that is the
+     * point, and it is why neither depends on the other to stay capped. */
+    float mph = safety_mph_from_rpm(&g_safety, rpm[AXLE_SELF]);
 
     /* Safety before torque, every tick, no exceptions. */
-    safety_action_t act = safety_check(&g_safety, rpm, g_csense.temp_c,
+    /* TODO Phase 3: peer_valid comes from the peer-link heartbeat freshness
+     * check. Hardcoded true until the link exists — see docs/PROTOCOL.md
+     * "The two binary buses". Phases 1-2b are single-controller, where there
+     * is no peer to lose. */
+    const bool peer_valid = true;
+    safety_action_t act = safety_check(&g_safety, rpm, g_csense.temp_c, peer_valid,
                                        g_csense.vbus, mph, g_ms);
     if (act == SAFETY_LATCH) {
         inverter_disable_all();
@@ -98,8 +111,9 @@ void control_isr(void)
     }
 #endif
 
-    /* Current loop, both axles. */
-    for (int a = 0; a < AXLES_POPULATED; a++) {
+    /* Current loop — this controller's axle. */
+    {
+        const int a = AXLE_SELF;   /* this controller drives one motor */
         g_foc[a].iq_ref = safety_limit_torque(&g_safety, g_foc[a].iq_ref, mph);
 
         float alpha, beta;

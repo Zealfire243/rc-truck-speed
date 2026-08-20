@@ -63,10 +63,17 @@ Turn it off from Phase 2 onward:
 cmake -B build -DBRINGUP_APP=OFF
 ```
 
-> ⚠ **`AXLES_POPULATED=2` is obsolete.** It selected a second FOC instance on the same chip.
-> Each controller now owns exactly one axle; which axle it *is* becomes a build-time or
-> stored-config choice (`AXLE=FRONT|REAR`), because it decides peer-link identity and the
-> torque-split sign — not how many FOC instances run.
+> **`AXLES_POPULATED` is gone**, replaced by `AXLE_SELF`. Nothing counts axles any more — the
+> answer is always one. What varies is *which* one, because it decides peer-link identity and the
+> torque-split sign:
+>
+> ```bash
+> cmake -B build -DBRINGUP_APP=OFF -DAXLE_SELF=AXLE_REAR
+> ```
+>
+> `AXLE_COUNT` stays 2: the arrays still hold two axles' worth of **state** (own, measured + peer,
+> received over the link), which the desync interlock and
+> [PROTOCOL.md §2](../docs/PROTOCOL.md) both need. **Two axles of data, one axle of drive.**
 
 ## Tests
 
@@ -88,9 +95,9 @@ hunting with a motor spinning.
 Start with the headers — they carry the design reasoning, the same way the
 crawler's do.
 
-1. `inc/pin_map.h` — pins, drivetrain constants, and the speed cap ceiling.
-   ⚠ **`POLE_PAIRS` is currently 2 and must become 1** — the chosen QuicRun 3650 is a 2-pole
-   motor. Get this wrong and every RPM and angle the observer produces is out by 2×.
+1. `inc/pin_map.h` — pins, drivetrain constants, `AXLE_SELF`, and the speed cap ceiling.
+   `POLE_PAIRS` is **1** for the 2-pole QuicRun 3650. Count the magnets and re-verify if you
+   change motor — get it wrong and every RPM and angle the observer produces is out by 2×.
 2. `inc/foc.h` — what FOC does and the pipeline (`src/foc.c` is fully written)
 3. `inc/observer.h` — **the hard part.** Read before starting Phase 2.
 4. `inc/current_sense.h` — why sample timing is Phase 1's whole criterion

@@ -57,6 +57,7 @@ typedef enum {
     FLAG_IQ_CLAMP  = 1u << 7,
     FLAG_VBAT_LOW  = 1u << 8,
     FLAG_OVERRUN   = 1u << 9,
+    FLAG_PEER_LOST = 1u << 10,
 } safety_flag_t;
 
 /** What the caller must do about it. Ordered by severity — a check that
@@ -94,15 +95,24 @@ void safety_init(safety_t *s);
 
 /** Run every control tick, before torque is applied.
  *
- *  @param rpm       per-axle motor RPM from the observers
- *  @param temp_c    per-axle inverter temperature
- *  @param vbat      pack voltage under load
- *  @param mph       wheel-derived speed
- *  @param now_ms    monotonic milliseconds
+ *  @param rpm         per-axle motor RPM. [AXLE_SELF] from this controller's
+ *                     observer; [AXLE_PEER] from the peer link.
+ *  @param temp_c      per-axle temperature, same indexing as @p rpm.
+ *  @param peer_valid  true when the peer frame is fresh. **False latches a
+ *                     fault.** A controller that lost power cannot assert its
+ *                     hardware fault line, so silence from the other axle is
+ *                     indistinguishable from that axle having died — and at
+ *                     70 mph they must be treated identically. This is the
+ *                     backstop for the cross-wired fault lines, not a
+ *                     duplicate of them.
+ *  @param vbat        pack voltage under load
+ *  @param mph         wheel-derived speed
+ *  @param now_ms      monotonic milliseconds
  */
 safety_action_t safety_check(safety_t *s,
                              const float rpm[AXLE_COUNT],
                              const float temp_c[AXLE_COUNT],
+                             bool peer_valid,
                              float vbat, float mph, uint32_t now_ms);
 
 /** Clamp a torque request against the cap and every active limit. Returns the

@@ -149,6 +149,7 @@ static safety_action_t worse(safety_action_t a, safety_action_t b)
 safety_action_t safety_check(safety_t *s,
                              const float rpm[AXLE_COUNT],
                              const float temp_c[AXLE_COUNT],
+                             bool peer_valid,
                              float vbat, float mph, uint32_t now_ms)
 {
     safety_action_t act = SAFETY_OK;
@@ -176,7 +177,16 @@ safety_action_t safety_check(safety_t *s,
      * PERSIST before it latches — because the front differential lets a single
      * lifted or slipping wheel spike front motor RPM with nothing actually
      * wrong. See pin_map.h for the reasoning and the trade. */
-#if AXLES_POPULATED > 1
+    if (!peer_valid) {
+        /* Silence from the other axle is a fault, not a warning — see the
+         * header. Latch before the desync test, because without peer RPM
+         * there is nothing to compare against anyway. */
+        s->flags |= FLAG_PEER_LOST;
+        s->fault_latched = true;
+        return SAFETY_LATCH;
+    }
+    s->flags &= ~(uint32_t)FLAG_PEER_LOST;
+
     float divergence = rpm[AXLE_FRONT] - rpm[AXLE_REAR];
     if (divergence < 0.0f) {
         divergence = -divergence;
@@ -201,15 +211,12 @@ safety_action_t safety_check(safety_t *s,
     } else {
         s->desync_pending = false;
     }
-#else
-    (void)rpm;
-#endif
 
     /* --- Thermal ---------------------------------------------------------
      * Fold back before cutting. A run that quietly loses power is recoverable
      * and shows up in the log; a run that cuts out at speed is a crash. */
     bool hot = false, too_hot = false;
-    for (int i = 0; i < AXLES_POPULATED; i++) {
+    for (int i = 0; i < AXLE_COUNT; i++) {
         if (temp_c[i] >= OVERTEMP_CUT_C) {
             too_hot = true;
         } else if (temp_c[i] >= OVERTEMP_FOLDBACK_C) {
@@ -225,7 +232,7 @@ safety_action_t safety_check(safety_t *s,
         s->flags |= FLAG_OVERTEMP;
         /* Linear fold-back across the band between the two thresholds. */
         float hottest = temp_c[0];
-        for (int i = 1; i < AXLES_POPULATED; i++) {
+        for (int i = 1; i < AXLE_COUNT; i++) {
             if (temp_c[i] > hottest) {
                 hottest = temp_c[i];
             }

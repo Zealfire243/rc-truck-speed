@@ -2,7 +2,7 @@
  * @file test_safety.c
  * @brief Host tests for the interlocks. No STM32 required.
  *
- *     cd motor-ctrl && cc -Iinc -DAXLES_POPULATED=2 -lm \
+ *     cd motor-ctrl && cc -Iinc -lm \
  *         -o /tmp/test_safety test/test_safety.c src/safety.c
  *     /tmp/test_safety
  *
@@ -183,16 +183,16 @@ int main(void)
     float temp[AXLE_COUNT] = {25.0f, 25.0f};
     safety_note_rc_frame(&s, 1000);
     ok("healthy link is OK",
-       safety_check(&s, rpm, temp, 14.4f, 5.0f, 1050) == SAFETY_OK);
+       safety_check(&s, rpm, temp, true, 14.4f, 5.0f, 1050) == SAFETY_OK);
     ok("stale link cuts",
-       safety_check(&s, rpm, temp, 14.4f, 5.0f, 2000) == SAFETY_CUT);
+       safety_check(&s, rpm, temp, true, 14.4f, 5.0f, 2000) == SAFETY_CUT);
     near("torque zeroed while RC is lost",
          safety_limit_torque(&s, 20.0f, 5.0f), 0.0f);
 
     safety_init(&s);
     safety_estop(&s, true);
     ok("estop latches",
-       safety_check(&s, rpm, temp, 14.4f, 5.0f, 1000) == SAFETY_LATCH);
+       safety_check(&s, rpm, temp, true, 14.4f, 5.0f, 1000) == SAFETY_LATCH);
     ok("estop blocks a fault clear", !safety_clear_fault(&s));
     near("no torque under estop", safety_limit_torque(&s, 20.0f, 0.0f), 0.0f);
 
@@ -207,23 +207,23 @@ int main(void)
     float synced[AXLE_COUNT] = {9000.0f, 9000.0f};
 
     ok("a single diverged tick does NOT latch",
-       safety_check(&s, split, temp, 14.4f, 5.0f, 1000) != SAFETY_LATCH);
+       safety_check(&s, split, temp, true, 14.4f, 5.0f, 1000) != SAFETY_LATCH);
     ok("still not latched 20 ms in",
-       safety_check(&s, split, temp, 14.4f, 5.0f, 1020) != SAFETY_LATCH);
+       safety_check(&s, split, temp, true, 14.4f, 5.0f, 1020) != SAFETY_LATCH);
 
     /* A wheel lift ends. The detector must forget it completely. */
     safety_note_rc_frame(&s, 1030);
     ok("divergence clearing resets the timer",
-       safety_check(&s, synced, temp, 14.4f, 5.0f, 1030) != SAFETY_LATCH);
+       safety_check(&s, synced, temp, true, 14.4f, 5.0f, 1030) != SAFETY_LATCH);
     ok("pending flag cleared", !s.desync_pending);
     safety_note_rc_frame(&s, 1060);
     ok("a later brief spike starts over, does not latch",
-       safety_check(&s, split, temp, 14.4f, 5.0f, 1060) != SAFETY_LATCH);
+       safety_check(&s, split, temp, true, 14.4f, 5.0f, 1060) != SAFETY_LATCH);
 
     /* A real failure does not heal. */
     safety_note_rc_frame(&s, 1120);
     ok("sustained divergence past 50 ms DOES latch",
-       safety_check(&s, split, temp, 14.4f, 5.0f, 1120) == SAFETY_LATCH);
+       safety_check(&s, split, temp, true, 14.4f, 5.0f, 1120) == SAFETY_LATCH);
     ok("desync flag set", (s.flags & FLAG_DESYNC) != 0);
     near("both axles get zero torque",
          safety_limit_torque(&s, 20.0f, 5.0f), 0.0f);
@@ -233,14 +233,32 @@ int main(void)
     safety_init(&s);
     safety_note_rc_frame(&s, 1000);
     float fast[AXLE_COUNT] = {25000.0f, 24500.0f};   /* 2% apart */
-    safety_check(&s, fast, temp, 14.4f, 5.0f, 1000);
+    safety_check(&s, fast, temp, true, 14.4f, 5.0f, 1000);
     ok("500 rpm apart at 25,000 rpm is not a desync", !s.desync_pending);
 
     safety_init(&s);
     safety_note_rc_frame(&s, 1000);
     float slow[AXLE_COUNT] = {2000.0f, 1200.0f};     /* 800 rpm, 50% apart */
-    safety_check(&s, slow, temp, 14.4f, 5.0f, 1000);
+    safety_check(&s, slow, temp, true, 14.4f, 5.0f, 1000);
     ok("800 rpm apart at 1,600 rpm mean IS a desync", s.desync_pending);
+
+    printf("\nPeer link loss latches\n");
+    /* A controller that loses power cannot assert its hardware fault line, so
+     * silence from the other axle must be treated exactly like that axle having
+     * died. This is the backstop for the cross-wired fault lines. */
+    safety_init(&s);
+    safety_note_rc_frame(&s, 1000);
+    float agreed[AXLE_COUNT] = {9000.0f, 9000.0f};
+    ok("peer fresh and axles agreed is fine",
+       safety_check(&s, agreed, temp, true, 14.4f, 5.0f, 1000) != SAFETY_LATCH);
+
+    safety_init(&s);
+    safety_note_rc_frame(&s, 1000);
+    ok("peer stale latches immediately, even with axles agreed",
+       safety_check(&s, agreed, temp, false, 14.4f, 5.0f, 1000) == SAFETY_LATCH);
+    ok("and raises FLAG_PEER_LOST", (s.flags & FLAG_PEER_LOST) != 0);
+    ok("and it is a latch, not a transient",
+       safety_check(&s, agreed, temp, true, 14.4f, 5.0f, 1010) == SAFETY_LATCH);
 
     printf("\n%s (%d failures)\n\n",
            failures ? "FAILURES" : "ALL PASS", failures);
