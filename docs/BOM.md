@@ -482,7 +482,7 @@ into the base can even trim base drag slightly by energising the wake.
 
 | Item | Notes | ~$ |
 |---|---|---|
-| **ESP32-S3 DevKit** (or classic ESP32 **committed to CAN**) | **Not "any of them" — the UART count binds.** See below. 8 MB flash, PSRAM preferred, USB-C, and a **u.FL external antenna option** if you can get it. | 10–20 |
+| **ESP32-S3-DevKitC-1(U)-N16R8** (or classic ESP32 **committed to CAN**) | **Not "any of them" — the UART count binds.** See below. N16R8 = 16 MB flash + 8 MB octal PSRAM; N8R8 works identically, so buy on price and on whether headers come soldered. **The `U` suffix is the one that matters** — it means a WROOM-1U module with a u.FL connector for an external antenna. | 10–20 |
 | **10 Hz GPS module** | 10 Hz, not 1 Hz. A 1 Hz module samples once every 31 meters at target speed, which tells you nothing useful. | 20–40 |
 | **6-axis IMU** (MPU-6500 / ICM-42688 / LSM6DSO class) | **Yaw rate, ≥200 Hz.** See below — this is the cheapest high-value part in the BOM. | 3–10 |
 | microSD module + card | Logging. | 10 |
@@ -521,9 +521,19 @@ classic-ESP32 GPIO. It is a small change, but do it deliberately.
 
 > **ESP32-C3 is out: two UARTs.** It cannot do this job in either configuration.
 
-> **Get the external-antenna option if you can.** [Phase 7](BUILD_PHASES.md#phase-7--aluminum-chassis)
-> puts this radio inside an **aluminum** chassis. A PCB trace antenna in a metal box is a
-> problem you would rather buy your way out of now than debug at 60 mph.
+> **Get the external-antenna option if you can — it is the `U` variant.**
+> [Phase 7](BUILD_PHASES.md#phase-7--aluminum-chassis) puts this radio inside an **aluminum**
+> chassis. A PCB trace antenna in a metal box is a problem you would rather buy your way out of
+> now than debug at 60 mph, and it cannot be retrofitted: a plain DevKitC-1 has no connector to
+> add one, so the fallback is relocating the ESP32 outside the metal or cutting a window.
+
+> ⚠ **GPIO 35, 36 and 37 are not available on any `R8` module.** Octal SPI PSRAM uses them for
+> the flash/PSRAM interface —
+> [Espressif documents this](https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/esp32-s3-devkitc-1/user_guide_v1.1.html).
+> The I/O budget still fits comfortably: two UART links (or one CAN bus), GPS, IMU on SPI, SD on
+> SPI and a status LED is ~16 pins against roughly 35 exposed. It just has to be written into
+> `supervisor/main/pin_map.h`, whose GPIO ground rules are currently classic-ESP32 and do not
+> apply to the S3 at all.
 
 ### Why the IMU, specifically
 
