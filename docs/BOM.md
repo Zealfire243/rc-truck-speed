@@ -117,8 +117,8 @@ therefore the final drive ratio.
 | **Brushless motor ×2** | Same batch, open only one. See *Motor selection* below. | 30–45 ea |
 | Bench supply, current-limited | **Essential, not optional.** This is the single most important line in the file — it is what makes Stage 1 mistakes survivable. Start the limit at 2 A. | 60–120 |
 | Oscilloscope access | For deadtime verification. Borrowed is fine; this is a handful of measurements. | — |
-| ST-Link / SWD debugger | On-board on the Nucleo. You will need a standalone one at Stage 2. | — |
-| 4S LiPo + balance charger | Get the charger right; it's a fire-safety item. | 60–100 |
+| ST-Link / SWD debugger | On-board on the Nucleo — **and it detaches.** Pull the two **CN2** jumpers and the Nucleo's ST-Link becomes a standalone programmer driving an external target through the **CN4** SWD header. So the Nucleo can flash the FSESC at Stage 2 and the separate debugger below is probably unnecessary. Verify against UM1724 before skipping the purchase. | — |
+| **4S LiPo + balance charger** | **DECIDED and in hand: 4S 1550 mAh 100C softpack, 72 × 35 × 37 mm, XT60.** Softpack is mandatory — a hardcase is ~105 mm against a 97 mm bay. Capacity is set by the 3–5 min course case (~3.7 min at a 20 A average), not by the speed run, and the C rating is bought for low IR rather than for the label: real draw is only ~21C at the cap. Full derivation in [MECHANICAL.md](MECHANICAL.md#-pack-current-is-not-phase-current-and-an-earlier-version-of-this-file-confused-them). Get the charger right; it's a fire-safety item. | 60–100 |
 
 ### ⚠ The IHM08M1 tops out near 12 A, and no amount of cooling changes that
 
@@ -340,7 +340,7 @@ ceiling goes away.
 | Item | Notes | ~$ |
 |---|---|---|
 | **Flipsky Mini FSESC6.7 Pro** | VESC 6.6 based: **STM32F405** (M4F with FPU), 70 A continuous / 200 A peak, 14–60 V, three-shunt current sensing scaled for real current, HALL / ABI / AS5047 sensor inputs. **67 × 39 × 18.7 mm including its heatsink.** You are buying it as a *programmable power stage*, not as an ESC. | 125 |
-| **Standalone SWD debugger** | ST-Link V2/V3 or equivalent. The Nucleo's on-board programmer is not coming with you. | 15–40 |
+| Standalone SWD debugger | **Probably not needed — see the Stage 1 note.** The Nucleo's on-board ST-Link detaches via the CN2 jumpers and programs an external target through CN4, so the bench rig you already own can flash the FSESC. Buy one only if you want both rigs live at once, or if CN4 turns out not to work for you. | 0–40 |
 | Bullet connectors, XT60, silicone wire | 12 AWG for the phase and battery runs at these currents. | 20–30 |
 
 **Why this board is the answer to a question that looked unanswerable.** The original plan
@@ -355,18 +355,34 @@ microsecond. It is a nicety, not a requirement.
 
 ### ⚠ Verify before ordering — any one of these can sink the plan
 
-- **SWD access on the exact board.** Flipsky generally exposes SWD pads; confirm on the 6.7
-  Pro. Without it you cannot debug, and you would be flashing blind through the bootloader.
-- **Schematic availability for that revision.** VESC 6 is open hardware, but vendor
-  derivatives vary. You need the real pin mapping and the current-sense scaling. **If you
-  cannot get a schematic, buy hardware you can** — this is not negotiable, because
-  `amps_per_count` comes straight out of it.
-- **Gate driver part number.** VESC 6 revisions have shipped DRV8301 and DRV8323 variants. The
-  register interfaces differ and you are initialising it yourself.
-- **The 14 V floor.** The published range is 14–60 V, which sits *above* 4S nominal (14.8 V),
-  and a 4S pack under launch load sags toward 13.2 V. VESC 6 silicon runs to ~6 V, so 14 V is
-  very likely a DC-DC recommendation rather than a hard limit — **confirm with Flipsky.** If it
-  is real, switch to 5S with the 17.5T per the motor section above.
+Status as of the pre-order check (2026-09-04). **Two of four are closed; the two that
+remain are the ones that actually sink the plan, and both need a reply from Flipsky.**
+
+- ✅ **SWD access on the exact board.** Closed. Flipsky's own user manual for the Mini
+  FSESC6.7 Pro lists **SWD** among the board's pinouts, alongside CAN, SENSE, COMM and USB.
+  Confirm physically on arrival, but this is documented, not hoped for.
+- ❌ **Schematic availability for that revision — STILL OPEN, and still non-negotiable.**
+  The product page offers no schematic or hardware design files, and none surfaced in
+  search. VESC 6.6 upstream is open hardware, but this is a vendor derivative and
+  `amps_per_count` comes straight out of *its* shunt values and CSA gain. **Email Flipsky
+  and get the schematic in hand before paying.** If they will not supply one, buy hardware
+  from someone who will — that is what this line has always meant.
+- ❌ **Gate driver part number — STILL OPEN.** Not published anywhere findable; VESC 6
+  revisions have shipped both DRV8301 and DRV8323, their SPI register maps differ, and you
+  are initialising it yourself. Ask in the same email. (If the schematic arrives, this
+  answers itself.)
+- ✅ **The 14 V floor — closed, and it is not a floor.** Flipsky's own listing gives the
+  range as **14–60 V (4S–13S; safe for 4S–12S)** — i.e. they name 4S as supported while
+  quoting 14 V, so the number is a nominal-pack designation, not a cutoff. VESC 6 silicon
+  runs to ~6 V, and on your own firmware the undervoltage cutoff is a constant you set
+  (`VBAT_LOW_V`, currently 12.8 V). **Stay on 4S with the 13.5T.** The 5S / 17.5T fallback
+  is no longer needed.
+
+One bonus confirmation from the same listing: **150,000 ERPM maximum**, against the
+QuicRun's 47,880. That is 3.1× headroom, and it retires the ERPM question entirely.
+
+Ask Flipsky all of it in one message — schematic for the revision they will ship, gate
+driver part number, and shunt resistance plus current-sense amplifier gain.
 
 > ⚠ **Do not skip Stage 1 to get here faster.** At Stage 2 your bugs cost $125 a board plus a
 > motor, and a shoot-through at 70 A on 4S is spectacular rather than educational. The whole
@@ -466,10 +482,48 @@ into the base can even trim base drag slightly by energising the wake.
 
 | Item | Notes | ~$ |
 |---|---|---|
-| ESP32 DevKit | Any of them. It's doing nothing hard. | 8–15 |
+| **ESP32-S3 DevKit** (or classic ESP32 **committed to CAN**) | **Not "any of them" — the UART count binds.** See below. 8 MB flash, PSRAM preferred, USB-C, and a **u.FL external antenna option** if you can get it. | 10–20 |
 | **10 Hz GPS module** | 10 Hz, not 1 Hz. A 1 Hz module samples once every 31 meters at target speed, which tells you nothing useful. | 20–40 |
 | **6-axis IMU** (MPU-6500 / ICM-42688 / LSM6DSO class) | **Yaw rate, ≥200 Hz.** See below — this is the cheapest high-value part in the BOM. | 3–10 |
 | microSD module + card | Logging. | 10 |
+
+### ⚠ The supervisor's UART count binds — "any ESP32" is wrong
+
+An earlier version of this line said "any of them, it's doing nothing hard." That was
+written when the supervisor talked to **one** motor controller. The rearchitecture to
+per-axle controllers added a second link, and the classic ESP32 has exactly **three UART
+controllers**:
+
+| UART | Wanted for | |
+|---|---|---|
+| UART0 | USB console + flashing | you give this up reluctantly |
+| UART1 | GPS, 10 Hz | |
+| UART2 | Front controller | |
+| — | **Rear controller** | **nothing left** |
+
+`supervisor/main/pin_map.h` still reflects the single-controller world — one link on UART2,
+GPS on UART1, and **no IMU allocated at all**. Both gaps are Phase 5 work.
+
+**Two clean ways out, and you should pick one before ordering:**
+
+1. **Classic ESP32 + CAN.** Put both controllers on one TWAI bus, which is what
+   [ARCHITECTURE.md](ARCHITECTURE.md#the-desync-interlock-across-two-controllers) prefers
+   anyway — the F405 has bxCAN natively, one bus serves all three nodes, and it frees both
+   UARTs. This works and costs nothing extra, but it makes CAN load-bearing rather than the
+   preferred option.
+2. **ESP32-S3.** Native USB-Serial-JTAG means the console no longer consumes UART0, so you
+   get three usable UARTs *plus* USB. The UART fallback stays available as a fallback,
+   which is the point of having one.
+
+**Recommended: the S3**, because it keeps the fallback real for ~$5 more. Note the port is
+not free — `sdkconfig.defaults` pins `CONFIG_IDF_TARGET="esp32"` and the pin map is
+classic-ESP32 GPIO. It is a small change, but do it deliberately.
+
+> **ESP32-C3 is out: two UARTs.** It cannot do this job in either configuration.
+
+> **Get the external-antenna option if you can.** [Phase 7](BUILD_PHASES.md#phase-7--aluminum-chassis)
+> puts this radio inside an **aluminum** chassis. A PCB trace antenna in a metal box is a
+> problem you would rather buy your way out of now than debug at 60 mph.
 
 ### Why the IMU, specifically
 

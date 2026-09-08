@@ -139,12 +139,18 @@ from gearing import G, MPH_TO_MS, RHO_AIR, Vehicle
 class Motor:
     """Per-motor electrical parameters."""
 
-    kv: float = 2441.0        # RPM/V
-    r_phase: float = 0.030    # ohms. MEASURE.
+    kv: float = 2850.0        # RPM/V. QuicRun 3650 G2 13.5T — see BOM.md.
+    r_phase: float = 0.0289   # ohms. Hobbywing's published figure. MEASURE —
+                              # and confirm whether it is per-phase or
+                              # phase-to-phase before trusting it (see BOM.md).
     l_phase: float = 20e-6    # henries. MEASURE — see impedance() below.
-    iq_max: float = 30.0      # amps, inverter ceiling
+    iq_max: float = 50.0      # amps. The MOTOR's peak, not the inverter's —
+                              # the FSESC does 70 A, the 3650 does not.
     i_noload: float = 1.5     # amps at speed doing nothing: iron + windage
-    pole_pairs: int = 2
+    pole_pairs: int = 1       # 2-POLE rotor. Not 3, not 2 pole pairs: rotor
+                              # poles are always even, and the 3650's "3" is
+                              # its stator slots. Matches POLE_PAIRS in
+                              # motor-ctrl/inc/pin_map.h — keep them in step.
 
     @property
     def kt(self) -> float:
@@ -156,9 +162,11 @@ class Motor:
         """Phase impedance at the electrical frequency for this shaft speed.
 
         **Resistance alone is not enough, and assuming it is will lie to you
-        badly at the top end.** At 30,000 rpm with 2 pole pairs the electrical
-        frequency is 1 kHz, where a 20 uH winding shows ~0.126 ohm of
-        reactance — four times a typical 0.03 ohm phase resistance. Model only
+        badly at the top end.** At 30,000 rpm the electrical frequency is
+        500 Hz at this motor's 1 pole pair, where a 20 uH winding shows
+        ~0.063 ohm of reactance — still twice its 0.0289 ohm phase
+        resistance. (A 2-pole-pair can would see double that, which is why
+        pole_pairs is not a cosmetic field.) Model only
         R and the sim will happily predict full current at speeds where the
         motor physically cannot take it, and hand you a top speed 15% too
         optimistic.
@@ -457,9 +465,9 @@ def main() -> None:
     p.add_argument("--tire", type=float, default=55.0)
     p.add_argument("--fd", type=float, default=2.5)
     p.add_argument("--cells", type=int, default=4)
-    p.add_argument("--kv", type=float, default=2441.0)
-    p.add_argument("--iq", type=float, default=30.0, help="amps per motor")
-    p.add_argument("--r", type=float, default=0.030, help="phase ohms")
+    p.add_argument("--kv", type=float, default=2850.0)
+    p.add_argument("--iq", type=float, default=50.0, help="amps per motor")
+    p.add_argument("--r", type=float, default=0.0289, help="phase ohms")
     p.add_argument("--l", type=float, default=20e-6, help="phase henries")
     p.add_argument("--mu", type=float, default=1.10)
     p.add_argument("--mass", type=float, default=1.08)

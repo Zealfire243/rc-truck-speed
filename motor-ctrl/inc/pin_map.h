@@ -143,7 +143,7 @@ typedef enum {
  *   divided by FINAL_DRIVE sets it, full stop. Tire diameter only changes how
  *   far the truck travels per revolution.
  *
- * At 2441 kV on 4S with 2.5:1, wheel RPM tops out at 8,537 in EVERY profile.
+ * At 2850 kV on 4S with 2.5:1, wheel RPM tops out at 8,537 in EVERY profile.
  * Chasing 70 mph on a small tire is what pushed wheel RPM to 10,866 and put
  * it 36% over typical 1/12 pan-car duty. Chasing it with a bigger tire and
  * taller gearing does not. Run `gearing.py --swap`.
@@ -181,9 +181,11 @@ typedef enum {
  * near the practical limit for grease-lubricated small bearings; 21,345 is
  * comfortably inside it.
  *
- * The surplus is deliberate: a 2441 kV motor at 2.5:1 could reach ~96 mph, and
- * it is capped at 70 by the tire. Running an over-specified motor at 61% of
- * its no-load speed IS the wear reduction. Run `accel.py --thermal 70`.
+ * The surplus is deliberate: the 2850 kV motor at 2.5:1 models out to ~111 mph
+ * and is capped at 70 by the tire. Running an over-specified motor at 45% of
+ * its no-load speed IS the wear reduction. The winding was chosen on motor
+ * constant and ERPM, not on required kV -- which is only 1744 here.
+ * Run `accel.py --thermal 70`.
  *
  * !! TIRE OD IS NOT A COMPILE-TIME CONSTANT ANYMORE, and that is a safety
  * !! fix, not a convenience. It feeds the speed calculation, which feeds the
@@ -323,16 +325,27 @@ extern const tire_profile_t TIRE_PROFILES[TIRE_PROFILE_COUNT];
  *      25 A     2.39 s   <- final stages, traction-limited
  *
  * A slower launch is irrelevant while tuning traction control and chasing
- * geometry. Cruise draw is 5.5 A per motor regardless, so only launches
- * challenge the rating, and only for a couple of seconds.
+ * geometry.
+ *
+ * ** STAGE 1 IS CAPPED BY INSTRUMENTATION, NOT BY THERMALS. ** The IHM08M1's
+ * current-sense amplifiers saturate near 12 A (1.65 V bias / ~13.7 gain /
+ * 10 mOhm shunt). Past that the reading silently stops being true, which is
+ * the one failure mode Phase 1 exists to catch. No heatsink, duct or short
+ * duty cycle moves that number. 10 A leaves honest margin and is plenty to
+ * prove current sensing and close both loops. See BOM.md, Stage 1.
+ *
+ * Note also that "only launches challenge the rating" is true for the speed
+ * run and FALSE for 3-5 minute course running, where ~15-20 A per motor is
+ * continuous. See BOM.md, "Two vehicles, one truck".
  *
  * So raise this the same way as SPEED_CAP_CEILING_MPH — one step, in source,
  * in a commit, when the hardware under it has been proven:
  *
- *   Phases 1-6 on IHM08M1      15.0
- *   Phase 7+ on final stages   25.0
+ *   Phases 1-2  on IHM08M1     10.0   <- amplifier ceiling, not thermal
+ *   Phase 2b+   on FSESC6.7    25.0   <- real current sensing; motor-limited
+ *   Full send   on FSESC6.7    50.0   <- QuicRun 3650 peak. Not the ESC's 70.
  * ------------------------------------------------------------------------- */
-#define IQ_LIMIT_A           15.0f
+#define IQ_LIMIT_A           10.0f
 #define OVERCURRENT_TRIP_A   45.0f
 #define OVERTEMP_FOLDBACK_C  80.0f
 #define OVERTEMP_CUT_C       95.0f

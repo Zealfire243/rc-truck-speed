@@ -605,7 +605,7 @@ zone; chasing it with a *big* tire and taller gearing does not. 8,537 rpm is
 only ~7% over typical pan-car duty, in every config.
 
 **What holds it there is the speed cap, not the gearing.** At 2.5:1 the
-drivetrain can reach 11,951 wheel rpm — 39% past the tire rating — if the cap
+drivetrain can reach 13,954 wheel rpm — 62% past the tire rating — if the cap
 is not doing its job. Gearing taller for motor wear spent the mechanical
 backstop that 3.5:1 provided. See
 [BUILD_PHASES.md Phase 0](BUILD_PHASES.md#phase-0--numbers-before-parts).
@@ -870,12 +870,73 @@ Taking A, with the front axle as the origin:
 > **The purchasing consequence: a standard 4S hardcase pack does not fit.**
 > Those are ~105 mm long and the bay is 97 mm, in either orientation — turning
 > the pack sideways does not help, because the plate is only ~100 mm across the
-> bay. **Buy a 4S 850–1000 mAh softpack**, roughly 72 × 35 × 28 mm.
+> bay. **It has to be a softpack**, and the binding dimension is *length*.
 >
-> That is not a compromise. At the 12.2 A cruise current, 1,000 mAh is nearly
-> 5 minutes of holding 70 mph and runs last seconds. **Buy the C-rating, not
-> the capacity** — the 40 A launch off a 1,000 mAh pack is 40C, so spec 60C or
-> better.
+> **DECIDED — 4S 1550 mAh 100C softpack, 72 × 35 × 37 mm, XT60.** In hand.
+
+##### ⚠ Pack current is not phase current, and an earlier version of this file confused them
+
+An earlier version of this section sized the pack off "the 40 A launch off a
+1,000 mAh pack is 40C." **There is no 40 A launch at the pack.** A motor under
+FOC is a buck converter: at launch the duty cycle is near zero, so a large phase
+current draws very little from the battery. The two numbers differ by an order of
+magnitude at exactly the moment the old text cared about:
+
+| Condition | I<sub>q</sub> per motor | **Pack current** | Pack power |
+|---|---|---|---|
+| Launch, 0 mph | 28.1 A | **3.2 A** | 46 W |
+| 30 mph, still traction-limited | 28.1 A | 15.7 A | 226 W |
+| 70 mph, still pulling at the cap | 28.1 A | **32.4 A** | 467 W |
+| 70 mph, steady cruise against drag | ~7 A | **13.9 A** | 200 W |
+| Worst case: both motors at I<sub>q</sub> 50 A at cap speed | 50 A | **~62 A** | ~890 W |
+
+**Peak pack draw is at the top of the run, not the bottom** — the opposite of
+what the old text assumed, and the reason a launch-derived C rating was the wrong
+calculation. Regenerate with the pack-current block in `accel.py`'s model.
+
+##### Capacity is sized by course running, not by the speed run
+
+The old text justified 1,000 mAh as "nearly 5 minutes of holding 70 mph" at
+cruise current. That is true and irrelevant: **cruise is not the sizing case.**
+[BOM.md](BOM.md#two-vehicles-one-truck) puts course running at 3–5+ minutes, and
+a course is repeated acceleration, which is where the amps are — call it 20 A
+average. At 80% depth of discharge:
+
+| | 850 mAh | 1000 mAh | 1300 mAh | **1550 mAh** | 1800 mAh |
+|---|---|---|---|---|---|
+| @ 14 A (cruise) | 2.9 min | 3.4 min | 4.5 min | **5.3 min** | 6.2 min |
+| **@ 20 A (course)** | 2.0 min | 2.4 min | 3.1 min | **3.7 min** | 4.3 min |
+
+**850–1000 mAh misses the 3–5 minute requirement**, which is why the
+recommendation moved up. The speed run is unaffected either way — it lasts
+seconds.
+
+##### C rating: buy the internal resistance, not the label
+
+C ratings are inflated roughly 2× industry-wide, so the label is not the
+specification. What matters is whether sag holds above `VBAT_LOW_V` (12.8 V):
+
+| Pack quality | Sag @ 32 A | Sag @ 62 A worst case |
+|---|---|---|
+| Cheap "50C" (8 mΩ/cell) | 1.02 V | **1.98 V → 13.2 V, too close** |
+| Decent 75C (4 mΩ/cell) | 0.51 V | 0.99 V → 14.2 V ✅ |
+| **Good 100C (2.5 mΩ/cell)** | **0.32 V** | **0.62 V → 14.6 V ✅** |
+
+At 1550 mAh the real currents are only 9C cruise / 21C at the cap / 40C worst
+case, so a genuine 100C pack is not being worked anywhere near its rating — which
+is the point. **Prefer a brand that publishes per-cell IR.**
+
+> **XT60 is at its ceiling in the worst case.** It is rated ~60–65 A continuous
+> against the ~62 A transient above. Fine as a transient, but if Phase 6 logs
+> show sustained draw up there, move to XT90.
+
+> **Height: the packaging study was drawn around a 28 mm pack; the bought one is
+> 37 mm.** That is fine for CG — the pack is the heaviest item and sits on the
+> bay floor, so the extra 9 mm moves its centroid to ~28.5 mm against a
+> [61 mm ceiling](#the-hard-cg-ceiling) that a first-pass build-up already
+> clears by 29 mm. **What it does eat is vertical stack-up under the electronics
+> deck**, which now starts ~9 mm higher. Re-check the deck clearance against the
+> body in [Phase 4a](BUILD_PHASES.md#check-4--cg-height-budget).
 
 That leaves ~25 mm of bay length beside the pack, which is **not** enough for
 two controllers plus the ESP32 laid flat. **Electronics go on a deck above the

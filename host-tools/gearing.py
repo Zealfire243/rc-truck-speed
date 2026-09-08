@@ -313,7 +313,7 @@ def main() -> None:
     p.add_argument("--cells", type=int, default=4)
     p.add_argument("--mass", type=float, default=1.08, help="kg")
     p.add_argument("--solve", choices=["kv", "fd"], default="kv")
-    p.add_argument("--kv", type=float, default=2441.0,
+    p.add_argument("--kv", type=float, default=2850.0,
                    help="motor kV, for --solve fd")
     p.add_argument("--sweep", action="store_true")
     p.add_argument("--swap", action="store_true",

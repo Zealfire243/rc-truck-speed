@@ -57,11 +57,11 @@ with arithmetic instead of with a shopping cart.
 2. Pick a tire diameter and final drive that put required kV inside the 1200–3500 band with the
    pack you want. The current working point:
 
-   > ⚠ **These numbers predate the motor decision and need re-running.** The worked example below
-   > solves for a ~2,440 kV motor at 2.5:1. [BOM.md](BOM.md#decided--quicrun-3650-g2-135t-on-4s)
-   > now specifies the **QuicRun 3650 G2 13.5T at 2850 kV, 2-pole**, chosen on motor constant and
-   > ERPM rather than on required-kV. Re-run both solvers against 2850 kV before committing to a
-   > ratio, and add two constraints the solvers do not currently know about:
+   > ✅ **Re-run against the motor actually bought.** Every number below now comes from the
+   > solvers with the **QuicRun 3650 G2 13.5T — 2850 kV, 28.9 mΩ, 2-pole (`pole_pairs = 1`)**
+   > as their default, matching [BOM.md](BOM.md#decided--quicrun-3650-g2-135t-on-4s) and
+   > `motor-ctrl/inc/pin_map.h`. Two constraints the solvers still do not enforce, so check
+   > them by hand on any ratio change:
    >
    > - **`kV × V_max ≤ ~48,000 rpm`** — the 3650 can's mechanical ceiling. At 4S that is satisfied
    >   exactly (47,880), so there is no headroom above 4S for this winding.
@@ -75,10 +75,11 @@ with arithmetic instead of with a shopping cart.
    |---|---|
    | Final drive | 2.5:1 |
    | Pack | 4S, 14.4 V under load |
-   | **Required motor kV** | **~2,440** |
-   | Motor RPM at the 70 mph cap | 21,345 (61% of no-load) |
+   | Motor | QuicRun 3650 G2 13.5T, **2,850 kV** |
+   | kV *required* for the 70 mph cap on 70 mm | 1,744 — so the motor is **63% over-specified** |
+   | Motor RPM at the 70 mph cap | 21,345 (45% of no-load, 61% of the 0.85-derated ceiling) |
    | **Wheel RPM at the cap — every configuration** | **8,537** |
-   | Wheel RPM the drivetrain could reach *uncapped* | 11,951 (**+39% over tire rating**) |
+   | Wheel RPM the drivetrain could reach *uncapped* | 13,954 (**+62% over tire rating**) |
    | Steady-state draw | 200 W, 6.9 A per motor |
 
    **Two tire configurations, one drivetrain.** Top speed changes by changing
@@ -105,9 +106,12 @@ with arithmetic instead of with a shopping cart.
    55 mm tire needed 10,866 wheel rpm, 36% over typical 1/12 pan-car duty,
    whereas a 70 mm tire at the cap needs 8,537 in every configuration.
 
-   **⚠ But gearing no longer backstops it.** At 2.5:1 the drivetrain can spin
-   the wheels to 11,951 rpm — 39% past the tire rating — if the cap is not
-   holding. At 3.5:1 that margin was only 7%. Gearing taller for motor wear
+   **⚠ But gearing no longer backstops it, and the real motor made this worse.**
+   At 2.5:1 the drivetrain can spin the wheels to 13,954 rpm — **62%** past the
+   tire rating — if the cap is not holding. (It was +39% against the 2,441 kV
+   placeholder; the 2,850 kV motor bought that much more overspeed.) Even at
+   3.5:1 the margin is +16%, so no ratio in the usable range restores a
+   mechanical backstop. Gearing taller for motor wear
    spent the mechanical backstop, which means **the firmware speed cap is now
    load-bearing safety rather than a convenience.** That is why the cap
    ceilings are tire-derived (`safety.c TIRE_PROFILES`), why the profile is
@@ -118,9 +122,14 @@ with arithmetic instead of with a shopping cart.
 
    | Ratio | Motor wear | Grip usable to | Tire-overspeed margin |
    |---|---|---|---|
-   | 1.87:1 | best | μ 1.10 | +86% |
-   | **2.5:1** | 1.40× bearing life | μ 1.47 | +39% |
-   | 3.5:1 | baseline | μ 2.0+ | +7% |
+   | 1.87:1 | best | μ 1.33 | +117% |
+   | **2.5:1** | 1.40× bearing life | μ 1.78 | +62% |
+   | 3.5:1 | baseline | μ 2.50 | +16% |
+
+   The "grip usable to" column moved up a lot from an earlier draft (1.10 /
+   1.47 / 2.0+) for one reason: it was computed at 30 A per motor, and the
+   QuicRun takes **50 A peak**. More current means more torque before the
+   inverter runs out, so each ratio now uses more grip than it used to.
 
    Taller protects the motor and wastes grip and mechanical tire protection;
    shorter does the reverse. 2.5:1 is the current pick and it is provisional
@@ -145,21 +154,28 @@ with arithmetic instead of with a shopping cart.
 
    | Ratio | Motor rpm | Loss | Bearing life | Centrifugal stress |
    |---|---|---|---|---|
-   | **2.5:1** | **21,345** | **−30%** | **1.40×** | **0.51×** |
+   | **2.5:1** | **21,345** | **−23%** | **1.40×** | **0.51×** |
    | 3.5:1 | 29,882 | — | 1.00× | 1.00× |
-   | 5.0:1 | 42,689 | +66% | 0.70× | 2.04× |
+   | 5.0:1 | 42,689 | +60% | 0.70× | 2.04× |
+
+   The loss column shrank from −30%/+66% against the placeholder motor: the
+   QuicRun's 28.9 mΩ winding and single pole pair both cut the speed-dependent
+   term. Bearing life and centrifugal stress are pure geometry and did not
+   move.
 
    Bearing L10 life goes as 1/rpm and magnet-retention stress as rpm², so both
    punish a short gear far harder than heat does. 29,882 rpm also sits near the
    practical ceiling for grease-lubricated small bearings; 21,345 is comfortably
    inside it.
 
-   The resulting over-specification is deliberate: a 2,441 kV motor at 2.5:1
-   could reach ~96 mph and is capped at 70 by the tire. **Running a motor at 61%
-   of its no-load speed IS the wear reduction.**
+   The resulting over-specification is deliberate: the 2,850 kV motor at 2.5:1
+   models out to ~111 mph and is capped at 70 by the tire. **Running a motor at
+   45% of its no-load speed IS the wear reduction** — and that surplus is a
+   deliberate consequence of picking the winding on motor constant and ERPM
+   rather than on required kV. Required kV here is only 1,744.
 
    If you want a quicker launch, the lever is grip (μ 0.7 → 1.3 moves 0-50 from
-   4.0 s to 2.0 s) — not the ratio, not more inverter, and not less mass.
+   3.98 s to 1.98 s) — not the ratio, not more inverter, and not less mass.
 
    **Grip is bought with tire WIDTH and COMPOUND, not diameter.** Rubber and
    foam do not obey `F = μN`; their friction has adhesion and hysteresis terms
@@ -171,16 +187,21 @@ with arithmetic instead of with a shopping cart.
    looks flat there; grip enters through `--mu`.
 
    **⚠ These two choices interact, and the ratio is NOT free once grip
-   improves.** 2.5:1 leaves ~1.3× torque headroom over a μ = 1.1 traction limit.
-   Push grip past **μ ≈ 1.47** and the launch becomes current-limited — wider or
+   improves.** 2.5:1 leaves ~1.6× torque headroom over a μ = 1.1 traction limit.
+   Push grip past **μ ≈ 1.78** and the launch becomes current-limited — wider or
    stickier tires then buy nothing:
 
    | μ | 0-50 @ 2.5:1 | 0-50 @ 3.5:1 |
    |---|---|---|
-   | 1.1 | 2.39 s | 2.39 s |
-   | 1.4 | 1.84 s | 1.84 s |
-   | 1.5 | **1.75 s — current-limited** | 1.71 s |
-   | 1.8 | **1.75 s — grip wasted** | 1.45 s |
+   | 1.1 | 2.38 s | 2.38 s |
+   | 1.4 | 1.83 s | 1.83 s |
+   | 1.5 | 1.70 s | 1.70 s |
+   | 1.8 | **1.41 s — current-limited** | 1.40 s |
+   | 2.0 | **1.41 s — grip wasted** | 1.25 s |
+
+   The crossover moved from μ ≈ 1.47 to μ ≈ 1.78 purely because the real motor
+   takes 50 A where the placeholder took 30 A. That is genuinely good news: it
+   means a sticky tire is still worth buying at 2.5:1, which it was not before.
 
    So the ordering matters: **choose the tire, measure μ, then cut the gears.**
    `accel.py --match` solves for the ratio where launch torque exactly meets
@@ -189,12 +210,19 @@ with arithmetic instead of with a shopping cart.
 
    | Measured μ | Matched FD | Motor rpm at cap |
    |---|---|---|
-   | 1.0 | 1.70:1 | 14,528 |
-   | 1.1 | 1.87:1 | 15,980 |
-   | 1.3 | 2.21:1 | 18,886 |
-   | 1.5 | 2.55:1 | 21,792 |
+   | 1.0 | 1.40:1 | 11,961 |
+   | 1.1 | 1.54:1 | 13,157 |
+   | 1.3 | 1.82:1 | 15,549 |
+   | 1.5 | 2.10:1 | 17,941 |
 
-   2.5:1 is the matched ratio for μ ≈ 1.47. It is a *provisional* pick standing
+   **⚠ These ratios all came down sharply** — μ = 1.1 matched at 1.87:1 against
+   the placeholder motor and matches at **1.54:1** against the real one, for the
+   same 30 A → 50 A reason. Matching the measured μ literally would mean gearing
+   much taller than 2.5:1, which costs tire-overspeed margin you cannot afford
+   (see the +62% above). **Do not treat `--match` as the whole answer** — it
+   optimises motor wear alone and knows nothing about the overspeed margin.
+
+   2.5:1 is the matched ratio for μ ≈ 1.78. It is a *provisional* pick standing
    on a guessed μ — treat it as the working assumption to be replaced by the
    Phase 4 measurement, not as a decided number.
 
@@ -207,9 +235,11 @@ with arithmetic instead of with a shopping cart.
 
    Two consequences worth acting on:
 
-   - **~23 A per motor is where launch force meets the traction ceiling.** 15 A
-     is genuinely slow; 45 A is identical to 23 A. The 30 A inverter spec is
-     right *as headroom*, not because the extra is usable.
+   - **~31 A per motor is where launch force meets the traction ceiling** at
+     μ = 1.1. 15 A is genuinely slow; 50 A is identical to 31 A. The QuicRun's
+     50 A peak is right *as headroom*, not because the extra is usable — and
+     note this threshold scales with μ, so better tires do make more of the
+     current usable (see the μ ≈ 1.78 crossover above).
    - **Building light is for safety, cost, and part stress — not performance.**
      Mass cancels in traction-limited acceleration, and a 1300 g truck actually
      posts a marginally quicker 0-50 than a 700 g one.

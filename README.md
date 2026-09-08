@@ -63,7 +63,7 @@ cd host-tools && uv run tune.py
 
 ## The numbers this is designed around
 
-**Two tire configurations, one drivetrain** — 2,441 kV on 4S, 2.5:1 final drive, and you change
+**Two tire configurations, one drivetrain** — 2,850 kV on 4S, 2.5:1 final drive, and you change
 top speed by changing wheels:
 
 | Profile | Tire | Top speed | Wheel RPM |
