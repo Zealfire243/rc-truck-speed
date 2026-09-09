@@ -114,11 +114,11 @@ therefore the final drive ratio.
 |---|---|---|
 | **Nucleo-G474RE** | **The learning platform, not flight hardware.** Bought because ST ships a reference manual and MCSDK examples you can diff against when commutation misbehaves — that is worth $25 on its own. TIM1/TIM8/TIM20, five ADCs, CORDIC. Retired to the bench at Stage 2. | 20–25 |
 | **X-NUCLEO-IHM08M1** | Known-good 3-phase power stage that plugs straight onto the Nucleo. L6398 gate drivers + STL220N6F7 FETs, 8–48 V, three-shunt current sensing (jumpers J5/J6 to the 3-Sh side) — exactly the topology `current_sense.h` assumes. **Read the current ceiling below before planning around it.** | 30–40 |
-| **Brushless motor ×2** | Same batch, open only one. See *Motor selection* below. | 30–45 ea |
+| **Brushless motor ×2** | ✅ **IN HAND — QuicRun 3650 G2 13.5T**, 2850 kV, 28.9 mΩ, 2-pole sensored. Bought as a batch-matched pair; **leave the second sealed until Phase 3.** See *Motor selection* below. | 30–45 ea |
 | Bench supply, current-limited | **Essential, not optional.** This is the single most important line in the file — it is what makes Stage 1 mistakes survivable. Start the limit at 2 A. | 60–120 |
 | Oscilloscope access | For deadtime verification. Borrowed is fine; this is a handful of measurements. | — |
 | ST-Link / SWD debugger | On-board on the Nucleo — **and it detaches.** Pull the two **CN2** jumpers and the Nucleo's ST-Link becomes a standalone programmer driving an external target through the **CN4** SWD header. So the Nucleo can flash the FSESC at Stage 2 and the separate debugger below is probably unnecessary. Verify against UM1724 before skipping the purchase. | — |
-| **4S LiPo + balance charger** | **DECIDED and in hand: 4S 1550 mAh 100C softpack, 72 × 35 × 37 mm, XT60.** Softpack is mandatory — a hardcase is ~105 mm against a 97 mm bay. Capacity is set by the 3–5 min course case (~3.7 min at a 20 A average), not by the speed run, and the C rating is bought for low IR rather than for the label: real draw is only ~21C at the cap. Full derivation in [MECHANICAL.md](MECHANICAL.md#-pack-current-is-not-phase-current-and-an-earlier-version-of-this-file-confused-them). Get the charger right; it's a fire-safety item. | 60–100 |
+| **4S LiPo + balance charger** | ✅ **IN HAND — 4S 1550 mAh 100C softpack, 72 × 35 × 37 mm, XT60.** Softpack is mandatory — a hardcase is ~105 mm against a 97 mm bay. Capacity is set by the 3–5 min course case (~3.7 min at a 20 A average), not by the speed run, and the C rating is bought for low IR rather than for the label: real draw is only ~21C at the cap. Full derivation in [MECHANICAL.md](MECHANICAL.md#-pack-current-is-not-phase-current-and-an-earlier-version-of-this-file-confused-them). Get the charger right; it's a fire-safety item. | 60–100 |
 
 ### ⚠ The IHM08M1 tops out near 12 A, and no amount of cooling changes that
 
@@ -482,7 +482,8 @@ into the base can even trim base drag slightly by energising the wake.
 
 | Item | Notes | ~$ |
 |---|---|---|
-| **ESP32-S3-DevKitC-1(U)-N16R8** (or classic ESP32 **committed to CAN**) | **Not "any of them" — the UART count binds.** See below. N16R8 = 16 MB flash + 8 MB octal PSRAM; N8R8 works identically, so buy on price and on whether headers come soldered. **The `U` suffix is the one that matters** — it means a WROOM-1U module with a u.FL connector for an external antenna. | 10–20 |
+| **ESP32-S3-DevKitC-1U-N16R8** | ✅ **IN HAND.** 16 MB flash + 8 MB octal PSRAM, and critically the **1U** module — WROOM-1U with a u.FL connector, which closes the Phase 7 shielding question. The S3 was chosen over a classic ESP32 because the UART count binds; see below. | 10–20 |
+| **2.4 GHz u.FL / IPEX antenna** | ⚠ **Required, and easy to forget — the 1U module ships with no radiator.** The connector is there; the antenna is not. Without one the S3's range is far *worse* than a plain PCB-antenna board. Get a short pigtail so it can be mounted away from the aluminum. | 3–8 |
 | **10 Hz GPS module** | 10 Hz, not 1 Hz. A 1 Hz module samples once every 31 meters at target speed, which tells you nothing useful. | 20–40 |
 | **6-axis IMU** (MPU-6500 / ICM-42688 / LSM6DSO class) | **Yaw rate, ≥200 Hz.** See below — this is the cheapest high-value part in the BOM. | 3–10 |
 | microSD module + card | Logging. | 10 |
@@ -521,11 +522,16 @@ classic-ESP32 GPIO. It is a small change, but do it deliberately.
 
 > **ESP32-C3 is out: two UARTs.** It cannot do this job in either configuration.
 
-> **Get the external-antenna option if you can — it is the `U` variant.**
-> [Phase 7](BUILD_PHASES.md#phase-7--aluminum-chassis) puts this radio inside an **aluminum**
-> chassis. A PCB trace antenna in a metal box is a problem you would rather buy your way out of
-> now than debug at 60 mph, and it cannot be retrofitted: a plain DevKitC-1 has no connector to
-> add one, so the fallback is relocating the ESP32 outside the metal or cutting a window.
+> ✅ **External antenna: settled.** The board in hand is the **1U**, so the u.FL connector is
+> there. This mattered because [Phase 7](BUILD_PHASES.md#phase-7--aluminum-chassis) puts the
+> radio inside an **aluminum** chassis, a PCB trace antenna in a metal box is a problem you would
+> rather buy your way out of than debug at 60 mph, and it cannot be retrofitted — a plain
+> DevKitC-1 has no connector to add one.
+>
+> **The remaining job is mounting.** Buy the antenna (row above) and route it *outside* the metal
+> — under the body shell, along a printed bracket, or through the rear overhang beside the
+> receiver. A u.FL antenna cable-tied against the inside of an aluminum plate throws away the
+> reason you bought the 1U.
 
 > ⚠ **GPIO 35, 36 and 37 are not available on any `R8` module.** Octal SPI PSRAM uses them for
 > the flash/PSRAM interface —
