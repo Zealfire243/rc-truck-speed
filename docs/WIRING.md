@@ -144,24 +144,44 @@ cut must be hardware and why the ESP32 cannot mediate any of this.
 
 The supervisor. Nothing here can hurt anything.
 
+**Board: ESP32-S3-DevKitC-1U-N16R8.** Authoritative source is
+[`supervisor/main/pin_map.h`](../supervisor/main/pin_map.h) — this table mirrors it.
+
 | Function | GPIO | Notes |
 |---|---|---|
-| Front controller — RX | 16 | UART2 RX |
-| Front controller — TX | 17 | UART2 TX |
-| Rear controller — RX | 25 | UART1 RX *(or drop both for a single CAN bus)* |
-| Rear controller — TX | 26 | UART1 TX |
-| GPS RX | 4 | 10 Hz module |
-| GPS TX | 5 | for configuration |
-| SD card | 18/19/23/13 | SPI, logging |
-| Status LED | 2 | strapping pin, must be low/floating at boot |
+| **CAN TX** | **5** | TWAI. **Primary link — one bus, both controllers.** |
+| **CAN RX** | **4** | Needs an external transceiver; see below. |
+| Front controller — TX | 43 | UART0 *(fallback only)* — free only because the console is on USB |
+| Front controller — RX | 44 | UART0 *(fallback only)* |
+| Rear controller — TX | 15 | UART2 *(fallback only)* |
+| Rear controller — RX | 16 | UART2 *(fallback only)* |
+| GPS TX | 17 | UART1, to the module's RX (10 Hz, configurable) |
+| GPS RX | 18 | UART1 |
+| SPI2 SCLK / MOSI / MISO | 12 / 11 / 13 | Native IOMUX pins — 80 MHz, not the matrix's 40 |
+| SD card CS | 9 | shares SPI2 |
+| **IMU CS** | **10** | shares SPI2 |
+| **IMU INT** | **14** | data-ready. Sample on it; polling aliases against the ODR. |
+| Status LED | 48 | onboard addressable RGB (v1.0 boards use 38) — drive with RMT |
 
-> **Two controllers means two UART links, or one CAN bus.** CAN is the better answer here and
-> [ARCHITECTURE.md](ARCHITECTURE.md#the-desync-interlock-across-two-controllers) now prefers it —
-> one bus serves both controllers and the ESP32, the F405 has bxCAN natively, and the ESP32's TWAI
-> peripheral speaks classic CAN. The UART rows above are the fallback.
+> **Why the S3 and not any ESP32: the UART count binds.** Two controllers, GPS and a console is
+> four serial endpoints, and both chips have three UART controllers. The S3's native
+> USB-Serial-JTAG takes the console off UART0 and creates the fourth. **Moving the console back
+> to UART breaks the rear-axle link** — that is why `CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG` is
+> load-bearing in `sdkconfig.defaults`, not a preference.
 
-ESP32 GPIO ground rules carry over unchanged from the crawler: **6–11 are the SPI flash, never use
-them**; 34/35/36/39 are input-only with no internal pull-ups; 0, 2, 12, 15 are strapping pins.
+> ⚠ **TWAI needs an external CAN transceiver.** The two pins above are logic-level TX/RX, not a
+> line driver. The FSESC boards carry their own (VESC 6 exposes CANH/CANL directly); **the ESP32
+> does not.** One SN65HVD230 / TJA1051 / MCP2562 on this end, and 120 Ω termination at each of
+> the two physical bus ends only.
+
+**S3 GPIO ground rules — these are NOT the classic-ESP32 rules the crawler used**, and the
+differences cut both ways:
+
+- **6–11 are ordinary GPIOs here.** On the classic ESP32 they were SPI flash and touching them
+  bricked boot. The S3 puts flash on 26–32. The old warning was a trap carried forward.
+- **35, 36, 37 are unavailable** — octal PSRAM on any `R8` part uses them.
+- **19, 20 are native USB.** 43, 44 are default UART0. 0, 3, 45, 46 are strapping pins.
+- **33, 34 exist on the chip but not on the DevKitC-1 headers.**
 
 ### Bring-up order — Stage 3
 

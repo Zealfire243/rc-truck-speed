@@ -3,7 +3,7 @@
 # Requires ESP-IDF v5.5 or newer.
 #
 #   . $HOME/esp/esp-idf/export.sh
-#   idf.py set-target esp32
+#   idf.py set-target esp32s3
 #   idf.py build flash monitor
 #
 # This firmware has NO authority over the motors. If a change here can affect

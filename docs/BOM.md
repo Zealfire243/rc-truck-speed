@@ -503,6 +503,7 @@ into the base can even trim base drag slightly by energising the wake.
 | Item | Notes | ~$ |
 |---|---|---|
 | **ESP32-S3-DevKitC-1U-N16R8** | ✅ **IN HAND.** 16 MB flash + 8 MB octal PSRAM, and critically the **1U** module — WROOM-1U with a u.FL connector, which closes the Phase 7 shielding question. The S3 was chosen over a classic ESP32 because the UART count binds; see below. | 10–20 |
+| **CAN transceiver ×1** | ⚠ **Required and currently missing from every other list.** The ESP32's TWAI peripheral is a protocol controller, not a line driver — it needs an SN65HVD230, TJA1051 or MCP2562 to reach the bus. **The FSESCs do not need one**; VESC 6 hardware carries its own and exposes CANH/CANL. Buy a 3.3 V part, and one 120 Ω resistor for each of the two physical bus ends. | 3–8 |
 | **2.4 GHz u.FL / IPEX antenna** | ⚠ **Required, and easy to forget — the 1U module ships with no radiator.** The connector is there; the antenna is not. Without one the S3's range is far *worse* than a plain PCB-antenna board. Get a short pigtail so it can be mounted away from the aluminum. | 3–8 |
 | **10 Hz GPS module** | 10 Hz, not 1 Hz. A 1 Hz module samples once every 31 meters at target speed, which tells you nothing useful. | 20–40 |
 | **6-axis IMU** (MPU-6500 / ICM-42688 / LSM6DSO class) | **Yaw rate, ≥200 Hz.** See below — this is the cheapest high-value part in the BOM. | 3–10 |

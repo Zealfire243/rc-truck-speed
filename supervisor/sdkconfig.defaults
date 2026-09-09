@@ -1,23 +1,28 @@
 # Defaults applied on a fresh `idf.py build`. The resulting sdkconfig is
 # gitignored on purpose so everyone starts from the same baseline.
 #
-# ESP-IDF v5.5, target esp32.
+# ESP-IDF v5.5, target esp32s3 (ESP32-S3-DevKitC-1U-N16R8).
 
-CONFIG_IDF_TARGET="esp32"
+CONFIG_IDF_TARGET="esp32s3"
 
 # --- Console --------------------------------------------------------------
-# The G4 link runs at 921600 on UART2; the console stays on UART0 so log
-# output never interleaves with relayed telemetry frames. This is the mistake
-# the crawler had to work around with the "skip any line not starting with {"
-# rule — worth avoiding outright here.
-CONFIG_ESP_CONSOLE_UART_DEFAULT=y
-CONFIG_ESP_CONSOLE_UART_BAUDRATE=115200
+# ** ON USB, AND THIS IS LOAD-BEARING. ** The console must NOT sit on UART0.
+# Two controllers plus GPS plus a console is four serial endpoints against
+# three UART controllers; the S3's native USB-Serial-JTAG is what creates the
+# fourth. Move the console back to UART and the rear-axle link has nowhere to
+# go. See supervisor/main/pin_map.h.
+#
+# It also keeps log output from interleaving with relayed telemetry frames —
+# the mistake the crawler worked around with its "skip any line not starting
+# with {" rule.
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
 CONFIG_LOG_DEFAULT_LEVEL_INFO=y
 
 # --- CPU ------------------------------------------------------------------
-# 240 MHz. This chip is relaying a 50 Hz telemetry stream, parsing NMEA at
-# 10 Hz, and writing an SD card. It is not busy, but SD writes block.
-CONFIG_ESP32_DEFAULT_CPU_FREQ_240=y
+# 240 MHz. This chip relays a 50 Hz telemetry stream, parses NMEA at 10 Hz,
+# samples an IMU at 200 Hz and writes an SD card. It is not busy, but SD
+# writes block and the IMU is the one thing here with a real deadline.
+CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240=y
 CONFIG_FREERTOS_HZ=1000
 CONFIG_FREERTOS_UNICORE=n
 
@@ -32,8 +37,14 @@ CONFIG_ESP_TASK_WDT_TIMEOUT_S=10
 # logging instead of silently dropping the rest of the run.
 CONFIG_ESP_SYSTEM_PANIC_PRINT_REBOOT=y
 
-# --- Flash ----------------------------------------------------------------
-CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+# --- Flash and PSRAM ------------------------------------------------------
+# N16R8: 16 MB quad flash, 8 MB OCTAL PSRAM. The octal setting is what makes
+# GPIO 35/36/37 unavailable — see pin_map.h. Get this wrong and either the
+# PSRAM does not come up or those pins misbehave in ways that look like a
+# wiring fault.
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
 CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE=y
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_OCT=y
 
 CONFIG_COMPILER_OPTIMIZATION_PERF=y

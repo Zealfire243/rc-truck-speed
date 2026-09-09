@@ -11,20 +11,28 @@
 
 void link_init(void)
 {
-    /* TODO Phase 5: UART2 at LINK_BAUD, ring-buffer RX. */
+    /* TODO Phase 5: bring up the PRIMARY link -- TWAI on PIN_CAN_TX/RX at
+     * CAN_BITRATE, one bus, both controllers. Needs an external transceiver;
+     * see pin_map.h.
+     *
+     * !! THIS API IS STILL SINGLE-CONTROLLER AND HAS TO CHANGE. It predates
+     * the per-axle rearchitecture and cannot address the rear axle at all.
+     * Phase 5 splits it per axle, so the desync interlock's two telemetry
+     * streams stay genuinely independent. The UART fallback in pin_map.h is
+     * mapped for the same two axles. */
 }
 
 void link_task_step(void)
 {
     /* TODO Phase 5:
-     *   - drain UART2 line by line
+     *   - drain each axle's stream line by line
      *   - skip any line whose first non-whitespace char is not '{'
      *     (docs/PROTOCOL.md §1.1)
      *   - merge a `gps` object into `tlm` frames
      *   - write to the log, push to any WiFi client
      *
      * Relay verbatim. Do not reformat, do not filter, do not "improve". The
-     * log should be what the G4 actually said. */
+     * log should be what the controllers actually said. */
 }
 
 bool link_forward_command(const char *json, size_t len)
