@@ -339,7 +339,7 @@ ceiling goes away.
 
 | Item | Notes | ~$ |
 |---|---|---|
-| **Flipsky Mini FSESC6.7 Pro** | VESC 6.6 based: **STM32F405** (M4F with FPU), 70 A continuous / 200 A peak, 14–60 V, three-shunt current sensing scaled for real current, HALL / ABI / AS5047 sensor inputs. **67 × 39 × 18.7 mm including its heatsink.** You are buying it as a *programmable power stage*, not as an ESC. | 125 |
+| **Flipsky Mini FSESC6.7 Pro** | 🚚 **ON ORDER — both boards** (Stage 3's second channel bought at the same time). VESC 6.6 based: **STM32F405** (M4F with FPU), 70 A continuous / 200 A peak, 14–60 V, three-shunt current sensing scaled for real current, HALL / ABI / AS5047 sensor inputs. **67 × 39 × 18.7 mm including its heatsink.** You are buying it as a *programmable power stage*, not as an ESC. | 125 |
 | Standalone SWD debugger | **Probably not needed — see the Stage 1 note.** The Nucleo's on-board ST-Link detaches via the CN2 jumpers and programs an external target through CN4, so the bench rig you already own can flash the FSESC. Buy one only if you want both rigs live at once, or if CN4 turns out not to work for you. | 0–40 |
 | Bullet connectors, XT60, silicone wire | 12 AWG for the phase and battery runs at these currents. | 20–30 |
 
@@ -353,24 +353,34 @@ program, and you never open a PCB tool.
 M4F with an FPU — roughly 10–15% CPU at a 30 kHz loop. The G474's CORDIC would save about a
 microsecond. It is a nicety, not a requirement.
 
-### ⚠ Verify before ordering — any one of these can sink the plan
+### ⚠ The four verification items — now Phase 2b gates, not purchase gates
 
-Status as of the pre-order check (2026-09-04). **Two of four are closed; the two that
-remain are the ones that actually sink the plan, and both need a reply from Flipsky.**
+**Both boards were ordered on 2026-09-08, ahead of two of these closing.** That is a
+decision already made and the money is spent, so the framing changes rather than the work:
+these no longer decide *whether* to buy, they decide whether Phase 2b can start. Two are
+closed. The two open ones must be retired before you write a line of `current_sense.c` for
+the F405, because `amps_per_count` is the number the whole current loop stands on.
+
+**The good news is that neither open item depends on Flipsky replying** — see the recovery
+paths below. Email them anyway (it is the cheap path), but do not block on it.
 
 - ✅ **SWD access on the exact board.** Closed. Flipsky's own user manual for the Mini
   FSESC6.7 Pro lists **SWD** among the board's pinouts, alongside CAN, SENSE, COMM and USB.
   Confirm physically on arrival, but this is documented, not hoped for.
-- ❌ **Schematic availability for that revision — STILL OPEN, and still non-negotiable.**
-  The product page offers no schematic or hardware design files, and none surfaced in
-  search. VESC 6.6 upstream is open hardware, but this is a vendor derivative and
-  `amps_per_count` comes straight out of *its* shunt values and CSA gain. **Email Flipsky
-  and get the schematic in hand before paying.** If they will not supply one, buy hardware
-  from someone who will — that is what this line has always meant.
-- ❌ **Gate driver part number — STILL OPEN.** Not published anywhere findable; VESC 6
-  revisions have shipped both DRV8301 and DRV8323, their SPI register maps differ, and you
-  are initialising it yourself. Ask in the same email. (If the schematic arrives, this
-  answers itself.)
+- ❌ **Schematic for that revision — OPEN.** No hardware files on the product page and none
+  in search. VESC 6.6 upstream is open hardware but this is a vendor derivative, and
+  `amps_per_count` comes straight out of *its* shunt value and CSA gain.
+  **Recovery without Flipsky:** read the shunts off the board — they are large, marked, and
+  usually 0.5–1 mΩ on a VESC 6 — then *calibrate rather than derive*. Feed a known current
+  from the bench supply through a phase with the motor stalled, compare against a clamp
+  meter, and solve for `amps_per_count` empirically. That is arguably better than trusting a
+  schematic, and it is a bench afternoon rather than a blocker. Diff against upstream VESC 6
+  hardware for the topology.
+- ❌ **Gate driver part number — OPEN, and the easiest one to close.** VESC 6 revisions have
+  shipped both DRV8301 and DRV8323; their SPI register maps differ and you initialise it
+  yourself. **Recovery without Flipsky: read the part number off the chip.** It is the
+  largest IC next to the FETs — a magnifier and good light settles it in a minute, on
+  arrival. Do this the day the boards land, before you plan any Stage 2 work around a guess.
 - ✅ **The 14 V floor — closed, and it is not a floor.** Flipsky's own listing gives the
   range as **14–60 V (4S–13S; safe for 4S–12S)** — i.e. they name 4S as supported while
   quoting 14 V, so the number is a nominal-pack designation, not a cutoff. VESC 6 silicon
@@ -381,8 +391,18 @@ remain are the ones that actually sink the plan, and both need a reply from Flip
 One bonus confirmation from the same listing: **150,000 ERPM maximum**, against the
 QuicRun's 47,880. That is 3.1× headroom, and it retires the ERPM question entirely.
 
-Ask Flipsky all of it in one message — schematic for the revision they will ship, gate
-driver part number, and shunt resistance plus current-sense amplifier gain.
+**On-arrival checklist, in this order:**
+
+1. **Read the gate driver part number** off the IC. Closes item 3 outright.
+2. **Find and continuity-check the SWD pads** against the manual's pinout. Item 1 is
+   documented but unverified on your specific unit.
+3. **Photograph both sides at high resolution** before anything is mounted or heatsinked.
+   You will want this later and the boards get harder to see once they are in the truck.
+4. **Read the shunt markings.** Feeds the calibration above.
+
+Email Flipsky in parallel — schematic for the revision shipped, gate driver part number, and
+shunt resistance plus CSA gain. A reply makes all of the above faster; no reply costs you a
+bench afternoon, not the project.
 
 > ⚠ **Do not skip Stage 1 to get here faster.** At Stage 2 your bugs cost $125 a board plus a
 > motor, and a shoot-through at 70 A on 4S is spectacular rather than educational. The whole
