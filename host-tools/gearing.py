@@ -71,23 +71,23 @@ class Vehicle:
     tire_od_mm: float = 55.0
     final_drive: float = 3.00  # motor turns per wheel turn. The MJX Hyper Go
                                # diff's ring-and-pinion IS the whole final
-                               # drive -- there is no spur stage. Ring counted
-                               # at 28-32T from photography, leaning 30T,
-                               # against a 10T input pinion. Range 2.33-3.20:1
-                               # depending on the actual ring and pinion; every
-                               # combination is usable. See docs/MECHANICAL.md.
+                               # drive -- there is no spur stage. RING IS 30T,
+                               # confirmed, so the input pinion alone sets it:
+                               #   10T -> 3.00   12T -> 2.50
+                               #   11T -> 2.73   13T -> 2.31
+                               # All four usable. See docs/MECHANICAL.md.
                                #
                                # !! THIS DEFAULT IS THE PLANNING ESTIMATE, NOT
                                # !! THE FIRMWARE VALUE. Speed is derived as
                                # !! motor_rpm / final_drive, so assuming a
                                # !! ratio HIGHER than actual makes the speed cap
                                # !! fail OPEN -- assume 3.00 when the truth is
-                               # !! 2.80 and the cap holds at 75.0 mph on a tire
-                               # !! rated for 70.5. Until the teeth are counted
-                               # !! on the physical part, firmware must use the
-                               # !! LOW end of the range (2.80 for a 10T pinion,
-                               # !! 2.33 for a 12T), which engages the cap early
-                               # !! and is fail-safe.
+                               # !! 2.31 and the cap holds at 90.9 mph on a tire
+                               # !! rated for 70.5. pin_map.h therefore ships
+                               # !! FINAL_DRIVE at 2.31f -- the LOWEST ratio in
+                               # !! the 10-13T space -- until the pinion is
+                               # !! chosen. That engages the cap early and is
+                               # !! fail-safe.
 
     # --- Electrical -------------------------------------------------------
     cells: int = 4

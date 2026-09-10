@@ -54,35 +54,95 @@ pair** — fits MJX Hyper Go 1/16 (16207/16208/16209/16210/H16) and 1/14
 (14209/14210/14301/14302/H14BM). Sealed and oil-serviceable, so the tunable-oil
 limited-slip behaviour below survives.
 
-**Ring gear ≈ 28–32T, counted from product photography, leaning 30T.** The input
-bevel pinion is a **separate part** (~$13; sold as a "10T bevel gear" or
-"umbellate tooth input gear", or bundled in a "diff + input gear kit"). Every
-combination in that range is usable:
+**Ring gear is 30T — CONFIRMED** from clear product photography (the exploded
+shot showing the bevel ring alongside the case). **So the input pinion alone now
+sets the ratio**, and it is a *separate part* that does not ship with the diff
+(~$13; sold as a "10T bevel gear" or "umbellate tooth input gear", or bundled in
+a "diff + input gear kit"):
 
-| Ring / pinion | Ratio | Uncapped top (70 mm) | Motor rpm at cap | Matched μ |
+| Input pinion | Ratio | Uncapped top (70 mm) | Motor rpm at cap | Matched μ |
 |---|---|---|---|---|
-| 28T / 10T | 2.80:1 | 102.1 mph | 23,906 | 2.00 |
-| **30T / 10T** | **3.00:1** | **95.3 mph** | **25,614** | **2.14** |
-| 32T / 10T | 3.20:1 | 89.4 mph | 27,321 | 2.29 |
-| 28T / 12T | 2.33:1 | 122.6 mph | 19,922 | 1.67 |
-| 30T / 12T | 2.50:1 | 114.4 mph | 21,345 | 1.79 |
-| 32T / 12T | 2.67:1 | 107.3 mph | 22,768 | 1.90 |
+| 10T | 3.00:1 | 95.3 mph | 25,614 | 2.14 |
+| 11T | 2.73:1 | 104.9 mph | 23,285 | 1.95 |
+| **12T** | **2.50:1** | **114.4 mph** | **21,345** | **1.79** |
+| 13T | 2.31:1 | 123.9 mph | 19,703 | 1.65 |
+
+**This is the ratio bracket the project originally wanted from swappable
+pinions** — 2.31:1 to 3.00:1 without touching the diff. What it does NOT buy is
+acceleration: every one of these is shorter than matched for any realistic μ, so
+all four give 2.27 s to 50 mph. It is a top-speed and motor-wear selector.
+
+> **⚠ Bevel pinions are matched sets, not interchangeable like spur pinions.**
+> A ring and pinion are cut together to a shared module, pressure angle, cone
+> angle and mounting distance. Any 48P spur pinion meshes any 48P spur; a
+> generic bevel pinion of the right tooth count will **not** correctly mesh this
+> 30T ring. Source the pinion as the mating part for *this* diff, and treat
+> alternate tooth counts as available only if they exist for this diff.
 
 The usable band for *any* candidate diff is roughly **2.0:1 to 3.5:1**. Above
 4:1 the motor runs out of RPM before the truck reaches 70 mph and no gearing
 trick recovers it; below 2:1 you stop using the available grip.
 
-> **⚠ Watch the pinion, not the ring.** One tooth of error on a 10T input pinion
-> is a 10% ratio error; one tooth on a 30T ring is 3.3%. The ring count is the
-> well-constrained half.
+> **⚠ The pinion is the whole ratio decision now.** One tooth on a 10T input
+> pinion is a 10% ratio change; the ring is confirmed and fixed. Balance matters
+> here too — see [Coupling the motor](#coupling-the-motor-to-the-bevel-pinion).
 
-> **⚠ Until the teeth are physically counted, set the firmware ratio to the LOW
-> end of the range** — 2.80:1 for a 10T pinion, 2.33:1 for a 12T. Speed is
+> **⚠ Until the pinion is chosen, `FINAL_DRIVE` ships at 2.31:1** — the lowest
+> ratio in the 10–13T space. Speed is
 > derived as `motor_rpm / final_drive`, so **assuming a ratio higher than actual
 > makes the cap fail open**: assume 3.00 when the truth is 2.80 and the cap holds
 > at 75.0 mph on a tire rated for 70.5. Under-assuming engages the cap early,
 > which costs a few mph and is fail-safe. This is the same failure mode as
 > fitting the wrong tire profile.
+
+### Coupling the motor to the bevel pinion
+
+**This is now the longest pole in the drive unit.** The diff is a solved,
+purchased problem; getting 25,000 rpm from a 3.17 mm motor shaft into a pinion
+bored for the MJX driveshaft is not.
+
+**Balance is the binding concern, and the numbers are not forgiving.** Imbalance
+force is `F = m·e·ω²`, so it scales with the *square* of speed — at 25,000 rpm
+(ω = 2,618 rad/s) a small eccentricity becomes a real cyclic load, at 417 Hz,
+straight into the bearings:
+
+| Rotating mass | Eccentricity | Force | vs the 12.18 N launch force |
+|---|---|---|---|
+| 5 g | 5 µm | 0.17 N | 1.4% |
+| 5 g | 25 µm | 0.86 N | 7.0% |
+| 10 g | 10 µm | 0.69 N | 5.6% |
+| 10 g | 25 µm | 1.71 N | 14.1% |
+| 20 g | 25 µm | 3.43 N | 28.1% |
+| **20 g** | **50 µm** | **6.85 N** | **56.3%** |
+
+A 20 g coupling running 50 µm out — an ordinary set-screw coupling, casually
+fitted — generates over half the vehicle's entire launch force as vibration.
+**The two levers are mass and eccentricity, and mass is the easier one.** Keep
+everything on the motor side of the mesh as light and as concentric as possible.
+
+**Two mounting approaches, and the trade is real:**
+
+| | A — couple to the factory input shaft | B — bore the pinion onto the motor shaft |
+|---|---|---|
+| Mesh geometry | **factory, already shimmed** | motor mount must set it |
+| Thrust | **taken by the diff's own bearings** | taken by the motor bearings (~4 N) |
+| Rotating mass added | a coupling, 5–20 g | **almost none** |
+| Eccentricity sources | **two** (coupling both ends) | **one** |
+| Parts to make | motor mount + coupling | motor mount only, but precisely |
+
+**A** preserves everything the manufacturer got right and confines the problem
+to a purchasable precision part. **B** is better on the balance numbers above —
+fewer joints, less mass — and ~4 N of bevel thrust is well within a 3650's
+bearings. Its cost is that the motor mount alone must set bevel mesh depth, with
+no shim adjustment, and bevel mesh is unforgiving of mounting distance.
+
+Decide with the parts in hand. If A: **clamp-style rigid coupling if alignment
+can be held, helical/beam if not — never a set-screw coupling**, which is
+inherently eccentric (the screw is an offset mass and it drives the shaft off
+centre). Torque is 0.168 N·m, so nothing here is strength-limited; specify on
+runout and mass. Whatever is built, **check total indicated runout at the
+coupling before the first spin-up**, and treat drive-unit vibration as a Phase 6
+inspection item alongside gear temperature.
 
 **Why this diff class rather than a 1/10 touring diff.** Two reasons, and the
 first one corrected a misjudgement:
