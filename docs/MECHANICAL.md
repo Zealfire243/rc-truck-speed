@@ -199,6 +199,46 @@ What straight-cut does cost is NVH — a 4,269 Hz tooth-mesh frequency at the ca
 going into the bearings and the chassis. Set backlash carefully, use good
 bearings, and do not overfill the oil.
 
+**Fallback if the 90° layout has to be abandoned — Arrma 6S center diff.**
+Recorded because it is the only genuinely *spur-in* diff found at a workable
+ratio, and that combination is what did not exist when the parallel layout was
+retired. Mesimsple 46T, 45# steel / 6061 alloy, ~$34 each (Arrma ARA310959
+replacement; fits 1/7 Felony, Infraction, Fireteam, Mojave and 1/8 Typhon,
+Kraton, Outcast, Notorious 6S).
+
+A center diff has exactly the axle-diff topology — spur input, two coaxial
+outputs, bevel spiders between them — so it can serve as an axle diff. Assuming
+mod 1 (the Arrma 6S standard, **not verified**):
+
+| Pinion | Ratio | Centre distance | Uncapped top | Motor rpm at cap | Matched μ |
+|---|---|---|---|---|---|
+| 15T | 3.07:1 | 30.5 mm | 93.3 mph | 26,183 | 2.19 |
+| 17T | 2.71:1 | 31.5 mm | 105.7 mph | 23,102 | 1.93 |
+| 19T | 2.42:1 | 32.5 mm | 118.1 mph | 20,671 | 1.73 |
+| 21T | 2.19:1 | 33.5 mm | 130.6 mph | 18,702 | 1.56 |
+
+**That is a real swappable pinion bracket, 2.19–3.07:1**, and mod-1 pinion sets
+(15/17/21T) are sold for these platforms. Three things stand against it:
+
+1. **It reintroduces the motor offset.** 46 mm PD, 48 mm OD, ~31 mm centre
+   distance — worse than the 28.3 mm that starved the 97 mm bay in the retired
+   study, and 11 mm of ground clearance at the axle against a ~10 mm bay floor.
+   This is the real objection, not the mass.
+2. **Mass.** ~91 g each by package weight, so ~182 g the pair — **16.9% of a
+   1,080 g truck**, against 8.3% for the MJX. Be honest about what that costs
+   though: launch is traction-limited so `a = μg` and mass cancels, rolling
+   drag rises by ~0.02 N, and required current to reach the traction limit goes
+   up ~8.5% (28.1 → 30.5 A, still inside the 32 A sustained rating). It is a
+   budget-discipline problem more than a performance one.
+3. **⚠ The outputs are propshaft cups, not half-shaft cups.** A center diff
+   couples two propshafts; an axle diff couples two CVDs. **Verify the output
+   interface accepts the chosen CVD pins before treating this as viable** — it
+   is the most likely disqualifier and nothing in the listing addresses it.
+
+**If it turns out to be mod 0.8 rather than mod 1, re-evaluate immediately** —
+everything scales by 0.8, putting the spur at 36.8 mm PD and the centre distance
+near 25 mm, which would be *better* than the retired study on both counts.
+
 **Alternatives considered.** Arrma GROM 1/18 (ARA311177V2), 30T/12T at 0.8 mod =
 **2.50:1** — a known-exact ratio landing dead on the old assumption, and the
 documented fallback if the MJX ratio comes back outside 2.0–3.5:1. Rejected on

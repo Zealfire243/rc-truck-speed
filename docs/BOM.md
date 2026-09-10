@@ -25,6 +25,7 @@ Prices are rough, USD, for planning only — **check the linked pages, they move
 | 10 Hz GPS | [Holybro M10](https://holybro.com/products/m10-gps) |
 | Pan-car foam tires *(superseded — belted rubber is the decision)* | [rcMart](https://www.rcmart.com/Foam-Tires-RC-Pan-Car) — covers 1:12, 1:10 and 1:8 |
 | **MJX Hyper Go metal gear diff ×2** | [Mesimsple 2-pack, alloy case](https://www.amazon.com/Mesimsple-H16BM-Differential-H16207-Upgrades/dp/B0DD4FCJ1V) · [diff + input gear kit](https://www.amazon.com/Upgrade-Hyper-Differential-16420G-Accessories/dp/B0F6JLKSDB) |
+| Spur-in diff fallback *(only if the 90° layout is abandoned)* | [Mesimsple 46T Arrma 6S center diff](https://www.amazon.com/Mesimsple-Differential-Infraction-Fireteam-Notorious/dp/B0CY2TV2CP) — see [MECHANICAL.md](MECHANICAL.md#the-chosen-drive-unit--mjx-hyper-go-114-metal-diff) |
 | Gear diff fallback, known 2.50:1 | [Arrma ARA311177V2, 30T/12T 0.8 mod](https://www.arrma-rc.com/en/product/arrma-assembled-differential-30t-0.8mod-v2-1-grom/ARA311177V2.html) |
 
 Read the [UM1996 manual](https://www.st.com/resource/en/user_manual/um1996-getting-started-with-xnucleoihm08m1-lowvoltage-bldc-motor-driver-expansion-board-based-on-stl220n6f7-for-stm32-nucleo-stmicroelectronics.pdf)
