@@ -49,10 +49,30 @@ wrong.
 
 ### The chosen drive unit — MJX Hyper Go 1/14 metal diff
 
-**Mesimsple 2-pack, 45# steel gears in a 6061 aluminum case, ~$33 for the
-pair** — fits MJX Hyper Go 1/16 (16207/16208/16209/16210/H16) and 1/14
+**ORDERED — Mesimsple diff + input gear set, B0DKJYNPJW, $35.88.** 45# steel
+gears in a 6061 aluminum case; fits MJX Hyper Go 1/16
+(16207/16208/16209/16210/H16BM/H16PL/H16DR) and 1/14
 (14209/14210/14301/14302/H14BM). Sealed and oil-serviceable, so the tunable-oil
 limited-slip behaviour below survives.
+
+**Bought as a kit rather than diff-and-pinion separately, deliberately.** The
+matched-set constraint below means the pinion is not a generic part; taking both
+halves from one manufacturer removes the risk that a correctly-sized pinion
+still meshes wrong. The kit replaced a diff-only order for that reason, not for
+the price.
+
+> **Verify on arrival — the listing does not state these:**
+> 1. **Quantity.** "Front Rear ... Set" implies two diffs and two input gears,
+>    but it is not spelled out. Two axles need two of each.
+> 2. **The input gear is actually a BEVEL**, cone-cut to match the ring — some
+>    listings in this family use "spur input gear" loosely, and the 50T motor
+>    spur (part 16401) is a different part from the diff (16420).
+> 3. **Input gear tooth count** — this is the number that fixes `FINAL_DRIVE`.
+> 4. **Whether the input gear ships with its shaft**, which decides between the
+>    two mounting approaches in
+>    [Coupling the motor](#coupling-the-motor-to-the-bevel-pinion).
+> 5. **Ring count on the physical gear** (confirm 30T), **across-the-cups
+>    width**, and **mass on a scale**.
 
 **Ring gear is 30T — CONFIRMED** from clear product photography (the exploded
 shot showing the bevel ring alongside the case). **So the input pinion alone now
