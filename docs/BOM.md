@@ -1,8 +1,15 @@
 # Bill of Materials
 
 **Phase-gated on purpose.** You own a body and nothing else, which means you can buy in the order
-you actually need things and let each phase's results inform the next purchase. Committing to gears before μ
-is measured is how projects end up geared for grip they do not have, or grip they cannot use.
+you actually need things and let each phase's results inform the next purchase.
+
+> **⚠ The μ gate on gearing is retired.** This file used to say committing to gears before μ was measured
+> is how projects end up geared for grip they do not have. That gate existed to pick *one* cut ratio — and
+> the ratio is no longer cut, it comes with the diff. It also assumed gearing trades acceleration against
+> top speed on this vehicle, and it does not: `accel.py --sweep` gives **2.27 s to 50 mph at every ratio
+> from 1.6:1 to 5.0:1**, because the launch is grip-limited throughout. Gearing here is a pure top-speed
+> selector. μ still matters enormously — it is the *only* acceleration lever — but it no longer gates a
+> purchase. See [MECHANICAL.md](MECHANICAL.md#the-chosen-drive-unit--mjx-hyper-go-114-metal-diff).
 
 Prices are rough, USD, for planning only — **check the linked pages, they move.**
 
@@ -16,7 +23,9 @@ Prices are rough, USD, for planning only — **check the linked pages, they move
 | **QuicRun 3650 G2 sensored motor** | [Hobbywing — full spec table for every winding](https://www.hobbywingdirect.com/products/quicrun-3650-sensored-2-pole-brushless-motor) |
 | ELRS nano receiver | [RadioMaster RP1](https://radiomasterrc.com/products/rp1-expresslrs-2-4ghz-nano-receiver) · [BetaFPV](https://betafpv.com/products/elrs-nano-receiver) |
 | 10 Hz GPS | [Holybro M10](https://holybro.com/products/m10-gps) |
-| Pan-car foam tires | [rcMart](https://www.rcmart.com/Foam-Tires-RC-Pan-Car) — covers 1:12, 1:10 and 1:8 |
+| Pan-car foam tires *(superseded — belted rubber is the decision)* | [rcMart](https://www.rcmart.com/Foam-Tires-RC-Pan-Car) — covers 1:12, 1:10 and 1:8 |
+| **MJX Hyper Go metal gear diff ×2** | [Mesimsple 2-pack, alloy case](https://www.amazon.com/Mesimsple-H16BM-Differential-H16207-Upgrades/dp/B0DD4FCJ1V) · [diff + input gear kit](https://www.amazon.com/Upgrade-Hyper-Differential-16420G-Accessories/dp/B0F6JLKSDB) |
+| Gear diff fallback, known 2.50:1 | [Arrma ARA311177V2, 30T/12T 0.8 mod](https://www.arrma-rc.com/en/product/arrma-assembled-differential-30t-0.8mod-v2-1-grom/ARA311177V2.html) |
 
 Read the [UM1996 manual](https://www.st.com/resource/en/user_manual/um1996-getting-started-with-xnucleoihm08m1-lowvoltage-bldc-motor-driver-expansion-board-based-on-stl220n6f7-for-stm32-nucleo-stmicroelectronics.pdf)
 before Phase 1 — the three-shunt jumper settings (J5/J6) and the shunt values you
@@ -482,16 +491,14 @@ into the base can even trim base drag slightly by energising the wake.
 
 | Item | Notes | ~$ |
 |---|---|---|
-| **Cheap foam tires**, 55 mm (`street`) + 70 mm (`test`) | Consumables for Phases 4–6. Ordinary ~8,600 rpm pan-car foams are fine *because the firmware caps them to ~50 and ~63 mph accordingly*. Buy spares; the ladder destroys tires and that is its job. | 50–90 |
-| **Cheap wide foams**, 70 × ~35 (`wide`) | The grip configuration, and where the Phase 4–6 μ work pays off. Same OD and rating as `test`, so same ceiling. **Verify its rating separately — same OD does not mean same rating**, since a wider carcass carries more mass at radius. | 30–55 |
+| **Belted rubber tires**, 1/10 touring, ~63–68 mm × 26 mm | ⚠ **Not foam, and not the `wide` profile — both changed.** Belted construction is what makes rubber safe above ~40 mph; see [MECHANICAL.md](MECHANICAL.md#the-rest-of-the-tire-rules). Buy 2+ sets; the ladder destroys tires and that is its job. **Measure the delivered OD and set the tire profile from it** — the cap is computed from OD, so a wrong entry makes it fail open. | 60–100 |
 | Steering servo | Fast, metal-gear, decent torque. Not a cheap nylon-gear servo. | 20–40 |
 | **CRSF / ELRS receiver + transmitter** | CRSF gets you a 2–4 ms link versus SBUS's 7–14 ms. On this vehicle the RC link is the slowest thing that isn't you, so it's worth the money. | 80–200 |
-| **2 × gear differential** + silicone diff oil, assorted weights | One per drive unit, both identical. Tunable oil gives limited-slip behaviour — a Phase 6 tuning knob rather than a fixed choice. Buy a range of weights. | 40–70 |
-| Half-shafts / CVDs, 1/16–1/18 class | One per corner, independent suspension. A known weak point at speed. | 25–45 |
-| Bearings | Wheel bearings see 8,537 rpm at the cap; driveline and motor bearings see up to ~20,000. Buy quality — those speeds find cheap bearings. | 20–40 |
-| Drive gears, single spur pair, no bevel | **Do not cut these until μ is measured.** Ratio depends on measured grip and the motor's current rating. Same ratio for every tire profile; the gearing never changes with tires. See `accel.py --match`. **Steel pinion is not optional** — the spur runs at 17.7 m/s pitch-line. | 20–50 |
-| **Gear diffs ×2, 1/18 class** | Buy on *width*, not torque — the across-the-cups dimension sets half-shaft length, which bounds Phase 8 actuator travel. Worst-case load is 0.2 N·m per output, so 1/18 is still overbuilt. Plus heavy silicone oil for the limited-slip behaviour. See [MECHANICAL.md](MECHANICAL.md#independent-uprights--settled-not-open). | 25–50 |
-| **CVDs ×4, real constant-velocity — not dogbones** | A dogbone is not truly CV and produces a velocity fluctuation at angle; at 8,537 wheel rpm that is a vibration source into the bearings. A proper CV joint takes 30–40° against the 14.1° the geometry asks for. Cheapest fix in the suspension. | 20–40 |
+| **2 × MJX Hyper Go metal gear diff** (Mesimsple 2-pack, 45# steel gears / 6061 alloy case) | ⚠ **This is now the entire transmission** — the motor drives its bevel pinion directly, no spur pair. Ring ≈28–32T, so **2.33–3.20:1 depending on the input pinion; every combination is usable.** Sealed and oil-serviceable. See [MECHANICAL.md](MECHANICAL.md#the-chosen-drive-unit--mjx-hyper-go-114-metal-diff). Fallback: Arrma GROM ARA311177V2 at a known 2.50:1. | 33 |
+| **Input bevel pinion ×2** — NOT included with the diff | Sold separately as a "10T bevel gear" / "umbellate tooth input gear", or bundled in a "diff + input gear kit" (~$38 for both). **Confirm its tooth count** — one tooth on a 10T pinion is a 10% ratio error, versus 3.3% on the ring. | 13–26 |
+| Silicone diff oil, assorted weights | Tunable oil gives limited-slip behaviour — a Phase 6 tuning knob rather than a fixed choice. Front lighter, rear heavier. Buy a range. | 15–25 |
+| **Diff outdrive bearings, quality** | The actual RPM limit on any diff run above its donor platform's duty, and a ~$10 swap. Wheel bearings see 8,538 rpm at the cap. Buy quality — those speeds find cheap bearings. | 20–40 |
+| **CVDs ×4, real constant-velocity — not dogbones** | A dogbone is not truly CV and produces a velocity fluctuation at angle; at 8,538 wheel rpm that is a vibration source into the bearings. A proper CV joint takes 30–40° against the 14.1° the geometry asks for. Cheapest fix in the suspension. | 20–40 |
 | **Static ride-height adjusters** | Shock collars or adjustable links — sets ride height through Phases 4–7 and absorbs the 7.5 mm of axle rise on a tire swap. A few grams, no failure modes. Powered actuators are Phase 8. | 15 |
 | ABS or ASA filament | **Not PLA.** See [MECHANICAL.md](MECHANICAL.md#material). | 25–35 |
 | Fasteners, thread-lock, nutserts | Buy more than you think. | 30 |

@@ -203,6 +203,21 @@ with arithmetic instead of with a shopping cart.
    takes 50 A where the placeholder took 30 A. That is genuinely good news: it
    means a sticky tire is still worth buying at 2.5:1, which it was not before.
 
+   > **⚠ SUPERSEDED — the gears are no longer cut, and the μ ordering below no
+   > longer gates anything.** The ratio now arrives with the differential: the
+   > motor drives an off-the-shelf ring-and-pinion directly and that single mesh
+   > is the whole transmission, at **2.33–3.20:1** depending on the ring and
+   > input pinion actually fitted. See
+   > [MECHANICAL.md](MECHANICAL.md#the-chosen-drive-unit--mjx-hyper-go-114-metal-diff).
+   >
+   > The `--match` reasoning below is still correct arithmetic and still worth
+   > reading for *why* the ratio choice is not free. What changed is that it was
+   > being used to justify a purchase gate, and it cannot: `accel.py --sweep`
+   > gives **2.27 s to 50 mph at every ratio from 1.6:1 to 5.0:1**, because the
+   > launch is grip-limited throughout. Every candidate ratio in the band is
+   > shorter than matched for any realistic μ, so μ does not select between them.
+   > μ remains the *only* acceleration lever — it just is not a gearing input.
+
    So the ordering matters: **choose the tire, measure μ, then cut the gears.**
    `accel.py --match` solves for the ratio where launch torque exactly meets
    launch grip — all the grip used, motor spinning as slowly as possible.
@@ -267,9 +282,12 @@ with arithmetic instead of with a shopping cart.
       intended speed for exactly this reason. Cheap tires for Phases 4–6 are fine and expected;
       the cap follows whatever you enter.
 - [ ] Battery, motor, and inverter current ratings agree with each other at peak, not average.
-- [ ] **Gears not yet cut.** The ratio depends on μ, and μ is a guess until Phase 4 measures it.
-      Order motors and tires; defer the gear pair. Getting this out of order is how you end up
-      geared for grip you don't have or grip you can't use.
+- [ ] **Ring and input-pinion tooth counts confirmed on the physical part**, not from photography.
+      The ratio arrives with the diff rather than being cut, so there is nothing to defer — but
+      until the teeth are counted, firmware must use the LOW end of the range (2.80:1 for a 10T
+      input pinion, 2.33:1 for a 12T). Speed is derived as `motor_rpm / final_drive`, so
+      over-assuming the ratio makes the cap fail **open**: assume 3.00 when the truth is 2.80 and
+      the cap holds at 75.0 mph on a tire rated for 70.5.
 
 **Why this is a phase and not a footnote:** buying a motor before doing this arithmetic is how
 speed builds end up geared for 45 mph with no way to fix it short of new everything.

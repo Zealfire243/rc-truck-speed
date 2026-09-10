@@ -16,6 +16,29 @@
  * Each ceiling is the road speed at which that tire reaches its ~8,600 rpm
  * rating -- 55 mm -> 55.4 mph, 70 mm -> 70.5 mph. They are derived from the
  * TIRE, so changing FINAL_DRIVE does not move them. See pin_map.h. */
+/* !! EVERY ROW BELOW DESCRIBES FOAM TIRES AND IS NOW STALE.
+ * !!
+ * !! The build has moved to BELTED RUBBER (1/10 touring, ~63-68 mm x 26 mm) --
+ * !! see docs/MECHANICAL.md. These numbers are LEFT UNCHANGED ON PURPOSE rather
+ * !! than replaced with plausible-looking ones, because the two inputs that
+ * !! matter are not known until the tires are in hand:
+ * !!
+ * !!   tire_od_mm  -- must be MEASURED. The cap ceiling is computed from OD, so
+ * !!                  a guessed OD makes the cap fail OPEN. A 65 mm belted tire
+ * !!                  is NOT the 70 mm `test` row.
+ * !!   rated_rpm   -- manufacturers do not publish it. Derive from the speed the
+ * !!                  tire is SOLD for:
+ * !!                      rated_rpm = proven_mph * 0.44704 / (pi * od_m) * 60
+ * !!
+ * !! Also note `wide` HAS NO BELTED EQUIVALENT -- there is no 35 mm belted tire
+ * !! at this diameter. The enum member stays so the table and its tests keep
+ * !! their shape, but do not select it until a real wide tire exists. Since grip
+ * !! is the only acceleration lever on this truck, losing `wide` is the most
+ * !! expensive consequence of the foam-to-rubber change.
+ * !!
+ * !! Measure OD, derive rated_rpm, measure mu (Phase 0 drag rig / Phase 4 GPS),
+ * !! THEN rewrite this table. Until then the profiles overstate OD, which is the
+ * !! unsafe direction. */
 const tire_profile_t TIRE_PROFILES[TIRE_PROFILE_COUNT] = {
     /*                      name       OD    width   rated     mu   */
     [TIRE_PROFILE_STREET] = { "street", 55.0f, 22.0f,  8600.0f, 1.05f },

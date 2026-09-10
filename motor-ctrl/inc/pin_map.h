@@ -131,7 +131,32 @@ typedef enum {
  * whenever tire diameter, mass, or gearing changes.
  * ------------------------------------------------------------------------- */
 #define POLE_PAIRS           1       /* QuicRun 3650 G2 is 2-POLE. VERIFY.   */
-#define FINAL_DRIVE          2.50f   /* motor turns per wheel turn           */
+
+/* FINAL_DRIVE — motor turns per wheel turn.
+ *
+ * The MJX Hyper Go diff's ring-and-pinion IS the entire final drive; the motor
+ * drives its bevel pinion directly and there is no spur stage. Ring counted at
+ * 28-32T from product photography (leaning 30T) against a 10T input pinion, so
+ * the true ratio is somewhere in 2.33-3.20:1.
+ *
+ * !! 2.80f IS DELIBERATELY THE LOW END OF THAT RANGE, NOT THE BEST ESTIMATE.
+ * !!
+ * !! Speed is derived as motor_rpm / FINAL_DRIVE (see MPH_PER_MOTOR_RPM below),
+ * !! so setting this HIGHER than the true ratio makes every speed reading read
+ * !! LOW, and the speed cap therefore engages LATE — it fails OPEN. Enter 3.00
+ * !! when the truth is 2.80 and the cap holds at 75.0 mph on a tire rated for
+ * !! 70.5. Setting it LOW does the reverse: readings run high, the cap engages
+ * !! early, you lose a few mph and stay inside the tire rating.
+ * !!
+ * !! This is the same fail-open mode as selecting the wrong tire profile, and
+ * !! it is why the conservative bound ships instead of the likely value.
+ * !!
+ * !! COUNT THE TEETH ON THE PHYSICAL PART, then set this exactly and re-run
+ * !! `cd host-tools && uv run gearing.py`. Use 2.33f instead if the input
+ * !! pinion turns out to be 12T. See docs/MECHANICAL.md and
+ * !! docs/BUILD_PHASES.md Phase 0.
+ */
+#define FINAL_DRIVE          2.80f
 
 /* -------------------------------------------------------------------------
  * TIRE PROFILES — the two-configuration plan.
@@ -143,7 +168,8 @@ typedef enum {
  *   divided by FINAL_DRIVE sets it, full stop. Tire diameter only changes how
  *   far the truck travels per revolution.
  *
- * At 2850 kV on 4S with 2.5:1, wheel RPM tops out at 8,537 in EVERY profile.
+ * At 2850 kV on 4S with 2.80:1, wheel RPM tops out at 12,459 in EVERY profile
+ * (it was 13,954 at the retired 2.50:1 — shorter gearing shrinks it).
  * Chasing 70 mph on a small tire is what pushed wheel RPM to 10,866 and put
  * it 36% over typical 1/12 pan-car duty. Chasing it with a bigger tire and
  * taller gearing does not. Run `gearing.py --swap`.

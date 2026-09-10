@@ -37,8 +37,15 @@ final drive, not a hotter motor.
 
 Sanity check on the numbers this prints: the tire is usually the real limit.
 A 55 mm tire at 70 mph is turning ~10,900 rpm -- which is why this
-build gears for 70 mph on a 70 mm tire instead (see --swap). Rubber balloons and lets go
-somewhere well below that. See docs/SAFETY.md.
+build gears for 70 mph on a 70 mm tire instead (see --swap). UNBELTED rubber
+balloons and lets go somewhere well below that; the build now specifies BELTED
+rubber, whose whole purpose is to stop exactly that. See docs/SAFETY.md and
+docs/MECHANICAL.md.
+
+Note also what this tool does NOT tell you: gearing here is a pure top-speed
+selector, not an acceleration/top-end trade. `accel.py --sweep` gives 2.27 s to
+50 mph at every ratio from 1.6:1 to 5.0:1, because the launch is grip-limited
+throughout. Gear for the speed you want; for a quicker launch, chase grip.
 """
 
 from __future__ import annotations
@@ -62,7 +69,25 @@ class Vehicle:
 
     # --- Rolling ----------------------------------------------------------
     tire_od_mm: float = 55.0
-    final_drive: float = 2.50  # motor turns per wheel turn
+    final_drive: float = 3.00  # motor turns per wheel turn. The MJX Hyper Go
+                               # diff's ring-and-pinion IS the whole final
+                               # drive -- there is no spur stage. Ring counted
+                               # at 28-32T from photography, leaning 30T,
+                               # against a 10T input pinion. Range 2.33-3.20:1
+                               # depending on the actual ring and pinion; every
+                               # combination is usable. See docs/MECHANICAL.md.
+                               #
+                               # !! THIS DEFAULT IS THE PLANNING ESTIMATE, NOT
+                               # !! THE FIRMWARE VALUE. Speed is derived as
+                               # !! motor_rpm / final_drive, so assuming a
+                               # !! ratio HIGHER than actual makes the speed cap
+                               # !! fail OPEN -- assume 3.00 when the truth is
+                               # !! 2.80 and the cap holds at 75.0 mph on a tire
+                               # !! rated for 70.5. Until the teeth are counted
+                               # !! on the physical part, firmware must use the
+                               # !! LOW end of the range (2.80 for a 10T pinion,
+                               # !! 2.33 for a 12T), which engages the cap early
+                               # !! and is fail-safe.
 
     # --- Electrical -------------------------------------------------------
     cells: int = 4
@@ -84,12 +109,23 @@ class Vehicle:
     # Cab width (~100 mm) and the spoiler's projected thickness are the only
     # estimates left; everything else is measured. Aero drag is ~4.6 N, so a
     # 10% area error is under 10 W against a 150 W budget -- do not over-refine.
-    crr: float = 0.020  # foam tires on asphalt
+    crr: float = 0.020  # foam tires on asphalt. NOT re-measured for the belted
+                        # rubber now specified -- a Phase 4 item.
 
     # --- Efficiency -------------------------------------------------------
-    eta_drive: float = 0.94  # single spur pair, motor parallel to axle, no
-                             # bevel. Drop to ~0.88 if a 90 deg drive is ever
-                             # added. See docs/MECHANICAL.md.
+    eta_drive: float = 0.905  # ONE bevel mesh: motor drives the diff's ring-
+                              # and-pinion directly, no spur stage. Was 0.94
+                              # for the retired parallel/spur layout.
+                              #
+                              # Do not agonise over this number. The whole
+                              # spread from 0.94 to 0.88 is 14 W out of 200 W
+                              # at the cap -- 7 W per motor against a 30 W
+                              # dissipation budget -- and it moves top speed by
+                              # nothing at all, because top speed here is
+                              # RPM-limited, not power-limited. An earlier
+                              # version of docs/MECHANICAL.md used this delta
+                              # to rule out the 90 deg layout without ever
+                              # pricing it. See docs/MECHANICAL.md.
     eta_motor: float = 0.80  # motor + inverter, combined
     motors: int = 2
 
@@ -309,7 +345,7 @@ def main() -> None:
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--mph", type=float, default=70.0)
     p.add_argument("--tire", type=float, default=55.0, help="tire OD, mm")
-    p.add_argument("--fd", type=float, default=2.50, help="final drive ratio")
+    p.add_argument("--fd", type=float, default=3.00, help="final drive ratio")
     p.add_argument("--cells", type=int, default=4)
     p.add_argument("--mass", type=float, default=1.08, help="kg")
     p.add_argument("--solve", choices=["kv", "fd"], default="kv")

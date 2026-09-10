@@ -379,7 +379,13 @@ def match_table(veh: Vehicle, mot: Motor) -> None:
         fd = matched_ratio(veh, mot, mu)
         wheel_rpm = 8537.0
         print(f"   {mu:>4.2f}      {fd:>5.2f}:1      {wheel_rpm*fd:>9,.0f}")
-    print("\n  Measure mu on the first Phase 4 run, THEN cut the gears.\n")
+    print("\n  NOTE: the gears are no longer cut -- the ratio arrives with the")
+    print("  differential (2.33-3.20:1, see docs/MECHANICAL.md). Every ratio in")
+    print("  that band is SHORTER than matched for any realistic mu, so all of")
+    print("  them are grip-limited at launch and mu does not select between")
+    print("  them. This table tells you how much grip a ratio can use, not")
+    print("  which ratio to buy. Measure mu anyway: it is the only")
+    print("  acceleration lever you have.\n")
 
 
 def thermal(veh: Vehicle, mot: Motor, tr: Traction, cruise_mph: float) -> None:
@@ -463,7 +469,7 @@ def main() -> None:
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--tire", type=float, default=55.0)
-    p.add_argument("--fd", type=float, default=2.5)
+    p.add_argument("--fd", type=float, default=3.00)
     p.add_argument("--cells", type=int, default=4)
     p.add_argument("--kv", type=float, default=2850.0)
     p.add_argument("--iq", type=float, default=50.0, help="amps per motor")

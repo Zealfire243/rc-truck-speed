@@ -2,24 +2,133 @@
 
 ## Drivetrain arrangement
 
-**Two motors, one per axle, each mounted parallel to the axle it drives** —
-motor, reduction, and axle as one drive unit, front and rear identical. Settled
-early, and everything else is downstream of it: the
+**Two motors, one per axle, each mounted perpendicular to the axle it drives,
+driving through a ring-and-pinion diff** — motor, reduction, and axle as one
+drive unit, front and rear identical. Everything else is downstream of it: the
 [one controller per axle](ARCHITECTURE.md#why-two-controllers-instead-of-one), the electronic
 torque split, the inter-axle slip signal traction control uses, and the desync interlock that
 cuts both channels rather than one.
 
-**Motor parallel to axle means a single spur reduction and no bevel gears.**
-That is worth more than it sounds. A 90° drive costs an extra mesh at ~93%
-efficiency and brings thrust loads, shimming, and a housing that has to locate
-two perpendicular axes precisely. A motor lying alongside its axle needs one
-spur pair — around 96% — with both shafts on parallel axes, which a folded
-sheet-metal housing locates far more easily than a bevel set.
+> **⚠ REVERSED — this was "motor parallel to the axle, single spur, no bevel"
+> until the diff was actually sourced.** The old argument is preserved below
+> because the reasoning was sound and only the weighting was wrong.
 
-Concretely: motor pinion meshes a spur gear on the axle line at 2.5:1, and that
-is the entire transmission. Drivetrain efficiency in `gearing.py` and
-`accel.py` is set to **0.94** for that reason — if a bevel or 90° drive is ever
-added, drop it to ~0.88 and re-run both.
+**The old case for parallel, and why it lost.** A 90° drive costs an extra mesh
+and brings thrust loads, shimming, and a housing that has to locate two
+perpendicular axes precisely; a motor lying alongside its axle needs one spur
+pair on parallel axes, which a folded sheet-metal housing locates far more
+easily. All true. Three things outweighed it:
+
+1. **The efficiency claim was never priced.** It is worth **14 W out of 200 W**
+   at the 70 mph cap — 7 W per motor against a 30 W dissipation budget. And it
+   costs nothing in top speed, because top speed here is RPM-limited, not
+   power-limited (see `gearing.py`'s header). Stating the efficiency delta
+   without the wattage made it sound decisive when it is noise.
+2. **The parallel layout has to invent a bevel drive; the 90° layout buys a
+   finished one.** In an off-the-shelf ring-and-pinion diff the pinion shaft is
+   the propshaft input, already on bearings inside a sealed housing with the
+   shimming set at the factory. The thrust-load and alignment objection is
+   answered by the part, not by the builder. What is left is coupling the motor
+   to that shaft.
+3. **Parallel meant fighting the entire parts market.** Ring-and-pinion is what
+   RC differentials *are* — every buggy, truggy, SCT and shaft-drive touring
+   car. Requiring a spur-in diff narrowed the field to touring-car parts that
+   are physically too large for this truck.
+
+Concretely: the motor drives the diff's bevel pinion directly, the ring gear is
+the diff case, and **that single mesh is the entire transmission** — no spur
+stage, no centre distance, no motor offset. Drivetrain efficiency in
+`gearing.py` and `accel.py` is **0.88** for the two-mesh figure the old layout
+assumed; a single bevel mesh is closer to **0.905**. Either way the difference
+is ~14 W and does not move any decision.
+
+There is no propshaft and no centre differential. The two axles are coupled
+only through the ground and through `split.bias`, which means **the electronic
+torque split IS the centre diff** — with no mechanical fallback if that code is
+wrong.
+
+### The chosen drive unit — MJX Hyper Go 1/14 metal diff
+
+**Mesimsple 2-pack, 45# steel gears in a 6061 aluminum case, ~$33 for the
+pair** — fits MJX Hyper Go 1/16 (16207/16208/16209/16210/H16) and 1/14
+(14209/14210/14301/14302/H14BM). Sealed and oil-serviceable, so the tunable-oil
+limited-slip behaviour below survives.
+
+**Ring gear ≈ 28–32T, counted from product photography, leaning 30T.** The input
+bevel pinion is a **separate part** (~$13; sold as a "10T bevel gear" or
+"umbellate tooth input gear", or bundled in a "diff + input gear kit"). Every
+combination in that range is usable:
+
+| Ring / pinion | Ratio | Uncapped top (70 mm) | Motor rpm at cap | Matched μ |
+|---|---|---|---|---|
+| 28T / 10T | 2.80:1 | 102.1 mph | 23,906 | 2.00 |
+| **30T / 10T** | **3.00:1** | **95.3 mph** | **25,614** | **2.14** |
+| 32T / 10T | 3.20:1 | 89.4 mph | 27,321 | 2.29 |
+| 28T / 12T | 2.33:1 | 122.6 mph | 19,922 | 1.67 |
+| 30T / 12T | 2.50:1 | 114.4 mph | 21,345 | 1.79 |
+| 32T / 12T | 2.67:1 | 107.3 mph | 22,768 | 1.90 |
+
+The usable band for *any* candidate diff is roughly **2.0:1 to 3.5:1**. Above
+4:1 the motor runs out of RPM before the truck reaches 70 mph and no gearing
+trick recovers it; below 2:1 you stop using the available grip.
+
+> **⚠ Watch the pinion, not the ring.** One tooth of error on a 10T input pinion
+> is a 10% ratio error; one tooth on a 30T ring is 3.3%. The ring count is the
+> well-constrained half.
+
+> **⚠ Until the teeth are physically counted, set the firmware ratio to the LOW
+> end of the range** — 2.80:1 for a 10T pinion, 2.33:1 for a 12T. Speed is
+> derived as `motor_rpm / final_drive`, so **assuming a ratio higher than actual
+> makes the cap fail open**: assume 3.00 when the truth is 2.80 and the cap holds
+> at 75.0 mph on a tire rated for 70.5. Under-assuming engages the cap early,
+> which costs a few mph and is fail-safe. This is the same failure mode as
+> fitting the wrong tire profile.
+
+**Why this diff class rather than a 1/10 touring diff.** Two reasons, and the
+first one corrected a misjudgement:
+
+- **A differential going straight is a spinning mass, not a working gearbox.**
+  The internal bevels only move relative to each other when the two wheels
+  differ in speed — 0 rpm in a straight line, ~854 rpm cornering at a 10% wheel
+  delta, ~4,269 rpm with one wheel spinning free (which happens at *launch*,
+  when case speed is low). So running a diff above its donor platform's wheel
+  RPM is a **bearing, balance and seal** question, not a gear-strength one. Ring
+  rim load at the cap is 978 g, and 2,613 g uncapped; outdrive bearings see
+  8,538 rpm against a 30–40k rating. Tooth load is 0.168 N·m.
+- **Proven duty is still worth ranking**, derived the same way tire ratings are
+  ([Sourcing](#sourcing)) — from the speed the platform is sold for:
+
+| Platform | Sold at | Tire OD | Proven wheel rpm | vs the 8,538 needed |
+|---|---|---|---|---|
+| **MJX Hyper Go 1/14, 3S** | 49.7 mph | 65 mm | 6,528 | **0.76×** |
+| MJX Hyper Go 1/16, 2S | 34.2 mph | 60 mm | 4,867 | 0.57× |
+| Arrma Grom 1/18, stock | 20.0 mph | 60 mm | 2,846 | 0.33× |
+
+Nothing off-the-shelf is *designed* for 8,538 wheel rpm — only 1/10 touring
+comes close and those parts are too big. So the practical criteria are a metal
+case, machined rather than moulded, and good outdrive bearings (a ~$10 swap on
+any diff). **Diff and gear temperature after every run is a Phase 6 inspection
+item.**
+
+**Straight-cut bevels are acceptable here.** The objections to straight-cut are
+dynamic tooth load and noise, both from tooth-at-a-time engagement. At 0.168 N·m
+tooth load neither is a strength concern, and a small bevel pinion is *gentler*
+on pitch-line velocity than the big spur the old layout forced: **10.7 m/s at
+the cap and 17.5 m/s uncapped, against 17.7 and 30.9 for the 40.7 mm spur.**
+What straight-cut does cost is NVH — a 4,269 Hz tooth-mesh frequency at the cap,
+going into the bearings and the chassis. Set backlash carefully, use good
+bearings, and do not overfill the oil.
+
+**Alternatives considered.** Arrma GROM 1/18 (ARA311177V2), 30T/12T at 0.8 mod =
+**2.50:1** — a known-exact ratio landing dead on the old assumption, and the
+documented fallback if the MJX ratio comes back outside 2.0–3.5:1. Rejected on
+proven duty (0.33×) and price. Losi 22S SCT (LOS232039) — a sound part, but it
+sits at the end of a three-mesh layshaft box (spur → layshaft → idler → diff),
+is built for high torque at low RPM, is sized for a 2 kg truck, its main gear
+LOS232049 is discontinued, and it is ~$70 the pair. 1/10 touring diffs (Tamiya
+TT-02/XV-02 39T/15T at 2.60:1, Traxxas 4-Tec 2.0 37T/13T at 2.85:1 spiral-cut
+steel) — correct ratios and correct RPM duty, rejected purely on physical size
+against a 1,080 g truck and a 97 mm bay.
 
 There is no propshaft and no centre differential. The two axles are coupled
 only through the ground and through `split.bias`, which means **the electronic
@@ -101,12 +210,25 @@ differences (a spinning wheel) while still permitting the slow ones (cornering).
 That recovers most of what a spool would have given you without any of the
 steering penalty, and it turns a fixed mechanical choice into a tuning knob.
 
-**Buy 1/18-class diffs, not 1/16.** Not for weight — for width. The diff's
-across-the-cups dimension is what sets how much half-shaft you have left, and
-that is the binding constraint on Phase 8 actuator travel. Torque is a
-non-issue: the worst case in the whole project is **0.2 N·m per diff output**
-(μ 1.5, full rear bias, at launch), so a 1/18 diff is still overbuilt. See
+**Buy on width, not on scale class.** The diff's across-the-cups dimension is
+what sets how much half-shaft you have left, and that is the binding constraint
+on Phase 8 actuator travel. Torque is a non-issue: the worst case in the whole
+project is **0.2 N·m per diff output** (μ 1.5, full rear bias, at launch), so
+anything from 1/18 up is overbuilt. See
 [the half-shaft table](#independent-uprights--settled-not-open).
+
+> **⚠ An earlier version said "buy 1/18-class diffs, not 1/16," and elsewhere
+> derived a 38 mm ring-gear floor from 1/16 sizing** — two claims that
+> contradicted each other and were both the wrong frame. Scale class is a rough
+> proxy for size, not a spec, and a complete diff assembly ships with internals
+> sized to its own case, so there is no fit calculation to perform. Buy on the
+> measured dimensions of the specific part. The chosen unit is
+> [MJX Hyper Go 1/14 class](#the-chosen-drive-unit--mjx-hyper-go-114-metal-diff).
+>
+> **Across-the-cups width and mass are still unmeasured** — neither MJX nor the
+> aftermakers publish them. Measure both on arrival and feed the width into the
+> half-shaft table. Package weight suggests ~45 g per diff, ~8% of the 1,080 g
+> vehicle for the pair.
 
 Starting point, to be tuned in Phase 6:
 
@@ -766,11 +888,36 @@ Two practices from the speed-run community that are worth adopting:
 
 #### The rest of the tire rules
 
-- **Foam only above ~40 mph.** Rubber tires balloon under centrifugal load — the diameter grows,
-  which changes your effective gearing mid-run, and then the tire delaminates. This is the single
-  most common catastrophic failure in RC speed runs, and at 10,866 rpm it is not a marginal call.
-- **Balance the wheels.** At nearly 11,000 rpm a small imbalance is a large force, and it goes
-  into your bearings and your chassis resonance.
+- **Above ~40 mph: foam, or BELTED rubber. Never unbelted rubber.** Unbelted
+  rubber balloons under centrifugal load — the diameter grows, which changes
+  effective gearing mid-run, and then the tire delaminates. That is the single
+  most common catastrophic failure in RC speed runs and at these RPMs it is not
+  a marginal call. **A nylon- or kevlar-belted tire is built to stop exactly
+  that**, which is why on-road speed running above ~60 mph uses belted rubber
+  routinely.
+
+  > **⚠ CORRECTED — this rule read "Foam only above ~40 mph" and was too broad.**
+  > The mechanism it describes is real but it is a property of *unbelted*
+  > construction, not of rubber. Stating it as "foam only" ruled out the whole
+  > belted class on a mechanism that does not apply to it.
+
+- **DECIDED — belted rubber, not foam.** Shop **1/10 touring belted**, roughly
+  63–68 mm OD and ~26 mm wide. What that swap costs, honestly:
+  - **The `wide` profile is gone.** There is no 35 mm belted tire at this
+    diameter. Since grip is the *only* acceleration lever on this truck
+    ([gearing does nothing for 0–50](#width-and-compound-are-the-grip-levers--diameter-is-not)),
+    this is the most expensive consequence of the change — more than the
+    drivetrain layout costs.
+  - **Measure the actual OD and set the tire profile from it.** The cap ceiling
+    is *computed* from OD × rated rpm, so a 65 mm belted tire is **not** the
+    70 mm `test` profile and entering it as such makes the cap fail open.
+  - Rolling resistance `crr` in `accel.py` and `gearing.py` is set to 0.020 for
+    **foam** on asphalt. Belted rubber differs; re-measure in Phase 4.
+
+- **Balance the wheels.** At 8,538 rpm at the cap — and 11,600+ rpm uncapped — a
+  small imbalance is a large force, and it goes into your bearings and your
+  chassis resonance.
+- **Glue thoroughly and cure fully**, 8–12 hours before any high-speed run.
 - Fresh tires for Phase 8. Not the set you did the Phase 6 ladder on.
 
 ---
@@ -792,7 +939,26 @@ the project.
 > a decision, and neither is the ratio, the tire diameter, or the cell count.
 > Re-run the solvers against 2850 kV before cutting anything.
 
-### The gear pair sets the motor offset
+### The gear pair sets the motor offset — SUPERSEDED
+
+> **⚠ This whole subsection describes the retired parallel layout and is kept
+> only as the record of why it was retired.** The 90° layout has **no spur pair,
+> no centre distance and no motor offset** — the motor drives the diff's bevel
+> pinion directly. See
+> [Drivetrain arrangement](#drivetrain-arrangement).
+>
+> **The 38 mm "floor" below was never a real constraint.** A gear diff ships as
+> a complete assembly with its internals sized to its own case, so there is
+> nothing to design against; 38 mm was a *description* of how big 1/16 diffs
+> happen to be, mistakenly written as a rule. That fake floor is what forced the
+> oddly large 32T pinion, the 28.3 mm offset, and the 17.7 m/s pitch-line
+> problem — three constraints that dissolved with it. The real chosen ring gear
+> is ~24 mm at 0.8 mod.
+>
+> Note the direction of the pitch-line numbers, because it is the opposite of
+> what the parallel case assumed: the small bevel pinion runs **10.7 m/s at the
+> cap and 17.5 m/s uncapped**, against **17.7 and 30.9** for the 40.7 mm spur
+> below. Going 90° *lowered* pitch-line velocity.
 
 The spur gear **is** the diff case, so it cannot be small — a 1/16-class gear
 diff needs roughly 38 mm of ring gear. That floor forces an unusually large
