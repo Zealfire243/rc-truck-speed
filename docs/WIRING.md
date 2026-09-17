@@ -27,7 +27,7 @@ dictated by the shield's copper. That rig was never bought and the stage was dro
 | Connection | Notes |
 |---|---|
 | Bench supply → board A DC input | **Current-limited, always.** A few hundred mA for every first-time test. The limit is the safety net that the dropped Stage 1 rig used to be. |
-| SWD probe → board A SWD pads | Standalone ST-Link. Continuity-check the pads against Flipsky's pinout before trusting them. |
+| SWD probe → board A SWD pads | Standalone ST-Link, 0.1 in header type. Wire **SWDIO, SWCLK, GND and `RST`** — `RST` enables connect-under-reset, which is what recovers a board whose firmware has disabled the SWD pins. Power from the ST-Link's 3V3 **or** the bench supply, never both. Continuity-check the pads against Flipsky's pinout before trusting the labels. See [BOM.md](BOM.md#which-st-link-specifically). |
 | Board A → motor, three phase leads | **Not connected until [Phase 1a](BUILD_PHASES.md#phase-1a--the-board-before-a-motor-exists) passes in full.** |
 | Motor sensor harness | Hall inputs; the QuicRun 3650 G2 is sensored. |
 | Board A → host, USB or UART | Telemetry and the tuner. See [PROTOCOL.md](PROTOCOL.md). |

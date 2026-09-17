@@ -162,8 +162,39 @@ therefore the final drive ratio.
 | **Brushless motor ×2** | ✅ **IN HAND — QuicRun 3650 G2 13.5T**, 2850 kV, 28.9 mΩ, 2-pole sensored. Bought as a batch-matched pair; **leave the second sealed until Phase 3.** See *Motor selection* below. | 30–45 ea |
 | Bench supply, current-limited | ✅ **IN HAND.** **The single most important line in the file**, and more so now that there is no sacrificial rig: the limit *is* the safety net. Start every first-time test at a few hundred mA, not 2 A. | 60–120 |
 | Oscilloscope | ✅ **IN HAND.** Deadtime verification with no motor connected is the most direct replacement for what the sacrificial rig was going to buy you. Not optional any more. | — |
-| **ST-Link V2 (standalone)** | ⚠ **BUY THIS — nothing else in the build can program the F405.** The old plan borrowed the Nucleo's detachable ST-Link; with no Nucleo there is no debugger at all, and without SWD you can only flash blind. A clone is ~$10 and it gates every firmware phase. | 10–25 |
+| **ST-Link V2 (standalone)** | ⚠ **BUY THIS — nothing else in the build can program the F405.** The old plan borrowed the Nucleo's detachable ST-Link; with no Nucleo there is no debugger at all, and without SWD you can only flash blind. **Get the 0.1 in header version, not the STLINK-V3MINIE** — see below. It gates every firmware phase. | 10–30 |
 | **4S LiPo + balance charger** | ✅ **IN HAND — 4S 1550 mAh 100C softpack, 72 × 35 × 37 mm, XT60.** Softpack is mandatory — a hardcase is ~105 mm against a 97 mm bay. Capacity is set by the 3–5 min course case (~3.7 min at a 20 A average), not by the speed run, and the C rating is bought for low IR rather than for the label: real draw is only ~21C at the cap. Full derivation in [MECHANICAL.md](MECHANICAL.md#-pack-current-is-not-phase-current-and-an-earlier-version-of-this-file-confused-them). Get the charger right; it's a fire-safety item. | 60–100 |
+
+### Which ST-Link, specifically
+
+**Buy the one with a 0.1 in pin header**, because what you are connecting to is a row of
+small labelled pads on the FSESC — `3V3`, `GND`, `SWC`/`CLK`, `SWD`/`DIO`, and `RST` —
+that you will reach with jumper wires or short soldered pigtails.
+
+| Option | ~$ | Verdict |
+|---|---|---|
+| **ST-Link V2 "mini" dongle, 10-pin 0.1 in header** | 8–15 | **The practical pick.** Silkscreened SWDIO/SWCLK/GND/3V3/RST, jumper wires plug straight on, works with OpenOCD and STM32CubeProgrammer. These are clones; buy two, they are the price of a coffee and they do die. |
+| Genuine **ST-LINK/V2**, 20-pin 0.1 in | 25–30 | Same job, official firmware, no counterfeit lottery. Worth it if a flaky probe would cost you more than the $15 difference in debugging-the-debugger. |
+| **STLINK-V3MINIE** | ~$26 at DigiKey | Newer and nominally nicer, but it terminates in an **STDC14 1.27 mm flat cable**, not 0.1 in pins. You would be buying an adapter board to get back to jumper wires. Skip it for this build. |
+
+**Search terms that land on the right thing:** "ST-Link V2 STM32 programmer SWD 0.1 inch
+header", or the ST part numbers `ST-LINK/V2` and `STLINK-V3MINIE` at DigiKey or Mouser if
+you want the genuine article.
+
+**Wiring it to the FSESC — four things worth knowing before the first attempt:**
+
+1. **Connect `RST` as well as SWDIO/SWCLK/GND**, even though three wires is the usual
+   advice. It is what lets you use *connect-under-reset*, and connect-under-reset is what
+   recovers a board whose firmware has reconfigured or disabled the SWD pins. That is a
+   self-inflicted brick you can absolutely cause in Phase 1, and the wire that fixes it
+   costs nothing to add now.
+2. **Power the board from the bench supply or the ST-Link's 3V3, never both.** Pick one.
+   For reading the stock firmware out, the ST-Link's 3V3 alone is enough and keeps the
+   power stage completely unpowered, which is exactly where you want it on day one.
+3. **Do not connect a motor or a pack for any of this.** Dumping the stock image and
+   reading the gate driver's registers are logic-only operations.
+4. **Buzz the pads out against Flipsky's pinout before you trust the labels**, per the
+   on-arrival checklist. SWD access is documented for this board but unverified on yours.
 
 ### ⚠ Why no eval board could have been Stage 1 forever
 
