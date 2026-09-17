@@ -1,91 +1,57 @@
 # Wiring
 
-> **Status: proposed, not yet built.** Nothing here has been wired, because nothing has been
-> bought.
+> **Status: proposed, not yet built.** Nothing here has been wired yet, though the controllers,
+> motors, pack and supervisor are now in hand.
 >
-> **This document covers two different machines.** Stage 1 is a Nucleo-G474RE + X-NUCLEO-IHM08M1
-> bench rig; Stage 3 is two Flipsky FSESC6.7 Pro controllers in the truck. They share almost no
-> wiring. See [BOM.md](BOM.md#the-three-stage-hardware-plan).
+> **This document covers one machine at two scales.** Stages 1–2 are a single Flipsky FSESC6.7
+> Pro on the bench; Stage 3 is two of them in the truck. The bench rig is the flight hardware
+> with less of it, which is a change from an earlier plan that used a separate Nucleo bench rig.
+> See [BOM.md](BOM.md#decision-no-stage-1-rig-straight-to-the-fsesc).
 
 ---
 
-## Stage 1 — bench rig (Nucleo-G474RE + IHM08M1)
+## Stages 1–2 — bench rig (one FSESC6.7 Pro, one motor)
 
-**One motor, one power stage, no vehicle.** The pin map below is largely *dictated* by the
-IHM08M1 shield rather than chosen — the shield hardwires its gate drive and current sense to
-specific morpho pins.
+**One motor, one power stage, no vehicle — on the same board that flies.** An earlier version of
+this document specified a Nucleo-G474RE + X-NUCLEO-IHM08M1 bench rig here, with a pin map
+dictated by the shield's copper. That rig was never bought and the stage was dropped; see
+[BOM.md](BOM.md#decision-no-stage-1-rig-straight-to-the-fsesc).
 
-> ⚠ **Check every pin against UM1996's morpho tables (CN7 and CN10) and the G474 datasheet in
-> CubeMX before wiring.** Alternate-function conflicts on the G4 are dense — several of these
-> pins have three plausible uses — and the shield's assignments win, because they are copper.
+> ⚠ **The bench pin map is the flight pin map, and it cannot be written yet** — for exactly the
+> reasons given under [Stage 3](#-the-flight-pin-map-cannot-be-written-yet) below. Read that
+> section; it now gates Phase 1 rather than Phase 2b, because there is no longer an earlier
+> platform to learn on while it stays open.
 
-### TIM1 — the only axle at Stage 1
+**What is wired at the bench, and nothing more:**
 
-| Function | Pin | Notes |
-|---|---|---|
-| PWM CH1 | PA8 | IHM08M1 UH, CN10-23 |
-| PWM CH2 | PA9 | IHM08M1 VH, CN10-21 |
-| PWM CH3 | PA10 | IHM08M1 WH, CN10-33 |
-| PWM CH1N | PB13 | UL, CN10-15 — complementary |
-| PWM CH2N | PB14 | VL, CN7-34 — complementary |
-| PWM CH3N | PB15 | WL, CN10-24 — complementary |
-| **Break in (BKIN)** | PB12 | **overcurrent → gates off in hardware.** Shield BKIN on CN10-13/14 |
+| Connection | Notes |
+|---|---|
+| Bench supply → board A DC input | **Current-limited, always.** A few hundred mA for every first-time test. The limit is the safety net that the dropped Stage 1 rig used to be. |
+| SWD probe → board A SWD pads | Standalone ST-Link. Continuity-check the pads against Flipsky's pinout before trusting them. |
+| Board A → motor, three phase leads | **Not connected until [Phase 1a](BUILD_PHASES.md#phase-1a--the-board-before-a-motor-exists) passes in full.** |
+| Motor sensor harness | Hall inputs; the QuicRun 3650 G2 is sensored. |
+| Board A → host, USB or UART | Telemetry and the tuner. See [PROTOCOL.md](PROTOCOL.md). |
+| Scope probes → gate outputs | For the deadtime verification in Phase 1a, taken with **no motor connected**. |
 
-> **There is no TIM8 axle.** An earlier version of this document mapped a rear axle onto TIM8 on
-> the same chip. That plan is gone — the second motor now has its own controller. Stage 1 is
-> deliberately one motor, and Phase 3's second channel is a second board, not a second timer.
+**No LiPo appears anywhere in this table.** The first pack connection of the project happens
+after Phase 2b passes.
 
-### Analog
+### Bring-up order — bench
 
-| Function | Pin | ADC | Shield pin |
-|---|---|---|---|
-| Phase A current | PA0 | ADC1_IN1 | Curr_fdbk_PhA, CN7-28 |
-| Phase B current | PA1 | ADC1_IN2 | Curr_fdbk_PhB, CN7-36 |
-| Phase C current | PA2 | ADC1_IN3 | Curr_fdbk_PhC, CN7-38 |
-| Pack voltage sense | PA3 | ADC1_IN4 | VBUS_sensing, CN7-30 |
-| Inverter temp | PC0 | ADC1_IN6 | Temperature feedback, CN7-35 |
+Do not skip ahead. Each step is cheap; the failures they prevent are not. This mirrors
+[Phase 1a](BUILD_PHASES.md#phase-1a--the-board-before-a-motor-exists) — that is the authoritative
+version, with the pass criteria.
 
-**All three current channels are sampled by injected conversion triggered off the timer update
-event**, so every phase is measured at the same instant in the PWM cycle. This is not a detail —
-it's the difference between Phase 1 passing and Phase 1 producing plausible-looking garbage. See
-`current_sense.h`.
-
-> ⚠ **The IHM08M1's honest measurement ceiling is ~12 A**, set by amplifier saturation, not heat.
-> `IQ_LIMIT_A` stays at 10 A for this entire stage. Set the three-shunt jumpers **J5/J6 to 3-Sh**
-> and note that **JP2 modifies the op-amp gain** — measure your actual gain before computing
-> `amps_per_count`. Full reasoning in [BOM.md](BOM.md#-the-ihm08m1-tops-out-near-12-a-and-no-amount-of-cooling-changes-that).
-
-### Digital / comms
-
-| Function | Pin | Notes |
-|---|---|---|
-| Host USB serial | PA2 / PA3 | via ST-Link VCP, 921600 — bench telemetry before the ESP32 exists |
-| Hall sensors | CN7-17, CN10-31, CN10-25 | H1/H2/H3, shield JP3 closed for pull-ups |
-| SWD | PA13 / PA14 | leave alone |
-
-### Overcurrent comparator
-
-The G4's internal comparators can route to the timer break inputs **without leaving the chip**.
-Feed a comparator from the same shunt-amplifier output the ADC reads, set the reference above your
-peak operating current with margin, and route COMP → BKIN internally.
-
-Verify this routing in CubeMX for your exact part — the comparator-to-timer matrix is specific and
-not every COMP reaches every TIM.
-
-> The shield also has its own OCP, trip point set by **CURRENT REF on CN10-27, a DAC output.** That
-> threshold is firmware, not silicon — but it protects the shield, not your algorithm, and it does
-> not raise the 12 A measurement ceiling.
-
-### Bring-up order — Stage 1
-
-Do not skip ahead. Each step is cheap; the failures they prevent are not.
-
-1. **G474 alone.** Blink an LED, get SWD working, get the UART printing.
-2. **PWM with no gate driver connected.** Scope every one of the six outputs. Confirm complementary
-   pairs are actually complementary and **confirm deadtime**.
-3. **Gate driver, no power stage.** Scope the gate outputs.
-4. **Power stage on a current-limited supply at 2 A, no motor.** Nothing should draw current.
-5. **Motor connected, clamped, no wheel.** Now you're at Phase 1.
+1. **SWD attached, stock firmware dumped to a file.** Before anything is overwritten.
+2. **Stock VESC firmware, motor spinning.** Your known-good reference, and where the motor's R, L
+   and flux linkage come from.
+3. **Your firmware: gate driver SPI only, gate outputs disabled.** Registers read back sane, VDS
+   overcurrent protection armed at its most sensitive setting.
+4. **PWM with the gate outputs enabled, no motor connected.** Scope all six. Confirm complementary
+   pairs really are complementary and **confirm deadtime across the whole duty range**, including
+   the transitions at 0% and 100%.
+5. **Current-limited supply at a few hundred mA, still no motor.** Nothing should draw current.
+6. **Motor connected, clamped, no wheel.** Now you're at Phase 1b.
 
 ---
 
@@ -93,9 +59,12 @@ Do not skip ahead. Each step is cheap; the failures they prevent are not.
 
 ### ⚠ The flight pin map cannot be written yet
 
-It comes out of the **FSESC6.7 Pro schematic for your exact board revision**, which is a
-[Phase 2b gate](BUILD_PHASES.md#phase-2b--port-to-the-flight-power-stage) precisely because
-nothing below it can be specified without it. You need:
+It comes out of the **FSESC6.7 Pro schematic for your exact board revision**, which no longer
+has one — and with no separate bench platform it now gates
+[Phase 1](BUILD_PHASES.md#phase-1--one-motor-current-sensing-proven) rather than Phase 2b.
+Most of it is recoverable by inspection and measurement rather than from a document (see the
+on-arrival checklist in [BOM.md](BOM.md)), but it has to be recovered before the pin map below
+means anything. You need:
 
 - F405 port assignments for TIM1 complementary outputs and BKIN
 - ADC channels and the current-sense **shunt value and amplifier gain** — `amps_per_count` comes
@@ -185,9 +154,10 @@ differences cut both ways:
 
 ### Bring-up order — Stage 3
 
-1. **One controller, on the bench, with the Nucleo rig still assembled beside it.** That is Phase
-   2b, and the old rig is your reference when the new board misbehaves.
-2. **Second controller standing alone.** Re-run every Phase 1, 2 and 2b criterion on it.
+1. **Board A alone, fully through Phase 2b.** Keep the stock-firmware image and VESC Tool on
+   hand — reflashing stock is how you tell a board fault from a firmware fault.
+2. **Unseal board B and bring it up standing alone.** Re-run every Phase 1, 2 and 2b criterion on
+   it, Phase 1a included; it is a different board and it has proven nothing yet.
 3. **Peer link only**, both controllers powered, motors disconnected. Confirm heartbeats both ways
    and confirm a heartbeat timeout faults both.
 4. **Fault lines.** Assert each controller's fault output by hand and confirm the *other* board's
@@ -227,8 +197,8 @@ Five things, in rough order of how much they buy you:
    the transition.
 5. **Route so flexing happens mid-span**, not at a termination.
 
-On the Nucleo morpho headers at Stage 1: **do not use bare Dupont jumpers.** The crimps walk off
-0.1 in pins under vibration. Use latching or friction-lock connectors, or solder direct with the
+On the FSESC's signal headers, bench included: **do not use bare Dupont jumpers.** The crimps walk
+off 0.1 in pins under vibration. Use latching or friction-lock connectors, or solder direct with the
 strain relief above.
 
 In the vehicle the equivalent risk moved to the **JST connectors on the FSESC boards** — hall

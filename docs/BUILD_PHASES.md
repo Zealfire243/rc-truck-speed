@@ -8,9 +8,9 @@ them exist because skipping them destroys hardware or hurts someone.
 | Phase | Goal | Done when |
 |---|---|---|
 | [**P0**](#phase-0--numbers-before-parts) | Lock the gearing math, then buy | BOM committed, numbers close with headroom |
-| [P1](#phase-1--one-motor-current-sensing-proven) | One motor, phase current measured true | Currents read zero at rest and sum to zero spinning |
+| [P1](#phase-1--one-motor-current-sensing-proven) | Board bring-up, then one motor with phase current measured true | Gates scoped with no motor; then currents read zero at rest and sum to zero spinning |
 | [P2](#phase-2--closed-loop-foc-on-one-motor) | Torque then velocity control | Holds commanded RPM through the whole range |
-| [**P2b**](#phase-2b--port-to-the-flight-power-stage) | Same firmware, flight hardware | Every P1 and P2 gate re-passed on the FSESC, at full current |
+| [**P2b**](#phase-2b--raise-the-current-envelope) | Spend the current margin, deliberately | Every P1 and P2 gate re-passed at 30 A+; first LiPo only after |
 | [P3](#phase-3--both-channels) | Dual-motor FOC, synchronized | Both axles track one setpoint; desync trips the interlock |
 | [P4](#phase-4--printed-rolling-chassis-20-mph-cap) | Printed mule, rolling, capped | Straight line at 20 mph, failsafe proven |
 | [P5](#phase-5--supervisor-tier--gps) | ESP32, GPS, IMU fusion, logging | Yank the ESP32 at speed and the truck drives on, TC degraded |
@@ -25,15 +25,20 @@ It may supply *advisory* data that can only ever **reduce** a torque limit — e
 not by discipline — and it can never raise one, command torque, or clear a fault. See
 [the supervisor exception](ARCHITECTURE.md#the-supervisor-exception--advisory-input-that-can-only-subtract).
 
-> **The hardware moves once, deliberately, at P2b.** Phases 1–2 run on a Nucleo-G474RE +
-> X-NUCLEO-IHM08M1 at ≤ 10 A, because that is a cheap place to make expensive mistakes and ST
-> ships a reference manual for it. Phases 2b onward run your same firmware on Flipsky Mini
-> FSESC6.7 Pro boards — STM32F405 attached to a 70 A inverter — one per motor. The full
-> reasoning is in [BOM.md](BOM.md#the-three-stage-hardware-plan).
+> **The hardware does not move: everything runs on the Flipsky Mini FSESC6.7 Pro** — STM32F405
+> attached to a 70 A inverter, one per motor. An earlier plan spent Phases 1–2 on a
+> Nucleo-G474RE + X-NUCLEO-IHM08M1 bench rig at ≤ 10 A, as a cheap place to make expensive
+> mistakes. **That stage was dropped** and the reasoning, along with what replaces it, is in
+> [BOM.md](BOM.md#decision-no-stage-1-rig-straight-to-the-fsesc).
 >
-> **`foc.c`, `observer.c`, `speed_loop.c` and `safety.c` port unchanged.** Only `pin_map.h`,
-> `inverter.c` and `current_sense.c` are hardware. Keep that boundary clean from Phase 1 and
-> P2b is a week rather than a month.
+> **What replaces it is Phase 1a plus the bench supply's current limit.** Stock VESC firmware is
+> the known-good reference the Nucleo was going to be, the gate driver's own overcurrent
+> protection is faster than the shield's would have been, board B stays sealed as the spare, and
+> no test is ever run at more current than it needs. Read Phase 1a before touching anything.
+>
+> **Keep `foc.c`, `observer.c`, `speed_loop.c` and `safety.c` free of hardware anyway.** Only
+> `pin_map.h`, `inverter.c` and `current_sense.c` should know what board this is. The porting
+> argument for that boundary is gone; the debugging argument is not.
 
 ---
 
@@ -300,54 +305,137 @@ The entire point of this phase is to prove you can **measure phase current corre
 FOC works if the current numbers are wrong, and every later phase compounds the error. This is the
 exact analogue of the crawler's "prove you can read an encoder" — same reasoning, harder sensor.
 
-One motor. **No wheel, no load, motor clamped.** A spinning wheel on a bench supply is how bench
-work becomes an injury.
-
-**Hardware:** Nucleo-G474RE + X-NUCLEO-IHM08M1 (three-shunt jumpers set to 3-Sh), one motor, a
-current-limited bench supply. Current limit set low — start at 2 A. See [WIRING.md](WIRING.md)
+**Hardware:** one Flipsky Mini FSESC6.7 Pro, a standalone SWD debugger, one motor, an
+oscilloscope, and a bench supply with an adjustable current limit. See [WIRING.md](WIRING.md)
 and [BOM.md](BOM.md).
 
-> ⚠ **`IQ_LIMIT_A` = 10 A for this whole stage, and the reason is not thermal.** The IHM08M1's
-> current-sense amplifier saturates near **12 A** — 10 mΩ shunt × ~13.7 gain against ±1.65 V of
-> swing. Past that the reading silently stops being true, which is precisely the failure this
-> phase exists to catch. Cooling does not help; you cannot cool a clipped op-amp.
->
-> **Verify the gain for your jumper configuration before computing `amps_per_count`.** UM1996
-> lists JP2 as "op-amp gain modification" and the FOC configuration wants JP1/JP2 *closed*, so
-> 13.7× may not be your number. Measure it.
+> ⚠ **There is no sacrificial rig any more, and that changes how this phase is run.** The
+> original plan spent Phases 1–2 on a Nucleo-G474RE + X-NUCLEO-IHM08M1 at ≤ 10 A precisely so
+> that the classic mistakes landed on a $35 shield instead of a 70 A inverter. That stage was
+> dropped — see [BOM.md](BOM.md#decision-no-stage-1-rig-straight-to-the-fsesc). The mitigations
+> in **Phase 1a** are what replace it, and they are not optional garnish: they are the reason
+> this phase is survivable. Work through 1a in order and do not skip ahead to a spinning motor.
 
-> ⚠ **`POLE_PAIRS = 1` for the QuicRun 3650.** It is a **2-pole** motor. `pin_map.h` currently
-> has 2, which was right for the 4-pole cans previously under consideration. Get this wrong and
+> ⚠ **`POLE_PAIRS = 1` for the QuicRun 3650.** It is a **2-pole** motor. Get this wrong and
 > every RPM and angle the observer produces is out by 2×. Count the magnets before you start.
+
+---
+
+### Phase 1a — The board, before a motor exists
+
+Six steps, in this order. **Nothing commutates into a motor until every one of them passes.**
+Each exists because it catches a class of mistake that would otherwise be discovered by a
+half-bridge failing at 70 A.
+
+**1. Prove the algorithms on your laptop first.** Run `foc.c` against a simulated motor model in
+`test_foc.c` before it touches silicon. Sign errors, sector errors and saturation bugs are
+exactly the ones that destroy hardware, and all of them are catchable here for free.
+
+**2. Attach SWD, and dump the stock firmware to a file before you overwrite anything.** It is a
+vendor build and you may not be able to obtain that exact binary again. Ten minutes on day one
+buys you a permanent escape hatch.
+
+```bash
+# adjust for your probe; the point is to save it, not the exact invocation
+openocd -f interface/stlink.cfg -f target/stm32f4x.cfg \
+  -c "init; dump_image stock-fsesc-boardA.bin 0x08000000 0x40000; exit"
+```
+
+**3. Flash stock VESC firmware and make the motor spin under it. This is your reference
+baseline.** The Nucleo rig's real job was to be a known-good thing to diff against when
+commutation misbehaves; stock firmware on this board does that job better, because it exercises
+*this* board, *this* motor and *this* wiring. Once it spins, any later misbehaviour under your
+own firmware is your firmware — which is the single most valuable piece of information in the
+whole bring-up.
+
+> **Run VESC Tool's motor detection while you are here.** It hands you the QuicRun's resistance,
+> inductance and flux linkage. `observer.c` needs all three, and measuring them yourself is an
+> afternoon you no longer have to spend.
+
+**4. Identify the gate driver, bring up SPI to it, and arm its overcurrent protection — with the
+gate outputs still disabled.** VESC 6 revisions ship both DRV8301 and DRV8323 and their register
+maps differ, so read the part number off the IC first (see the on-arrival checklist in
+[BOM.md](BOM.md)). Read its ID and status registers back before you trust anything else, then set
+VDS overcurrent protection to its most sensitive threshold for the entire bring-up.
+
+> **This is better protection than the IHM08M1 would have given you.** The gate driver's own OCP
+> trips in microseconds — far faster than any firmware check — and it is watching for exactly the
+> shoot-through that a deadtime bug produces. Leave it aggressive until Phase 2b, then relax it
+> deliberately rather than by forgetting about it.
+
+**5. Scope the gate drive with no motor connected.** Complementary pairs and deadtime on all
+three half-bridges, at 0%, 50% and 100% duty **and across the transitions between them** — the
+extremes are where naive PWM code produces overlap, and the middle of the range will look fine
+while it does. This single test is the most direct replacement for what Stage 1 was going to buy
+you, and it costs nothing but care.
+
+**6. Calibrate the ADC zero offsets** on all three shunts with the gates disabled and the motor
+at rest.
+
+**Phase 1a pass criteria:**
+
+- [ ] FOC math passes against the simulated motor model on the host.
+- [ ] SWD halts and resumes reliably, and **the stock firmware image is saved to a file you can
+      find again.**
+- [ ] The motor spins correctly under stock VESC firmware, and its detected R, L and flux
+      linkage are recorded.
+- [ ] Gate driver part number confirmed by eye, SPI registers read back sane, VDS OCP armed at
+      its most sensitive setting.
+- [ ] Scope-verified deadtime on every half-bridge across the full duty range, **with no motor
+      connected.**
+- [ ] Phase current reads zero at rest after calibration, with no drift over a minute.
+
+---
+
+### Phase 1b — One motor, current-limited
+
+Now your firmware drives the motor. **No wheel, no load, motor clamped.** A spinning wheel on a
+bench supply is how bench work becomes an injury.
+
+> ⚠ **The bench supply's current limit is now your primary protection, and it replaces the
+> sacrificial board.** Every first-time-powered test runs at the lowest bus voltage that works,
+> with the supply in constant current at a few hundred milliamps. A shoot-through into a 300 mA
+> limit dissipates nothing; the same event on a 4S LiPo is the spectacular one. Raise the limit
+> one deliberate step at a time, and **do not connect a LiPo at any point in Phase 1 or 2.**
+
+> **Board B stays sealed in its box until Phase 3.** All bring-up happens on board A. One board
+> is the experiment and one is the known-good reference and the replacement when you kill A —
+> the Nucleo's other role, recovered for $60.
 
 **Steps:**
 
-1. Bring up PWM on TIM1 with **deadtime configured and verified on a scope before the gate driver
-   is connected.** Shoot-through from missing deadtime destroys a half-bridge in microseconds.
+1. Bring up PWM on TIM1 with the deadtime values proven in 1a.
 2. Configure ADC injected conversion triggered by the TIM1 update event, so phase current is
    sampled at the same instant every PWM cycle. See `current_sense.h`.
-3. Run the offset calibration routine with the motor at rest.
+3. **Calibrate `amps_per_count` empirically, rotor clamped.** You have no schematic for this
+   board revision, so derive nothing — measure it. Put the supply in constant current, drive one
+   phase high and two low at a fixed duty, step the limit up through the working range, and fit
+   your raw counts against the supply's own CC readout. **A bench supply in CC is a known current
+   source**, which is why no clamp meter is needed here.
 4. Force open-loop rotation (`bringup.c`) at low duty and watch the phase currents.
 
-**Pass criteria — all four:**
+**Phase 1b pass criteria — all five:**
 
-- [ ] **Currents read zero at rest**, after calibration, with no drift over a minute. Nonzero here
-      is offset error and it will read as phantom torque later.
+- [ ] **Currents read zero at rest**, after calibration, with no drift over a minute. Nonzero
+      here is offset error and it will read as phantom torque later.
 - [ ] **Ia + Ib + Ic ≈ 0** at every instant while spinning. This is Kirchhoff, not an
       approximation — if the three don't sum to zero, at least one is wrong.
 - [ ] Currents are **sinusoidal and smooth**, not spiky or clipped. Spikes mean you're sampling
       during switching transitions; move the sample point.
-- [ ] Scope-verified deadtime on every half-bridge, matching what the gate driver datasheet wants.
+- [ ] **`amps_per_count` measured against the bench supply**, linear across the tested range,
+      with the residual near zero. Record the fit, not just the slope.
+- [ ] Gate driver reports no faults across the whole phase. A latched OCP you cleared and forgot
+      about is a deadtime bug you haven't found yet.
 
-**Do not proceed until all four pass.** A current-sense scale error you tolerate here becomes a
+**Do not proceed until all five pass.** A current-sense scale error you tolerate here becomes a
 torque loop that quietly lies to you at Phase 6, and you will not find it by reading the FOC code.
 
 ---
 
 ## Phase 2 — Closed-loop FOC on one motor
 
-Same hardware. Close the current loop, then the velocity loop, then make it work sensorless across
-the full RPM range.
+Same board, same current limit, same clamped motor. Close the current loop, then the velocity
+loop, then make it work sensorless across the full RPM range.
 
 **Steps:**
 
@@ -357,6 +445,11 @@ the full RPM range.
    **Sensorless FOC has no rotor angle at zero speed** — you need a forced-commutation startup ramp
    that hands over to the observer above some threshold RPM. That handover is the fiddliest part of
    this whole project.
+
+   > Seed the observer with the R, L and flux linkage that VESC Tool measured in Phase 1a rather
+   > than with datasheet guesses. Starting from measured parameters turns observer tuning from a
+   > search into an adjustment.
+
 3. Close the velocity loop on top. Tune with the plot in one terminal and the tuner in another:
    ```bash
    cd host-tools && uv run telemetry_plot.py
@@ -383,50 +476,46 @@ the full RPM range.
 
 ---
 
-## Phase 2b — Port to the flight power stage
+## Phase 2b — Raise the current envelope
 
-**Still one motor.** Same algorithms, new hardware under them. This phase exists so that the
-port is debugged against a known-good single-motor baseline, rather than tangled up with
-dual-channel bring-up or a rolling chassis.
+**Still one motor, still board A, still no LiPo.** Phases 1 and 2 ran deliberately starved — a
+few hundred milliamps to single amps — because the current limit was standing in for a
+sacrificial board. This phase spends that margin on purpose, one step at a time, and it is the
+gate between bench work and anything that moves.
 
-**Hardware:** one Flipsky Mini FSESC6.7 Pro, standalone SWD debugger, the same motor and bench
-supply. **Keep the Nucleo rig assembled and working** — it is your reference when the new board
-misbehaves, and that comparison is the whole reason Stage 1 happened.
-
-**Before you power anything:**
-
-1. **Get the schematic for your exact board revision.** You need the pin mapping, the gate driver
-   part number (DRV8301 and DRV8323 variants both exist, with different register interfaces), and
-   the current-sense scaling. `amps_per_count` comes straight out of it. If no schematic is
-   obtainable, stop and buy hardware where one is — do not reverse-engineer a 70 A inverter.
-2. **Confirm SWD access.** Without it you cannot debug, only flash blind.
-3. **Confirm the 14 V floor** against your pack choice. See [BOM.md](BOM.md#-verify-before-ordering--any-one-of-these-can-sink-the-plan).
+> **This phase used to be the port from the Nucleo rig to the FSESC.** With Stage 1 dropped there
+> is nothing to port, but the gate it guarded still matters and is if anything more important:
+> every earlier criterion has only been proven at currents far below where this truck operates,
+> and a current-sense chain that is honest at 2 A is not thereby honest at 30 A. That is the
+> question this phase answers.
 
 **Steps:**
 
-1. Rewrite `pin_map.h` for the F405. Timer, ADC and sensor pins all move.
-2. Rewrite `inverter.c` — same TIM1 complementary-PWM structure, different deadtime register
-   values and a gate driver that needs SPI initialisation the IHM08M1 did not.
-3. Rewrite `current_sense.c` for the new shunt value and amplifier gain.
-4. **Nothing else.** If you find yourself editing `foc.c` or `observer.c`, stop and work out why —
-   the algorithms are hardware-independent and a change there means something is wrong in the HAL.
+1. **Fit the heatsink before any sustained current.** Do not discover the thermal answer at 20 A.
+2. Raise the bench supply's limit in steps — roughly 2, 5, 10, 20, 30 A — re-checking at each
+   step that currents still sum to zero, the readings stay linear against the supply, and the
+   observer residual stays near zero.
+3. At the top of that ladder, **re-run every Phase 1b and Phase 2 criterion at full current.**
+   They were passed in a starved envelope and are not transitive.
+4. Relax the gate driver's VDS OCP from its bring-up setting to a working threshold —
+   **deliberately, and written down**, not by forgetting it was armed.
 
 **Pass criteria:**
 
-- [ ] **Every Phase 1 criterion re-passed**, current-limited, at low current. Zero at rest, sum to
-      zero spinning, sinusoidal, scope-verified deadtime. A new power stage is a new sensor chain.
-- [ ] **Every Phase 2 criterion re-passed**, including 20 clean observer handovers.
-- [ ] `amps_per_count` **validated against a clamp meter or bench-supply reading**, not just
-      derived from the schematic. This is the number the old board could not give you honestly
-      above 12 A, and the entire point of the port is that it now can.
-- [ ] Current ramped past the old 12 A ceiling — **to 30 A at minimum** — with the readings still
-      linear and the residual still near zero. Do this on the bench supply, motor clamped.
+- [ ] **Every Phase 1b criterion re-passed at 30 A minimum**, bench supply, motor clamped —
+      zero at rest, sum to zero spinning, sinusoidal, `amps_per_count` still linear with the
+      residual near zero.
+- [ ] **Every Phase 2 criterion re-passed**, including 20 clean observer handovers, at full
+      current.
 - [ ] Thermal check: run the motor at ~20 A for five minutes and record controller and motor
       temperature. This is the course-running duty cycle and the first real data on it.
+- [ ] Zero gate driver faults across the entire ladder.
+- [ ] Working OCP threshold chosen and recorded, with the reasoning.
 
-> ⚠ **Your bugs now cost $125 a board plus a motor.** A shoot-through at 70 A on 4S is
-> spectacular rather than educational. Keep the bench supply current-limited through this entire
-> phase; do not connect a LiPo until every criterion above passes.
+> ⚠ **Your bugs cost $60 a board plus a motor, and you only have one spare.** A shoot-through at
+> 70 A on 4S is spectacular rather than educational. Keep the bench supply current-limited
+> through this entire phase; **the first LiPo connection of the project happens after every
+> criterion above passes, and not before.**
 
 ---
 
@@ -446,7 +535,8 @@ works or doesn't, and debugging it alongside a rolling chassis is miserable.
 
 **Steps:**
 
-1. Bring up channel B standing alone; re-run every Phase 1, 2 and 2b criterion on it. Yes, all of
+1. Unseal board B and bring up channel B standing alone; re-run every Phase 1, 2 and 2b criterion
+   on it — including the Phase 1a gate checks, because it is a different board. Yes, all of
    them. This is fast and it's where you catch a swapped phase.
 2. Establish the two UART links to the ESP32 and confirm both telemetry streams are live,
    timestamped, and distinguishable. See [PROTOCOL.md](PROTOCOL.md).
@@ -624,7 +714,7 @@ A first-pass build-up with 70 mm tires (axle centreline at 35 mm):
 
 **So the ceiling is not close, and this is a check rather than a design driver.** ~32 mm against a
 61 mm limit is 29 mm of headroom, and the truck rolls at 2.1 g against 1.1 g of grip. Swapping the
-flat electronics for a Nucleo-with-shield stack — 40 mm tall, ~150 g, centre at 35 mm — moves CG by
+flat electronics for a dev-board stack 40 mm tall, ~150 g, centre at 35 mm would move CG by
 under 2 mm. That is not the "most of the budget" an earlier draft of this claimed.
 
 The reason it barely matters: most of the truck's mass is at or below axle height already, and

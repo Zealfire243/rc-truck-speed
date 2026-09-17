@@ -1,13 +1,13 @@
-# motor-ctrl — STM32G474 (bench) → STM32F405 (flight)
+# motor-ctrl — STM32F405
 
 The hard real-time layer. Single-axle 3-phase FOC, current sensing, rotor observer,
 CRSF input, and every safety interlock. See [../docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md).
 
-> **One firmware image, two targets, and the vehicle runs two copies of it — one per axle.**
-> Phases 1–2 build for the Nucleo-G474RE + X-NUCLEO-IHM08M1 bench rig. From Phase 2b the same
-> source builds for the **STM32F405** on a Flipsky FSESC6.7 Pro, which is what ships in the truck.
-> The G474 stays on the bench as the reference rig. See
-> [../docs/BOM.md](../docs/BOM.md#the-three-stage-hardware-plan).
+> **One target, and the vehicle runs two copies of this firmware — one per axle.** Everything
+> builds for the **STM32F405** on a Flipsky FSESC6.7 Pro, on the bench and in the truck alike.
+> An earlier plan had Phases 1–2 building for a Nucleo-G474RE + X-NUCLEO-IHM08M1 bench rig, with
+> a HAL port at Phase 2b; that rig was dropped and there is no port. See
+> [../docs/BOM.md](../docs/BOM.md#decision-no-stage-1-rig-straight-to-the-fsesc).
 >
 > **Not dual-channel any more.** Each controller drives one motor. What used to be a second FOC
 > instance on TIM8 is now a second board running this same firmware, coordinated over a peer link
@@ -15,8 +15,9 @@ CRSF input, and every safety interlock. See [../docs/ARCHITECTURE.md](../docs/AR
 
 ## The port boundary — keep it clean from day one
 
-This is the single most consequential thing about how you write these files. Phase 2b is a week
-or a month depending entirely on whether this line held:
+**The porting argument for this boundary is gone; the debugging argument is not.** When the
+motor does something inexplicable, the first question is always "is this my math or my
+hardware?", and that question is only answerable cheaply if the two are separable:
 
 | Ports unchanged | Rewritten at Phase 2b |
 |---|---|
@@ -30,15 +31,20 @@ hardware-independent; a change there means something leaked across the boundary.
 
 ## What isn't in this repo
 
+> ⚠ **The build is not retargeted yet.** `CMakeLists.txt` still asks for `CUBE_G4_PATH` and
+> `pin_map.h` is still 353 lines of G474 assignments, both inherited from the dropped bench
+> rig. **Retargeting them to the F405 is the first firmware task of Phase 1**, alongside
+> `inverter.c` and `current_sense.c`. Everything below describes the F405 target you are
+> moving to, not what a fresh clone builds today.
+
 Three files are CubeMX-generated and board-specific, so they aren't checked in.
-For Stage 1, generate them for STM32G474RETx and drop them here (Stage 2 needs the
-STM32F405RGTx equivalents):
+Generate them for **STM32F405RGTx** and drop them here:
 
 | File | Where it comes from |
 |---|---|
-| `STM32G474RETx_FLASH.ld` | CubeMX project generation |
-| `startup_stm32g474xx.s` | CubeMX, or the CMSIS device pack |
-| `system_stm32g4xx.c` | CubeMX, or the CMSIS device pack |
+| `STM32F405RGTx_FLASH.ld` | CubeMX project generation |
+| `startup_stm32f405xx.s` | CubeMX, or the CMSIS device pack |
+| `system_stm32f4xx.c` | CubeMX, or the CMSIS device pack |
 
 Add the latter two to `add_executable()` in `CMakeLists.txt` when you have them.
 
@@ -46,13 +52,14 @@ Using CubeMX for peripheral init is a reasonable choice here and not a
 compromise — the ADC injected-conversion setup and the TIM1 complementary
 + deadtime + break configuration are exactly the things its GUI is good at, and
 exactly the things that are miserable to get right from the reference manual.
-Generate the init, then keep the control code in these files. This applies to both
-targets; you will run CubeMX twice.
+Generate the init, then keep the control code in these files. There is one target now,
+so you run CubeMX once.
 
 ## Build
 
 ```bash
-export CUBE_G4_PATH=$HOME/STM32Cube/Repository/STM32Cube_FW_G4_V1.5.0
+# once retargeted; a fresh clone today still wants CUBE_G4_PATH
+export CUBE_F4_PATH=$HOME/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.0
 cmake -B build && cmake --build build
 ```
 

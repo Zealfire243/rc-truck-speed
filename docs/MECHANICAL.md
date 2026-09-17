@@ -255,6 +255,157 @@ only through the ground and through `split.bias`, which means **the electronic
 torque split IS the centre diff** — with no mechanical fallback if that code is
 wrong.
 
+### One motor driving both axles — STUDIED AND REJECTED
+
+**Rejected on thermals, and independently on propshaft speed.** Recorded in
+full because the strongest argument *for* it — that a mechanical coupling
+deletes the desync interlock and the whole distributed-systems problem
+`ARCHITECTURE.md` admits to owning — is real, and because the answer flips if
+the course requirement is ever dropped.
+
+The layout studied: one motor at the centre, a centre diff, two propshafts, and
+the same two MJX axle diffs already ordered. Everything downstream of the
+motor count is unchanged.
+
+**What does NOT change, so that it stays out of the argument:**
+
+- **Top speed.** Top speed is RPM-limited (`gearing.py` header). One motor
+  spins exactly as fast as two: 8,538 wheel rpm / 21,345 motor rpm at 2.5:1.
+- **Power at the cap.** 4.59 N aero + 0.21 N rolling at 70 mph = 150 W at the
+  wheel, **207 W electrical**, against a ~475 W continuous motor. More than 2×
+  margin on one can.
+- **Launch.** Grip-limited at every ratio (`accel.py --sweep`); `a = μg` has no
+  `n_motors` term. 2.27 s to 50 mph either way — *provided* the single motor
+  can supply the traction-limit current, which is where this dies.
+- **Mass.** −186 g motor, −~80 g controller and wiring, +60–91 g centre diff,
+  +two propshafts, mount and a second coupling. **Net ~80 g on 1,080 g**, and
+  since launch is `μg` that 7% buys ~0.02 N of rolling drag and nothing else.
+
+#### Why it fails — copper loss is per-motor, and torque per amp is fixed
+
+`Kt = 8.27/kV` is fixed by the can, so halving the motor count doubles each
+motor's torque, doubles its current, and **quadruples its copper loss**. At the
+traction limit (μ = 1, 10.59 N, 0.164 N·m at the motor — the same working point
+that produces the 28.1 A already quoted above):
+
+| | I per motor | Copper loss per motor | vs. the 30 W a 186 g 3650 sheds |
+|---|---|---|---|
+| **Two motors (chosen)** | 28.2 A | **23.0 W** | 0.77× — inside budget |
+| One motor | 56.5 A | **92.1 W** | **3.1× over** |
+
+**The transient view is the honest one**, since nothing sits at the traction
+limit. The can is ~84 J/K:
+
+- One motor: 92 W in, 30 W out → **+62 W net → 0.74 K/s → 22 K in a
+  30-second sequence of launches.**
+- Two motors: 23 W each against 30 W → **net negative. They cool while
+  launching.**
+
+Duty-cycled across a course run (cruise is 25.6 A single / 12.8 A dual):
+
+| Time at traction limit | One motor | Two motors |
+|---|---|---|
+| 20% | 33.6 W | 8.4 W |
+| 30% | 40.9 W | 10.2 W |
+| 40% | 48.3 W | 12.0 W |
+
+**Over budget at every realistic course duty cycle; 3× headroom at all of
+them for two motors.**
+
+> **The speed run gives the opposite answer, and that is the whole finding.**
+> Steady 70 mph is 25.6 A in one can — **18.9 W**, comfortably inside 30 W. A
+> single-motor truck would run the GPS-verified 70 mph target all day. It
+> cannot run the *other* vehicle in
+> [BOM.md](BOM.md#two-vehicles-one-truck).
+
+**The motor swap that would fix it does not fit.** 30 W at 56.5 A needs
+**R ≤ 9.4 mΩ at 2850 kV** — a `kV²R` of ~76,000 against the 13.5T's ~235,000,
+i.e. a **3.1× bigger can**. `kV²R` is a function of can size alone
+([BOM.md](BOM.md#decided--quicrun-3650-g2-135t-on-4s)), so no winding escapes
+it: that is 4082/4092/4274 class, 350–500 g, wrong for a 97 mm bay, and it
+erases the mass saving several times over.
+
+#### The propshafts turn at motor speed, and that is a second disqualifier
+
+**A bevel diff cannot be geared 1:1.** The axle diffs are 2.5:1 ring-and-pinion,
+so all reduction happens at the axles and **the propshafts run at motor rpm —
+21,345 at the cap, ~25,600 uncapped.** That is the `F = m·e·ω²` problem from
+[Coupling the motor](#coupling-the-motor-to-the-bevel-pinion), moved onto a long
+slender part with a joint at each end.
+
+First critical speed, simply-supported steel, `N_crit = (π/L)²·√(EI/ρA)`:
+
+| Shaft | N<sub>crit</sub> | vs. 21,345 rpm |
+|---|---|---|
+| 4 mm × 100 mm | 47,600 rpm | 2.2× — acceptable |
+| 5 mm × 100 mm | 59,500 rpm | 2.8× — comfortable |
+| **4 mm × 150 mm** | **21,100 rpm** | **1.0× — resonant at the cap** |
+
+Survivable only with short, fat, genuinely balanced *solid* shafts — which
+excludes the parts that exist. RC dogbones and CVDs are sliding, telescoping
+assemblies with an offset pin: inherently eccentric, the same defect that ruled
+out set-screw couplings above. A dogbone at a suspension-induced joint angle is
+also non-constant-velocity, adding a **~700 Hz** second-order oscillation into
+the same bearings already carrying 417 Hz.
+
+**⚠ The escape is worse than the problem.** Putting a reduction stage at the
+motor to slow the propshafts reintroduces the spur pair, the centre distance and
+the motor offset — precisely what the 97 mm bay killed in the retired parallel
+study — *and* pushes total ratio (first stage × 2.5) outside the 2.0–3.5:1 band
+unless the first stage is under ~1.4:1, which barely slows the shafts.
+
+#### What it costs architecturally
+
+- **The inter-axle slip signal is gone.** It exists because two controllers each
+  read their own halls. With one motor there is no second speed to difference
+  against; what is left is motor rpm vs. the GPS estimate — 1–10 Hz and, by
+  [SAFETY.md](SAFETY.md), advisory and torque-reducing only. That is a governor,
+  not traction control, and traction control is where the launch lives.
+- **`split.bias` is gone**, and with it front/rear bias tuning and the host-side
+  tuning surface built around it.
+- **The centre diff becomes a tuning problem code cannot reach.** Open, it
+  routes torque to the slipping axle; under launch the front unloads, spins, and
+  clamps total tractive effort at twice what the unloaded front holds. The fixes
+  are heavy oil, an LSD, or a spool — and a spool means corner windup, which is
+  why shaft-drive 4WD has centre diffs at all. The electronic split has none of
+  this failure mode: each axle gets the current it was commanded.
+- **Efficiency, priced:** three meshes plus spiders instead of one, 0.88 vs
+  0.905 → **~5 W of 207 W**. Same order as the 14 W already ruled noise. Not an
+  argument in either direction.
+
+#### What it genuinely buys — not dismissed
+
+1. **The desync interlock becomes physically impossible rather than a firmware
+   deadline.** This is the strongest argument for the change, against
+   `ARCHITECTURE.md`'s own admission that two boards and two clocks each
+   deciding whether the other is alive is the cost of the current bet.
+2. **Phase 3 largely collapses** — one link, one telemetry stream, no "which
+   controller owns the receiver" open item, no interlock test.
+3. **One FOC tune, one thermal model, one hall set, one observer** — half the
+   surface area of the hardest part of the project.
+4. **~$60 and one high-current path saved.** Pack current is unchanged; it goes
+   down one path instead of two, 56 A against the FSESC's 70 A continuous.
+
+Against which: **one motor is a single point of failure** where the chosen
+layout can limp home on one axle.
+
+#### The two conditions that would reverse this
+
+- **The course requirement is dropped and this becomes a pure speed-run car.**
+  18.9 W steady at 70 mph, one motor, one controller, no interlock. Genuinely
+  simpler, and it hits the headline target — it is just not the truck
+  [BOM.md](BOM.md#two-vehicles-one-truck) describes.
+- **The Phase 2 observer turns into a swamp and the documented off-ramp is
+  taken.** On stock VESC firmware or AM32 the split and the slip signal are
+  already lost; at that point a mechanical centre diff is strictly better than
+  no centre diff.
+
+> **⚠ If this is ever revisited, the centre diff is not the Arrma 6S part
+> recorded above.** That one is a fallback *axle* diff for abandoning the 90°
+> layout — spur-in, propshaft-cup outputs. Used as an actual centre diff in a
+> single-motor car it is a different selection with a different output
+> interface and a different mount, and none of the sizing above applies to it.
+
 ### Independent uprights — settled, not open
 
 **Every corner is independently sprung, with a half-shaft from the drive unit
@@ -305,7 +456,7 @@ Two things fall out of it that are worth designing around:
 >
 > The ball diff row stays on the table as reserve. It is narrower still and it
 > shrinks spur diameter too — which is the only lever on the
-> [17.7 m/s gear speed](#the-gear-pair-sets-the-motor-offset) — but it trades
+> [17.7 m/s gear speed](#the-gear-pair-sets-the-motor-offset--superseded) — but it trades
 > the oil-tuned limited-slip for thrust-screw preload and adds a rebuild
 > interval. Hold it for Phase 6, if the spur runs hot.
 >
@@ -767,21 +918,20 @@ instead, which at speed is the difference between a spin and a tumble.
 
 **In practice this ceiling is not close.** A first-pass build-up with 70 mm
 tires puts CG around **32 mm** — most of the truck's mass sits at or below axle
-height and there is very little room to put anything high. Even a
-Nucleo-with-shield stack, 40 mm tall and ~150 g at a 35 mm centre, only moves it
-to ~33 mm. Treat 61 mm as a check to run in
+height and there is very little room to put anything high. Even a dev-board stack
+40 mm tall and ~150 g at a 35 mm centre would only move it to ~33 mm. Treat 61 mm
+as a check to run in
 [Phase 4a](BUILD_PHASES.md#check-4--cg-height-budget), not a constraint that
 shapes the layout.
 
-So neither mass nor height rules out mounting dev boards in the mule. The reason
-the Nucleo and IHM08M1 are still bring-up hardware is **packaging, robustness, and a 12 A
-measurement ceiling** — shield stacks, header pins, and Arduino footprints are awkward to mount
-and fragile in a vehicle that crashes, and the shield cannot read the currents this truck pulls.
-See [BOM.md](BOM.md#-the-ihm08m1-tops-out-near-12-a-and-no-amount-of-cooling-changes-that).
+So neither mass nor height would have ruled out mounting dev boards in the mule — which is worth
+recording, because it means the **bench hardware was never excluded on packaging grounds.** That
+question is moot now in any case: there is no separate bench rig to mount, and the bench
+controller *is* the flight controller. See
+[BOM.md](BOM.md#decision-no-stage-1-rig-straight-to-the-fsesc).
 
-The flight controllers are a large improvement on all three counts: a **Flipsky Mini FSESC6.7 Pro
-is 67 × 39 × 18.7 mm including its heatsink** — smaller than the shield it replaces — with no
-header stack and screw-terminal-free phase connections.
+A **Flipsky Mini FSESC6.7 Pro is 67 × 39 × 18.7 mm including its heatsink** — smaller than the
+eval shield it replaced — with no header stack and screw-terminal-free phase connections.
 
 And note the actuators buy rollover margin too: **ride height lowers CG 1:1**,
 so dropping 10 mm at speed takes the roll threshold from 2.1 g to 3.1 g

@@ -17,8 +17,8 @@ Prices are rough, USD, for planning only — **check the linked pages, they move
 
 | Item | Link |
 |---|---|
-| NUCLEO-G474RE *(bench only)* | [ST](https://www.st.com/en/evaluation-tools/nucleo-g474re.html) · [DigiKey](https://www.digikey.com/en/products/detail/stmicroelectronics/NUCLEO-G474RE/497-19491-ND/10231585) · [Mouser](https://www.mouser.com/en/new/stmicroelectronics/stm-nucleo-g474re-board) |
-| X-NUCLEO-IHM08M1 *(bench only)* | [ST](https://www.st.com/en/evaluation-tools/x-nucleo-ihm08m1.html) · [UM1996 manual](https://www.st.com/resource/en/user_manual/um1996-getting-started-with-xnucleoihm08m1-lowvoltage-bldc-motor-driver-expansion-board-based-on-stl220n6f7-for-stm32-nucleo-stmicroelectronics.pdf) |
+| NUCLEO-G474RE *(considered, never bought)* | [ST](https://www.st.com/en/evaluation-tools/nucleo-g474re.html) · [DigiKey](https://www.digikey.com/en/products/detail/stmicroelectronics/NUCLEO-G474RE/497-19491-ND/10231585) · [Mouser](https://www.mouser.com/en/new/stmicroelectronics/stm-nucleo-g474re-board) |
+| X-NUCLEO-IHM08M1 *(considered, never bought)* | [ST](https://www.st.com/en/evaluation-tools/x-nucleo-ihm08m1.html) · [UM1996 manual](https://www.st.com/resource/en/user_manual/um1996-getting-started-with-xnucleoihm08m1-lowvoltage-bldc-motor-driver-expansion-board-based-on-stl220n6f7-for-stm32-nucleo-stmicroelectronics.pdf) |
 | **Flipsky Mini FSESC6.7 Pro** *(flight)* | [Flipsky](https://flipsky.net/products/mini-fsesc6-7-pro-70a) · [dual variant](https://flipsky.net/products/dual-mini-fsesc6-7-pro-140a) |
 | **QuicRun 3650 G2 sensored motor** | [Hobbywing — full spec table for every winding](https://www.hobbywingdirect.com/products/quicrun-3650-sensored-2-pole-brushless-motor) |
 | ELRS nano receiver | [RadioMaster RP1](https://radiomasterrc.com/products/rp1-expresslrs-2-4ghz-nano-receiver) · [BetaFPV](https://betafpv.com/products/elrs-nano-receiver) |
@@ -28,9 +28,10 @@ Prices are rough, USD, for planning only — **check the linked pages, they move
 | Spur-in diff fallback *(only if the 90° layout is abandoned)* | [Mesimsple 46T Arrma 6S center diff](https://www.amazon.com/Mesimsple-Differential-Infraction-Fireteam-Notorious/dp/B0CY2TV2CP) — see [MECHANICAL.md](MECHANICAL.md#the-chosen-drive-unit--mjx-hyper-go-114-metal-diff) |
 | Gear diff fallback, known 2.50:1 | [Arrma ARA311177V2, 30T/12T 0.8 mod](https://www.arrma-rc.com/en/product/arrma-assembled-differential-30t-0.8mod-v2-1-grom/ARA311177V2.html) |
 
-Read the [UM1996 manual](https://www.st.com/resource/en/user_manual/um1996-getting-started-with-xnucleoihm08m1-lowvoltage-bldc-motor-driver-expansion-board-based-on-stl220n6f7-for-stm32-nucleo-stmicroelectronics.pdf)
-before Phase 1 — the three-shunt jumper settings (J5/J6) and the shunt values you
-need for `csense_init()`'s `amps_per_count` are both in it.
+Read Flipsky's user manual for the Mini FSESC6.7 Pro before Phase 1, and work through
+the on-arrival checklist below. **You have no schematic for this board revision, so
+`amps_per_count` is measured rather than read off a page** — the method is in
+[BUILD_PHASES.md](BUILD_PHASES.md#phase-1b--one-motor-current-limited).
 
 ---
 
@@ -44,25 +45,59 @@ and you can flash your own firmware onto it.
 
 | Stage | Hardware | Current | Purpose |
 |---|---|---|---|
-| **1 — Learn** (P1–P2) | Nucleo-G474RE + X-NUCLEO-IHM08M1 | **≤ 10 A** | Make the classic mistakes into a $35 board with a vendor manual open |
-| **2 — Port** (P2b) | Flipsky Mini FSESC6.7 Pro, one motor | 70 A capable | Same algorithms, new HAL. Bounded, well-understood work |
-| **3 — Fly** (P3+) | 2 × FSESC6.7 Pro + ESP32 | 70 A per channel | One MCU per motor, no pin conflicts, no custom PCB ever |
+| **1 — Learn** (P1–P2) | Flipsky Mini FSESC6.7 Pro, board A, one motor | **starved — mA to single A** | Make the classic mistakes at a current that cannot destroy anything |
+| **2 — Open up** (P2b) | Same board, same motor | ramped to 30 A+ | Prove the current chain stays honest where the truck actually runs |
+| **3 — Fly** (P3+) | 2 × FSESC6.7 Pro + ESP32-S3 | 70 A per channel | One MCU per motor, no pin conflicts, no custom PCB ever |
 
-**What this reverses.** An earlier version of this file bought the G474 on day one
-specifically to *avoid* a port later. That argument is dead: there is now a planned port
-at Stage 2. The trade is deliberate — **you pay a bounded HAL port to avoid designing,
-fabricating and debugging a power stage.** That is a very good trade, and the G474 is
-still worth its $25 as the platform where you learn, because ST ships a reference manual
-and MCSDK examples to diff against when your commutation does something inexplicable.
+### Decision: no Stage 1 rig, straight to the FSESC
 
-**The G474 does not ship in the vehicle.** It is a bench instrument. The F405s on the two
-FSESC boards run your firmware in the truck, and the ESP32 supervises them exactly as
-[ARCHITECTURE.md](ARCHITECTURE.md) already specifies.
+**Decided 2026-09-17.** Stage 1 was going to be a Nucleo-G474RE + X-NUCLEO-IHM08M1 bench
+rig at ≤ 10 A — a $50-ish sacrificial platform whose entire job was to make the classic
+FOC mistakes cheap. **It was never bought, and it is not going to be.** The one MCU
+platform in hand besides the FSESCs is the ESP32-S3, and that is the supervisor, not a
+FOC target. So the firmware's first target is also its flight target.
 
-> ⚠ **`pin_map.h` is currently 353 lines of G474 assignments.** Stage 2 rewrites it, along
-> with `inverter.c` and `current_sense.c`. `foc.c`, `observer.c`, `speed_loop.c` and
-> `safety.c` are math and policy — they port unchanged. Keep that boundary clean from
-> Phase 1 onward and Stage 2 stays a week rather than a month.
+**What this costs.** Honestly: the best safety net in the plan. A shoot-through from a
+deadtime bug used to land on a $35 shield with a vendor manual open; now it lands on a
+70 A inverter. There is no version of this where dropping Stage 1 is free, and the
+project's own rule — *the whole value of the cheap rig is that it makes the expensive
+mistakes cheap* — was correct when it was written.
+
+**What replaces it, and why it is adequate.** Four substitutions, none of which existed
+in the original framing because the Nucleo made them unnecessary:
+
+1. **Stock VESC firmware is the known-good reference.** The Nucleo's real job was to be
+   something to diff against when commutation misbehaves. Stock firmware on board A does
+   that job *better*, because it exercises this board, this motor and this wiring. Once
+   it spins, any misbehaviour under your own firmware is your firmware. It also hands you
+   measured R, L and flux linkage from VESC Tool's motor detection — parameters
+   `observer.c` needs and that you would otherwise spend an afternoon measuring.
+2. **The gate driver's own VDS overcurrent protection is faster than firmware**, trips in
+   microseconds, and watches for exactly the shoot-through a deadtime bug produces. Armed
+   at its most sensitive setting through the whole bring-up, it is better hardware
+   protection than the IHM08M1 offered.
+3. **The bench supply's current limit is the primary safety net.** Every first-time test
+   runs at a few hundred milliamps. A shoot-through into a 300 mA limit dissipates
+   nothing. This is why Stage 1 in the table above is "starved" rather than "≤ 10 A" —
+   the ceiling is now chosen per test rather than imposed by an op-amp.
+4. **Board B stays sealed until Phase 3.** One board is the experiment; one is the
+   known-good reference and the replacement. At $60 that is a cheap spare, and it
+   recovers the Nucleo's other role.
+
+**One thing got easier.** There is no HAL port any more, so `pin_map.h`, `inverter.c` and
+`current_sense.c` are written once against the F405 instead of twice. The `amps_per_count`
+calibration that Stage 2 was going to force is simply where Phase 1b starts.
+
+**One thing to buy.** The plan assumed the Nucleo's detachable ST-Link would program the
+FSESC over SWD. Without a Nucleo there is no debugger in the build at all, and **without
+SWD you can only flash blind** — see the standalone ST-Link line in the bench table below.
+It is a ~$10 part and it is now load-bearing.
+
+> ⚠ **`pin_map.h` is currently 353 lines of G474 assignments** from when the bench target
+> was the Nucleo. Phase 1 rewrites it for the F405, along with `inverter.c` and
+> `current_sense.c`. `foc.c`, `observer.c`, `speed_loop.c` and `safety.c` are math and
+> policy and should stay hardware-free — the porting argument for that boundary is gone,
+> but the debugging argument is not.
 
 ### Two vehicles, one truck
 
@@ -118,49 +153,41 @@ therefore the final drive ratio.
 
 ---
 
-## Stage 1 / Phase 1–2 — one motor on the bench
+## Stage 1 / Phase 1–2 — one motor on the bench, starved
 
 | Item | Notes | ~$ |
 |---|---|---|
-| **Nucleo-G474RE** | **The learning platform, not flight hardware.** Bought because ST ships a reference manual and MCSDK examples you can diff against when commutation misbehaves — that is worth $25 on its own. TIM1/TIM8/TIM20, five ADCs, CORDIC. Retired to the bench at Stage 2. | 20–25 |
-| **X-NUCLEO-IHM08M1** | Known-good 3-phase power stage that plugs straight onto the Nucleo. L6398 gate drivers + STL220N6F7 FETs, 8–48 V, three-shunt current sensing (jumpers J5/J6 to the 3-Sh side) — exactly the topology `current_sense.h` assumes. **Read the current ceiling below before planning around it.** | 30–40 |
+| **Flipsky Mini FSESC6.7 Pro — board A** | ✅ **IN HAND.** Also the flight hardware; there is no separate learning platform. See [the decision above](#decision-no-stage-1-rig-straight-to-the-fsesc) for what that costs and what replaces it. **Board B stays sealed until Phase 3.** | 60 |
 | **Brushless motor ×2** | ✅ **IN HAND — QuicRun 3650 G2 13.5T**, 2850 kV, 28.9 mΩ, 2-pole sensored. Bought as a batch-matched pair; **leave the second sealed until Phase 3.** See *Motor selection* below. | 30–45 ea |
-| Bench supply, current-limited | **Essential, not optional.** This is the single most important line in the file — it is what makes Stage 1 mistakes survivable. Start the limit at 2 A. | 60–120 |
-| Oscilloscope access | For deadtime verification. Borrowed is fine; this is a handful of measurements. | — |
-| ST-Link / SWD debugger | On-board on the Nucleo — **and it detaches.** Pull the two **CN2** jumpers and the Nucleo's ST-Link becomes a standalone programmer driving an external target through the **CN4** SWD header. So the Nucleo can flash the FSESC at Stage 2 and the separate debugger below is probably unnecessary. Verify against UM1724 before skipping the purchase. | — |
+| Bench supply, current-limited | ✅ **IN HAND.** **The single most important line in the file**, and more so now that there is no sacrificial rig: the limit *is* the safety net. Start every first-time test at a few hundred mA, not 2 A. | 60–120 |
+| Oscilloscope | ✅ **IN HAND.** Deadtime verification with no motor connected is the most direct replacement for what the sacrificial rig was going to buy you. Not optional any more. | — |
+| **ST-Link V2 (standalone)** | ⚠ **BUY THIS — nothing else in the build can program the F405.** The old plan borrowed the Nucleo's detachable ST-Link; with no Nucleo there is no debugger at all, and without SWD you can only flash blind. A clone is ~$10 and it gates every firmware phase. | 10–25 |
 | **4S LiPo + balance charger** | ✅ **IN HAND — 4S 1550 mAh 100C softpack, 72 × 35 × 37 mm, XT60.** Softpack is mandatory — a hardcase is ~105 mm against a 97 mm bay. Capacity is set by the 3–5 min course case (~3.7 min at a 20 A average), not by the speed run, and the C rating is bought for low IR rather than for the label: real draw is only ~21C at the cap. Full derivation in [MECHANICAL.md](MECHANICAL.md#-pack-current-is-not-phase-current-and-an-earlier-version-of-this-file-confused-them). Get the charger right; it's a fire-safety item. | 60–100 |
 
-### ⚠ The IHM08M1 tops out near 12 A, and no amount of cooling changes that
+### ⚠ Why no eval board could have been Stage 1 forever
 
-An earlier version of this file said the 15 A<sub>RMS</sub> rating "carries you further than it
-looks" and treated it as a thermal limit you could design around. **It is not thermal. It is
-current-sense amplifier saturation**, and that distinction matters because it means heatsinks,
-ducting and short duty cycles all buy you exactly nothing:
+The IHM08M1 that Stage 1 was built around tops out near **12 A**, and not for thermal
+reasons: 10 mΩ shunt × ~13.7 op-amp gain against ±1.65 V of swing means the current-sense
+amplifier clips at ~12 A and the reading silently stops being true. Cooling buys nothing;
+you cannot cool a clipped op-amp.
 
-```
-10 mΩ shunt × ~13.7 total op-amp gain, bidirectional, biased at 1.65 V
-1.65 V ÷ 13.7 ÷ 0.010 Ω ≈ 12 A peak measurable
-```
+**That is worth recording even though the board was never bought**, because it is the
+reason no eval board was ever going to be more than a learning stage. The IHM08M1 is the
+top of the entire X-NUCLEO motor-control family — the next one down, IHM07M1, is 1.4
+A<sub>RMS</sub>. TI's BOOSTXL-DRV8323RS and DRV8353RS-EVM are both 15 A. Every vendor's
+low-voltage eval board lands in the same place, because that is what a bare PCB with no
+airflow will take. Shopping for a bigger shield is a dead end.
 
-Past that the amplifier clips and the current reading silently stops being true — which is the
-one failure mode Phase 1 exists to prevent. The STL220N6F7 FETs are 60 V / ~2.4 mΩ parts that
-would pass 50 A given cooling; **the board's power stage is not the constraint, its instrumentation
-is.** The 30 A peak OCP trip is separately programmable via CURRENT REF on CN10-27 (a DAC output),
-so that number is firmware, not silicon.
+**The consequence for the plan as it now stands:** there was never a cheap rig that could
+take you past Phase 2 anyway, so what was dropped is the *low-current learning stage*, not
+a shortcut to the finish. The FSESC has to do both jobs, and
+[Phase 1a](BUILD_PHASES.md#phase-1a--the-board-before-a-motor-exists) is how it does the
+first one safely.
 
-> ⚠ **Verify the gain for your jumper configuration before computing `amps_per_count`.** UM1996
-> Table 1 lists **JP2 as "op-amp gain modification"**, and the FOC configuration wants JP1/JP2
-> *closed*. The 13.7× figure above may not be your gain. Measure it.
-
-**Run `IQ_LIMIT_A` at 10 A through Stage 1** and stay well inside the honest measurement range.
-That is plenty to prove current sensing, close both loops, and get the observer handing over —
-which is everything Phases 1 and 2 are for. Full current arrives at Stage 2 with the port.
-
-**There is no drop-in replacement.** The IHM08M1 is the top of the entire X-NUCLEO motor-control
-family — the next one down, IHM07M1, is 1.4 A<sub>RMS</sub>. TI's BOOSTXL-DRV8323RS and
-DRV8353RS-EVM are both 15 A too. Every vendor's low-voltage eval board lands in the same place,
-because that is what a bare PCB with no airflow will take. Shopping for a bigger shield is a dead
-end; that is why Stage 2 exists.
+> **`IQ_LIMIT_A` is no longer set by an amplifier ceiling — it is set by you, per phase.**
+> Start it at 2 A for Phase 1b and raise it deliberately through Phase 2b. The number that
+> used to be handed to you by the shield's instrumentation is now a judgement call, which
+> is a small loss of guardrail worth being conscious of.
 
 ### Why not the B-G431B-ESC1?
 
@@ -342,21 +369,25 @@ it can still go back if Phase 2 changes the spec.
 
 ---
 
-## Stage 2 / Phase 2b — port to the flight power stage
+## Stage 2 / Phase 2b — raise the current envelope
 
-Still one motor. Same algorithms, new hardware underneath them. This is where the current
-ceiling goes away.
+Still one motor, still board A, still no LiPo. **No hardware changes here** — this stage
+used to be the port from the Nucleo rig, and with Stage 1 dropped there is nothing to
+port. What remains is the gate it guarded: a current chain proven honest at 2 A is not
+thereby honest at 30 A, and this is where that gets settled. Nothing below is a new
+purchase except the wire.
 
 | Item | Notes | ~$ |
 |---|---|---|
-| **Flipsky Mini FSESC6.7 Pro** | 🚚 **ON ORDER — both boards** (Stage 3's second channel bought at the same time). VESC 6.6 based: **STM32F405** (M4F with FPU), 70 A continuous / 200 A peak, 14–60 V, three-shunt current sensing scaled for real current, HALL / ABI / AS5047 sensor inputs. **67 × 39 × 18.7 mm including its heatsink.** You are buying it as a *programmable power stage*, not as an ESC. | 125 |
-| Standalone SWD debugger | **Probably not needed — see the Stage 1 note.** The Nucleo's on-board ST-Link detaches via the CN2 jumpers and programs an external target through CN4, so the bench rig you already own can flash the FSESC. Buy one only if you want both rigs live at once, or if CN4 turns out not to work for you. | 0–40 |
+| **Flipsky Mini FSESC6.7 Pro** | ✅ **IN HAND — both boards** (Stage 3's second channel bought at the same time). VESC 6.6 based: **STM32F405** (M4F with FPU), 70 A continuous / 200 A peak, 14–60 V, three-shunt current sensing scaled for real current, HALL / ABI / AS5047 sensor inputs. **67 × 39 × 18.7 mm including its heatsink.** You are buying it as a *programmable power stage*, not as an ESC. | 60 |
+| Standalone SWD debugger | **Required, and bought at Stage 1** — there is no Nucleo to borrow an ST-Link from. Listed here only so this table stands alone. | — |
 | Bullet connectors, XT60, silicone wire | 12 AWG for the phase and battery runs at these currents. | 20–30 |
 
-**Why this board is the answer to a question that looked unanswerable.** The original plan
+**Why this board is the answer to a question that looked unanswerable.** The project
 needed a high-current three-phase stage driven by your own MCU, and no such product is sold —
-every eval board stops at 15 A. A VESC is exactly that product, just marketed as a finished
-ESC. $125 buys a professionally laid-out 70 A inverter with an STM32 you are allowed to
+every eval board stops at 15 A, which is [why no eval board could have been Stage 1
+forever](#-why-no-eval-board-could-have-been-stage-1-forever). A VESC is exactly that product, just marketed as a finished
+ESC. $60 buys a professionally laid-out 70 A inverter with an STM32 you are allowed to
 program, and you never open a PCB tool.
 
 **F405 is plenty.** Park/Clarke, two PI loops and SVM run in a few microseconds on a 168 MHz
@@ -414,9 +445,12 @@ Email Flipsky in parallel — schematic for the revision shipped, gate driver pa
 shunt resistance plus CSA gain. A reply makes all of the above faster; no reply costs you a
 bench afternoon, not the project.
 
-> ⚠ **Do not skip Stage 1 to get here faster.** At Stage 2 your bugs cost $125 a board plus a
-> motor, and a shoot-through at 70 A on 4S is spectacular rather than educational. The whole
-> value of the IHM08M1 rig is that it makes the expensive mistakes cheap.
+> ⚠ **There is no cheap rig to fall back on, so the discipline has to come from the
+> procedure instead.** Your bugs cost $60 a board plus a motor, you have exactly one spare,
+> and a shoot-through at 70 A on 4S is spectacular rather than educational. Work
+> [Phase 1a](BUILD_PHASES.md#phase-1a--the-board-before-a-motor-exists) in order, keep the
+> bench supply's limit low until each step has earned a raise, and connect no LiPo until
+> Phase 2b passes.
 
 **Avoid VESC 4.x hardware entirely** — the Mini FSESC4.20 and its relatives. The DRV8302 gate
 driver accounts for roughly 80% of all VESC field failures, concentrated specifically in FOC
@@ -433,7 +467,7 @@ the difference between them.
 
 | Item | Notes | ~$ |
 |---|---|---|
-| **2nd Flipsky Mini FSESC6.7 Pro** | One MCU per motor. **This is what removes Phase 3's hardest problem.** | 125 |
+| **2nd Flipsky Mini FSESC6.7 Pro** | One MCU per motor. **This is what removes Phase 3's hardest problem.** | 60 |
 | **Harness materials** | Silicone-insulated stranded wire, **adhesive-lined heatshrink**, twisted pairs for the two UART runs to the ESP32, zip ties and adhesive anchor pads. See [WIRING.md](WIRING.md#strain-relief-and-harness-routing). | 20–30 |
 | Header connectors | Latching or friction-lock, not bare Dupont. Dupont crimps walk off 0.1 in pins under vibration. | 10 |
 | Heatsink stock + duct material | See *Cooling* below. Flat plate, not a fin tower. | 10–20 |
@@ -692,9 +726,9 @@ second one eliminates most general-purpose micros.
 
 | Part | Verdict |
 |---|---|
-| **STM32G474** *(chosen — bench)* | 170 MHz M4F, TIM1/TIM8/**TIM20** — three advanced timers. 5 ADCs. CORDIC sits exactly where `foc_sincos()` wants it. Purpose-built for this, and the reason Stage 1 happens here: ST ships a reference manual and MCSDK examples to diff against. |
-| **STM32F405** *(chosen — flight)* | What the FSESC6.7 carries. 168 MHz M4F **with FPU**, no CORDIC/FMAC. Adequate with room to spare: the full FOC loop is ~10–15% CPU at 30 kHz. Chosen not on merit but because it comes attached to a 70 A power stage for $125. |
-| STM32G431 | Same family, fewer ADCs and less RAM. What the B-G431B-ESC1 carries. No reason to prefer it once you own a G474. |
+| STM32G474 *(considered, never bought)* | 170 MHz M4F, TIM1/TIM8/**TIM20** — three advanced timers. 5 ADCs. CORDIC sits exactly where `foc_sincos()` wants it. Purpose-built for this, and would have been the Stage 1 learning platform. [Dropped](#decision-no-stage-1-rig-straight-to-the-fsesc). |
+| **STM32F405** *(chosen — the only target)* | What the FSESC6.7 carries. 168 MHz M4F **with FPU**, no CORDIC/FMAC. Adequate with room to spare: the full FOC loop is ~10–15% CPU at 30 kHz. Chosen not on merit but because it comes attached to a 70 A power stage for $60. |
+| STM32G431 | Same family as the G474, fewer ADCs and less RAM. What the B-G431B-ESC1 carries. |
 | **TI C2000** (e.g. LAUNCHXL-F280049C) | Genuinely the best silicon for this — sub-cycle PWM resolution, very fast ADCs, a coprocessor for control math. The cost is a different toolchain (Code Composer), a much smaller hobby community, and a steeper start. If motor control itself were the project rather than the truck, this would be the pick. |
 | STM32H7 | Far more compute, similar motor peripherals. Overkill; the G474 is not the bottleneck. |
 | STM32F303 | The previous generation's motor-control part. Works, but slower and superseded. |
@@ -711,7 +745,7 @@ not a failure to shop properly.
 
 | Option | Notes |
 |---|---|
-| **X-NUCLEO-IHM08M1** *(chosen, bench only)* | **~12 A honest measurement ceiling** (amplifier saturation, not thermal — see Stage 1), 8–48 V, three-shunt. Plugs onto the Nucleo. Top of the entire X-NUCLEO family; there is nothing above it. |
+| X-NUCLEO-IHM08M1 *(considered, never bought)* | **~12 A honest measurement ceiling** (amplifier saturation, not thermal), 8–48 V, three-shunt. Top of the entire X-NUCLEO family; there is nothing above it. Would have been the Stage 1 power stage. [Dropped](#decision-no-stage-1-rig-straight-to-the-fsesc). |
 | B-G431B-ESC1 | Integrated MCU + stage, compact. Dead-ends at Phase 3 (gate drivers hard-wired to its own MCU) and supply-constrained. |
 | TI BOOSTXL-DRV8305 | ~45 V, ~15 A, integrated current-sense amps. Pairs naturally with a C2000 LaunchPad. |
 
@@ -723,7 +757,7 @@ written against using its stock firmware.
 
 | Option | Notes |
 |---|---|
-| **Flipsky Mini FSESC6.7 Pro** *(chosen)* | VESC 6.6, STM32F405, 70 A cont / 200 A peak, 14–60 V, 3-shunt, sensored, **67 × 39 × 18.7 mm with heatsink**, ~$125. Open schematics. You flash your own FOC onto it. Previously rejected as "built for e-skateboards, bulk and cost" — the Mini is smaller than the IHM08M1 shield it replaces, and the cost buys a power stage you would otherwise have to design. |
+| **Flipsky Mini FSESC6.7 Pro** *(chosen)* | VESC 6.6, STM32F405, 70 A cont / 200 A peak, 14–60 V, 3-shunt, sensored, **67 × 39 × 18.7 mm with heatsink**, ~$60. Open schematics. You flash your own FOC onto it. Previously rejected as "built for e-skateboards, bulk and cost" — the Mini is smaller than the IHM08M1 shield it replaces, and the cost buys a power stage you would otherwise have to design. |
 | Custom DRV8353 / DRV8323 board | **The plan this replaces.** Real headroom, mounts cleanly, and the correct silicon (DRV8323RS + CSD88599Q5DC, 60 V / 40 A power blocks, SPI-programmable CSA gain). But it is a PCB project whose hardest part — shunt placement, Kelvin connections, keeping analog off switching nodes — decides whether your current readings are honest. The FSESC has already solved that layout. Revisit only if no vendor will supply a schematic. |
 | MESC (davidmolony) | Open hardware *and* open firmware, 2-layer 100 × 50 mm sized for JLCPCB, ~$24 BOM, run to 100 A on F303. The best starting point **if** you end up needing a custom board — a proven high-current layout beats your first one. |
 | Spintend UBOX V2.1 | Dual channel, 100 A/ch, VESC 6 based. **12 V minimum kills it on 3S and leaves no margin on 4S.** |

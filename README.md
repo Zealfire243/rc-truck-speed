@@ -12,11 +12,15 @@ aluminum later.
 has to survive **3–5 minute RC-course runs**, which is a different and in places harder thermal
 problem than the speed run — see [BOM.md](docs/BOM.md#two-vehicles-one-truck).
 
-> **The hardware plan moves once, deliberately.** Phases 1–2 are a Nucleo-G474RE + X-NUCLEO-IHM08M1
-> bench rig at ≤10 A, because that is a cheap place to make expensive mistakes. From Phase 2b the
-> same firmware runs on Flipsky FSESC6.7 Pro boards — an STM32F405 bolted to a 70 A inverter — one
-> per motor. **You write the FOC; you never design a PCB.** Full reasoning in
-> [BOM.md](docs/BOM.md#the-three-stage-hardware-plan).
+> **One target, bench and truck alike: Flipsky FSESC6.7 Pro boards** — an STM32F405 bolted to a
+> 70 A inverter, one per motor. **You write the FOC; you never design a PCB.** An earlier plan
+> spent Phases 1–2 on a cheap Nucleo-G474RE bench rig so the expensive mistakes landed somewhere
+> harmless; that rig was dropped, and what replaces it — stock VESC firmware as the known-good
+> reference, the gate driver's own overcurrent protection, a starved bench supply, and a sealed
+> spare board — is in
+> [BOM.md](docs/BOM.md#decision-no-stage-1-rig-straight-to-the-fsesc). Read
+> [Phase 1a](docs/BUILD_PHASES.md#phase-1a--the-board-before-a-motor-exists) before powering
+> anything.
 
 **Start here: [docs/BUILD_PHASES.md](docs/BUILD_PHASES.md).** Phase-by-phase, each one ending in a
 specific checkable result, from "one motor spinning under your own current loop" through a printed
@@ -30,7 +34,7 @@ mule to an aluminum chassis at speed.
 
 | Path | What |
 |---|---|
-| [`motor-ctrl/`](motor-ctrl/) | Motor controller firmware (C) — the hard real-time layer. Single-axle 3-phase FOC, current sensing, rotor observer, RC input, and every safety interlock. Owns the motors outright. **Builds for G474 on the bench, F405 in the truck; the vehicle runs two copies, one per axle.** |
+| [`motor-ctrl/`](motor-ctrl/) | Motor controller firmware (C) — the hard real-time layer. Single-axle 3-phase FOC, current sensing, rotor observer, RC input, and every safety interlock. Owns the motors outright. **Builds for the STM32F405 on bench and flight hardware alike; the vehicle runs two copies, one per axle.** |
 | [`supervisor/`](supervisor/) | ESP32 (ESP-IDF, C) — GPS, telemetry logging, WiFi streaming, host link. **Not in the control path.** You must be able to yank it at speed and have nothing happen. |
 | [`host-tools/`](host-tools/) | Laptop-side Python — the gearing solver, the acceleration simulator, live telemetry plotting, and interactive gain tuning over the serial link. |
 | [`hardware/`](hardware/) | CAD (`cad/`) and print-ready (`print/`) files. Every structural part is designed as a flat blank plus bend lines from day one — see [MECHANICAL.md](docs/MECHANICAL.md). |
@@ -38,7 +42,9 @@ mule to an aluminum chassis at speed.
 
 ## Quick start
 
-Nothing has been bought yet, so the first thing to run is the solver, not a compiler:
+Motors, pack, ESP32-S3 and both Flipsky FSESC6.7 Pro boards are in hand; the drivetrain
+is still being sourced. The solver is still the first thing to run, though — it is what every
+gearing and tire decision still open is measured against:
 
 ```bash
 cd host-tools && uv run gearing.py --sweep    # top speed vs tire and ratio
@@ -49,8 +55,9 @@ That prints the tire × final-drive × pack table the whole build is designed ar
 [Phase 0](docs/BUILD_PHASES.md#phase-0--numbers-before-parts).
 
 ```bash
-# Motor controller — needs arm-none-eabi-gcc and STM32CubeG4 at $CUBE_G4_PATH
-# (Stage 1 / bench target. Stage 2 switches to STM32CubeF4 — see motor-ctrl/README.md)
+# Motor controller — needs arm-none-eabi-gcc and STM32Cube.
+# ⚠ CMakeLists.txt and pin_map.h still target the G474 from the dropped bench rig.
+# Retargeting them to the F405 is the first task of Phase 1 — see motor-ctrl/README.md.
 cd motor-ctrl && cmake -B build && cmake --build build
 
 # Supervisor — needs ESP-IDF v5.5+
