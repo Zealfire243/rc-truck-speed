@@ -55,9 +55,13 @@ That prints the tire × final-drive × pack table the whole build is designed ar
 [Phase 0](docs/BUILD_PHASES.md#phase-0--numbers-before-parts).
 
 ```bash
-# Motor controller — needs arm-none-eabi-gcc and STM32Cube.
-# ⚠ CMakeLists.txt and pin_map.h still target the G474 from the dropped bench rig.
-# Retargeting them to the F405 is the first task of Phase 1 — see motor-ctrl/README.md.
+# Host tests — no hardware, no toolchain beyond a C compiler. Phase 1a step 1.
+cd motor-ctrl && cc -Iinc -lm -o /tmp/test_foc test/test_foc.c src/foc.c && /tmp/test_foc
+cd motor-ctrl && cc -Iinc -lm -o /tmp/test_safety test/test_safety.c src/safety.c && /tmp/test_safety
+
+# Motor controller — needs arm-none-eabi-gcc and STM32CubeF4 at $CUBE_F4_PATH.
+# ⚠ Will not compile until pin_map.h is filled in from the board and
+# PIN_MAP_VERIFIED is defined — see motor-ctrl/README.md.
 cd motor-ctrl && cmake -B build && cmake --build build
 
 # Supervisor — needs ESP-IDF v5.5+

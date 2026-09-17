@@ -31,11 +31,12 @@ hardware-independent; a change there means something leaked across the boundary.
 
 ## What isn't in this repo
 
-> ⚠ **The build is not retargeted yet.** `CMakeLists.txt` still asks for `CUBE_G4_PATH` and
-> `pin_map.h` is still 353 lines of G474 assignments, both inherited from the dropped bench
-> rig. **Retargeting them to the F405 is the first firmware task of Phase 1**, alongside
-> `inverter.c` and `current_sense.c`. Everything below describes the F405 target you are
-> moving to, not what a fresh clone builds today.
+> ⚠ **`pin_map.h` ships with no pin assignments, and a firmware build will not compile
+> until you fill them in.** There is no published schematic for this FSESC revision, and
+> guessing the high/low-side pairing of a 70 A inverter is a shoot-through. Establish each
+> value from the board — with `hw_60.h` in vedder/bldc as a thing to verify *against*, not
+> to trust — then define `PIN_MAP_VERIFIED`. The host tests below build regardless, by
+> design: proving the math on your laptop is Phase 1a step 1.
 
 Three files are CubeMX-generated and board-specific, so they aren't checked in.
 Generate them for **STM32F405RGTx** and drop them here:
@@ -58,7 +59,6 @@ so you run CubeMX once.
 ## Build
 
 ```bash
-# once retargeted; a fresh clone today still wants CUBE_G4_PATH
 export CUBE_F4_PATH=$HOME/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.0
 cmake -B build && cmake --build build
 ```

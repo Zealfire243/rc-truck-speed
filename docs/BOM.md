@@ -93,11 +93,12 @@ FSESC over SWD. Without a Nucleo there is no debugger in the build at all, and *
 SWD you can only flash blind** — see the standalone ST-Link line in the bench table below.
 It is a ~$10 part and it is now load-bearing.
 
-> ⚠ **`pin_map.h` is currently 353 lines of G474 assignments** from when the bench target
-> was the Nucleo. Phase 1 rewrites it for the F405, along with `inverter.c` and
-> `current_sense.c`. `foc.c`, `observer.c`, `speed_loop.c` and `safety.c` are math and
-> policy and should stay hardware-free — the porting argument for that boundary is gone,
-> but the debugging argument is not.
+> **`pin_map.h` and `CMakeLists.txt` are retargeted to the F405**, and `pin_map.h` now
+> ships with **no pin assignments at all** — a firmware build refuses to compile until you
+> fill them in from the board and define `PIN_MAP_VERIFIED`. Guessing the pin map of a 70 A
+> inverter is the one shortcut this project will not take. `foc.c`, `observer.c`,
+> `speed_loop.c` and `safety.c` are math and policy and stay hardware-free; the porting
+> argument for that boundary is gone, but the debugging argument is not.
 
 ### Two vehicles, one truck
 
@@ -185,9 +186,10 @@ a shortcut to the finish. The FSESC has to do both jobs, and
 first one safely.
 
 > **`IQ_LIMIT_A` is no longer set by an amplifier ceiling — it is set by you, per phase.**
-> Start it at 2 A for Phase 1b and raise it deliberately through Phase 2b. The number that
-> used to be handed to you by the shield's instrumentation is now a judgement call, which
-> is a small loss of guardrail worth being conscious of.
+> It now ships at **2 A**, with the whole ladder written out in `pin_map.h`: 2 A for Phase
+> 1b, 5 A for Phase 2, 30 A through the Phase 2b ramp, then the vehicle's 25 A design
+> ceiling. The number that used to be handed to you by the shield's instrumentation is now
+> a judgement call, which is a small loss of guardrail worth being conscious of.
 
 ### Why not the B-G431B-ESC1?
 

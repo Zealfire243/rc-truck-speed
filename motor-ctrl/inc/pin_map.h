@@ -3,30 +3,58 @@
  * @brief Single source of truth for every pin and every drivetrain constant.
  *
  * ============================================================================
- * STATUS: PROPOSED, NOT YET WIRED. Expect to revise.
+ * TARGET: STM32F405RG on a Flipsky Mini FSESC6.7 Pro.
  * ============================================================================
  *
- * Nothing here has been built. Verify every assignment against the STM32G474
- * datasheet and your board's schematic in CubeMX before committing to a
- * harness — the G4's alternate-function matrix is dense and several of these
- * pins have three plausible uses. docs/WIRING.md has the same table with the
- * reasoning attached.
+ * Bench and flight are the same board. An earlier version of this file mapped
+ * a Nucleo-G474RE + X-NUCLEO-IHM08M1 bench rig, with a port planned at Phase
+ * 2b; that rig was dropped and there is no port. See
+ * docs/BOM.md#decision-no-stage-1-rig-straight-to-the-fsesc.
+ *
+ * ============================================================================
+ * !! THE PIN ASSIGNMENTS BELOW ARE NOT FILLED IN, AND THAT IS DELIBERATE.
+ * ============================================================================
+ *
+ * There is no published schematic for this board revision. Guessing the pin
+ * map of a 70 A inverter is the one shortcut this project will not take: a
+ * wrong high/low-side pairing is a shoot-through, and a wrong current-sense
+ * channel is a torque loop that lies to you. So every hardware-specific value
+ * here is left unset and the build refuses to complete until you clear
+ * PIN_MAP_VERIFIED below.
+ *
+ * WHERE THE REAL VALUES COME FROM, in order of authority:
+ *
+ *   1. The board itself. Read the gate driver part number off the IC, find
+ *      and continuity-check the SWD pads, read the shunt markings. This is
+ *      the on-arrival checklist in docs/BOM.md and it is not optional.
+ *   2. Upstream VESC 6 hardware. The FSESC6.7 is a derivative of VESC 6.6,
+ *      which is open hardware: `hw_60.h` / `hw_60.c` in vedder/bldc are the
+ *      closest thing to a schematic you will get, and they are a starting
+ *      point to VERIFY AGAINST THE BOARD, never to trust outright.
+ *   3. Flipsky, if they answer the email. Nice to have, not on the path.
+ *
+ * `amps_per_count` is MEASURED, not read off a page, however this resolves —
+ * bench supply in constant current, rotor clamped. See
+ * docs/BUILD_PHASES.md#phase-1b--one-motor-current-limited.
  *
  * ============================================================================
  * THE ARRANGEMENT
  * ============================================================================
  *
- *   TIM1  ->  FRONT axle inverter   (3 complementary pairs + break input)
- *   TIM8  ->  REAR  axle inverter   (3 complementary pairs + break input)
- *   ADC1  ->  front phase currents, pack voltage, temps
- *   ADC2  ->  rear phase currents
+ *   TIM1  ->  this controller's single inverter (3 complementary pairs + BKIN)
+ *   ADC   ->  three phase currents, pack voltage, board temp
  *
- * One chip, both axles, one control ISR, one clock. See docs/ARCHITECTURE.md
- * for why that beats two controllers.
+ * One chip, ONE motor. The vehicle runs two copies of this firmware on two
+ * boards, coordinated over the peer link — see docs/ARCHITECTURE.md. The
+ * front/rear split that used to live in this file was a second FOC instance
+ * on TIM8; it is a second board now, so there is one inverter block here.
  *
- * !! Both break inputs must be fed by a hardware overcurrent comparator. That
- * !! is what kills the gates when the software is wrong, and "the software is
- * !! wrong" is the case protection exists for. See docs/SAFETY.md.
+ * !! The break input must be fed by a hardware overcurrent source. On this
+ * !! board that is the gate driver's own fault output — its VDS overcurrent
+ * !! protection trips in microseconds, which is what kills the gates when the
+ * !! software is wrong, and "the software is wrong" is the case protection
+ * !! exists for. Arm it at its most sensitive setting for all of Phase 1.
+ * !! See docs/SAFETY.md.
  */
 
 #pragma once
@@ -64,64 +92,98 @@ typedef enum {
 /** The other axle — the one on the far end of the peer link. */
 #define AXLE_PEER ((AXLE_SELF) == AXLE_FRONT ? AXLE_REAR : AXLE_FRONT)
 
-/* -------------------------------------------------------------------------
- * Front axle — TIM1
- * ------------------------------------------------------------------------- */
-#define FRONT_PWM_TIMER      TIM1
-#define PIN_F_PWM_AH         GPIO_PIN_8    /* PA8  */
-#define PIN_F_PWM_BH         GPIO_PIN_9    /* PA9  */
-#define PIN_F_PWM_CH         GPIO_PIN_10   /* PA10 */
-#define PIN_F_PWM_AL         GPIO_PIN_13   /* PB13 */
-#define PIN_F_PWM_BL         GPIO_PIN_14   /* PB14 */
-#define PIN_F_PWM_CL         GPIO_PIN_15   /* PB15 */
-#define PIN_F_BKIN           GPIO_PIN_12   /* PB12 — overcurrent, hardware  */
+/* =========================================================================
+ * HARDWARE MAP — UNVERIFIED. Read the block comment at the top of this file
+ * before you touch anything below.
+ *
+ * Fill each PIN_UNVERIFIED in from the board, then define PIN_MAP_VERIFIED
+ * and record in the commit message HOW you established each value: read off
+ * the IC, buzzed out with a meter, diffed against vedder/bldc `hw_60.h`, or
+ * confirmed by Flipsky. "It built" is not a verification.
+ * ========================================================================= */
+#define PIN_UNVERIFIED  (-1)
+
+/* Fires on firmware builds only. The host tests (test/test_safety.c,
+ * test/test_foc.c) pull this header in through safety.h and must keep
+ * building with no hardware known — proving the math on your laptop is
+ * Phase 1a step 1, and it would be perverse for the pin map to block it. */
+#if defined(STM32F405xx) && !defined(PIN_MAP_VERIFIED)
+#  error "pin_map.h has not been filled in for your FSESC6.7 board revision. This file ships with no pin assignments on purpose: guessing the high/low-side pairing of a 70 A inverter is a shoot-through, and guessing a current-sense channel is a torque loop that lies. See the block comment at the top of this file, and the on-arrival checklist in docs/BOM.md."
+#endif
 
 /* -------------------------------------------------------------------------
- * Rear axle — TIM8
+ * The inverter — TIM1, three complementary pairs plus the break input.
+ *
+ * The three high/low pairs MUST be scoped as complementary, with deadtime,
+ * before a motor is ever connected. That is Phase 1a step 5 and it is the
+ * single test standing between a mistake here and a dead board.
  * ------------------------------------------------------------------------- */
-#define REAR_PWM_TIMER       TIM8
-#define PIN_R_PWM_AH         GPIO_PIN_6    /* PC6  */
-#define PIN_R_PWM_BH         GPIO_PIN_7    /* PC7  */
-#define PIN_R_PWM_CH         GPIO_PIN_8    /* PC8  */
-#define PIN_R_PWM_AL         GPIO_PIN_7    /* PA7  */
-#define PIN_R_PWM_BL         GPIO_PIN_0    /* PB0  */
-#define PIN_R_PWM_CL         GPIO_PIN_1    /* PB1  */
-#define PIN_R_BKIN           GPIO_PIN_6    /* PB6  — overcurrent, hardware  */
+#define PWM_TIMER            TIM1
+#define PIN_PWM_AH           PIN_UNVERIFIED
+#define PIN_PWM_BH           PIN_UNVERIFIED
+#define PIN_PWM_CH           PIN_UNVERIFIED
+#define PIN_PWM_AL           PIN_UNVERIFIED
+#define PIN_PWM_BL           PIN_UNVERIFIED
+#define PIN_PWM_CL           PIN_UNVERIFIED
+#define PIN_BKIN             PIN_UNVERIFIED  /* gate driver nFAULT -> TIM1 BKIN */
 
 /* -------------------------------------------------------------------------
- * Analog. All six current channels are sampled by INJECTED conversion
+ * The gate driver.
+ *
+ * DRV8301 and DRV8323 both ship on VESC 6 derivatives and their SPI register
+ * maps DIFFER. Read the part number off the largest IC next to the FETs
+ * before writing a single register — this is item 1 on the on-arrival
+ * checklist in docs/BOM.md, and it is the cheapest open question to close.
+ *
+ * Unlike the IHM08M1, this driver has its own VDS overcurrent protection.
+ * Arm it at its most sensitive threshold for all of Phases 1 and 2, and
+ * relax it deliberately at Phase 2b rather than by forgetting it is set.
+ * ------------------------------------------------------------------------- */
+#define GATE_DRIVER_SPI      PIN_UNVERIFIED  /* SPI peripheral               */
+#define PIN_GATE_CS          PIN_UNVERIFIED
+#define PIN_GATE_ENABLE      PIN_UNVERIFIED
+#define PIN_GATE_FAULT       PIN_UNVERIFIED  /* also feeds PIN_BKIN above    */
+
+/* -------------------------------------------------------------------------
+ * Analog. All three current channels are sampled by INJECTED conversion
  * triggered off the timer update event, so every phase is measured at the
  * same instant in the PWM cycle. See current_sense.h — this is the single
  * most important configuration detail in the whole firmware.
- * ------------------------------------------------------------------------- */
-#define ADC_F_IA             1    /* PA0, ADC1_IN1  */
-#define ADC_F_IB             2    /* PA1, ADC1_IN2  */
-#define ADC_F_IC             3    /* PA2, ADC1_IN3  */
-#define ADC_R_IA             17   /* PA4, ADC2_IN17 */
-#define ADC_R_IB             13   /* PA5, ADC2_IN13 */
-#define ADC_R_IC             3    /* PA6, ADC2_IN3  */
-#define ADC_VBUS             4    /* PA3, ADC1_IN4, divider */
-#define ADC_TEMP_F           6    /* PC0, ADC1_IN6, thermistor */
-#define ADC_TEMP_R           7    /* PC1, ADC1_IN7, thermistor */
-
-/* -------------------------------------------------------------------------
- * Comms and I/O
- * ------------------------------------------------------------------------- */
-#define RC_UART              USART3   /* PB10/PB11 — CRSF receiver goes HERE,
-                                       * not to the ESP32. docs/ARCHITECTURE.md */
-#define LINK_UART            UART4    /* PC10/PC11 — to ESP32, 921600         */
-#define PIN_STEER_SERVO      GPIO_PIN_9   /* PC9, TIM3 CH4, 50 Hz             */
-
-/* -------------------------------------------------------------------------
- * Per-axle sign correction.
  *
- * Set to 1 when an axle drives backwards relative to "positive iq = vehicle
- * forward". Fixing polarity HERE rather than by swapping motor phases keeps
- * every downstream consumer on one convention: positive == forward, always.
- * See docs/PROTOCOL.md §2.
+ * This board is three-shunt, low-side, which is the topology current_sense.h
+ * already assumes. What is NOT known is the shunt value, the amplifier gain,
+ * or which ADC channel carries which phase.
  * ------------------------------------------------------------------------- */
-#define MOTOR_INVERT_FRONT   0
-#define MOTOR_INVERT_REAR    0
+#define ADC_IA               PIN_UNVERIFIED
+#define ADC_IB               PIN_UNVERIFIED
+#define ADC_IC               PIN_UNVERIFIED
+#define ADC_VBUS             PIN_UNVERIFIED  /* divider ratio also unverified */
+#define ADC_TEMP_BOARD       PIN_UNVERIFIED  /* thermistor on the FET plate   */
+#define ADC_TEMP_MOTOR       PIN_UNVERIFIED  /* motor thermistor, if wired    */
+
+/* -------------------------------------------------------------------------
+ * Comms and I/O. These come off the FSESC's labelled COMM / SENSE headers
+ * rather than out of the inverter, so they are the easiest block to confirm
+ * — but confirm them anyway.
+ * ------------------------------------------------------------------------- */
+#define RC_UART              PIN_UNVERIFIED  /* CRSF receiver goes HERE, not
+                                              * to the ESP32. ARCHITECTURE.md */
+#define LINK_UART            PIN_UNVERIFIED  /* to ESP32-S3, 921600           */
+#define PIN_STEER_SERVO      PIN_UNVERIFIED  /* 50 Hz                         */
+#define PIN_HALL_A           PIN_UNVERIFIED  /* SENSE header; motor is sensored */
+#define PIN_HALL_B           PIN_UNVERIFIED
+#define PIN_HALL_C           PIN_UNVERIFIED
+
+/* -------------------------------------------------------------------------
+ * Motor sign correction.
+ *
+ * Set to 1 when this controller's motor drives backwards relative to
+ * "positive iq = vehicle forward". Fixing polarity HERE rather than by
+ * swapping motor phases keeps every downstream consumer on one convention:
+ * positive == forward, always. It is per-build because the two axles can
+ * disagree — see AXLE_SELF above and docs/PROTOCOL.md §2.
+ * ------------------------------------------------------------------------- */
+#define MOTOR_INVERT         0
 
 /* -------------------------------------------------------------------------
  * Drivetrain constants. MEASURE THESE — the defaults come from Phase 0's
@@ -304,9 +366,10 @@ extern const tire_profile_t TIRE_PROFILES[TIRE_PROFILE_COUNT];
 /* -------------------------------------------------------------------------
  * PWM and control rates.
  *
- * 20 kHz is above the audible band and gives 50 us for both axles' full FOC
- * pipelines. Phase 3 measures whether that holds; `overrun` in the telemetry
- * flags is the runtime canary.
+ * 20 kHz is above the audible band and gives 50 us for this controller's full
+ * FOC pipeline — which is now one motor's worth, not two, since each axle has
+ * its own board. The F405 runs it at roughly 10-15% CPU. Phase 2 measures
+ * whether that holds; `overrun` in the telemetry flags is the runtime canary.
  *
  * !! DEADTIME IS NOT OPTIONAL. Shoot-through destroys a half-bridge in
  * !! microseconds. Scope it before connecting the gate driver. docs/SAFETY.md
@@ -345,38 +408,41 @@ extern const tire_profile_t TIRE_PROFILES[TIRE_PROFILE_COUNT];
  * is usable and below what the motor tolerates. Raising it buys nothing —
  * 23, 25 and 28 A all give the same 2.39 s to 50 mph.
  *
- * But the BRING-UP POWER STAGE gets there first. An X-NUCLEO-IHM08M1 is
- * ~15 A RMS, so running 25 A through it during Phase 4-6 launches is asking
- * the shunts and traces to do something they are not rated for. The cost of
- * respecting that is small and entirely in a place that does not matter:
+ * The cost of running below that ceiling while bringing up is small and
+ * entirely in a place that does not matter:
  *
  *     limit   0-50 mph
- *      15 A     4.02 s   <- bring-up hardware, tuning phases
+ *      15 A     4.02 s   <- tuning phases
  *      20 A     2.80 s
  *      25 A     2.39 s   <- final stages, traction-limited
  *
  * A slower launch is irrelevant while tuning traction control and chasing
  * geometry.
  *
- * ** STAGE 1 IS CAPPED BY INSTRUMENTATION, NOT BY THERMALS. ** The IHM08M1's
- * current-sense amplifiers saturate near 12 A (1.65 V bias / ~13.7 gain /
- * 10 mOhm shunt). Past that the reading silently stops being true, which is
- * the one failure mode Phase 1 exists to catch. No heatsink, duct or short
- * duty cycle moves that number. 10 A leaves honest margin and is plenty to
- * prove current sensing and close both loops. See BOM.md, Stage 1.
+ * ** THIS NUMBER IS NO LONGER HANDED TO YOU BY THE HARDWARE. ** The dropped
+ * IHM08M1 bench rig had a hard ~12 A instrumentation ceiling (amplifier
+ * saturation, not thermal) which set this constant for you through Phases
+ * 1-2. The FSESC's sensing is scaled for real current and has no such
+ * ceiling, so the starting value is now a judgement call — and the loss of
+ * that guardrail is worth being conscious of. 2 A is chosen to be obviously
+ * inside anything, not because anything forces it.
  *
  * Note also that "only launches challenge the rating" is true for the speed
  * run and FALSE for 3-5 minute course running, where ~15-20 A per motor is
  * continuous. See BOM.md, "Two vehicles, one truck".
  *
- * So raise this the same way as SPEED_CAP_CEILING_MPH — one step, in source,
- * in a commit, when the hardware under it has been proven:
+ * Raise this the same way as SPEED_CAP_CEILING_MPH — one step, in source, in
+ * a commit, when the phase under it has been passed:
  *
- *   Phases 1-2  on IHM08M1     10.0   <- amplifier ceiling, not thermal
- *   Phase 2b+   on FSESC6.7    25.0   <- real current sensing; motor-limited
- *   Full send   on FSESC6.7    50.0   <- QuicRun 3650 peak. Not the ESC's 70.
+ *   Phase 1b     2.0   <- starved on purpose; the bench supply's limit is
+ *                         the real protection now that no sacrificial board
+ *                         exists. See BUILD_PHASES.md Phase 1a.
+ *   Phase 2      5.0   <- enough to load the loops and the observer
+ *   Phase 2b    30.0   <- the ladder that proves sensing stays honest
+ *   Phase 4+    25.0   <- vehicle design ceiling; motor-limited
+ *   Full send   50.0   <- QuicRun 3650 peak. Not the ESC's 70.
  * ------------------------------------------------------------------------- */
-#define IQ_LIMIT_A           10.0f
+#define IQ_LIMIT_A           2.0f
 #define OVERCURRENT_TRIP_A   45.0f
 #define OVERTEMP_FOLDBACK_C  80.0f
 #define OVERTEMP_CUT_C       95.0f

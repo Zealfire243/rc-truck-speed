@@ -1,14 +1,18 @@
-# Motor controller firmware — STM32G474.
+# Motor controller firmware — STM32F405RG, on a Flipsky Mini FSESC6.7 Pro.
+#
+# One target, bench and flight alike. An earlier version of this file built
+# for a Nucleo-G474RE bench rig with a HAL port planned at Phase 2b; that rig
+# was dropped and there is no port. See docs/BOM.md.
 #
 # Requires:
 #   - arm-none-eabi-gcc
-#   - STM32CubeG4 v1.5+ at $CUBE_G4_PATH
+#   - STM32CubeF4 v1.27+ at $CUBE_F4_PATH
 #
-#   export CUBE_G4_PATH=$HOME/STM32Cube/Repository/STM32Cube_FW_G4_V1.5.0
+#   export CUBE_F4_PATH=$HOME/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.0
 #   cmake -B build && cmake --build build
 #
 # The HAL is not vendored here, the same way the crawler doesn't vendor
-# ESP-IDF — point CUBE_G4_PATH at your install.
+# ESP-IDF — point CUBE_F4_PATH at your install.
 #
 # BRINGUP_APP is ON by default so a fresh clone builds the Phase 1 bench app
 # rather than firmware that expects a whole vehicle. See docs/BUILD_PHASES.md.
@@ -27,15 +31,19 @@ project(speed-motor-ctrl C ASM)
 option(BRINGUP_APP "Build the Phase 1 bench app" ON)
 set(AXLE_SELF "AXLE_FRONT" CACHE STRING "Which axle this build drives: AXLE_FRONT or AXLE_REAR")
 
-if(NOT DEFINED ENV{CUBE_G4_PATH})
+if(NOT DEFINED ENV{CUBE_F4_PATH})
     message(FATAL_ERROR
-        "CUBE_G4_PATH is not set. Point it at your STM32CubeG4 install:\n"
-        "  export CUBE_G4_PATH=$HOME/STM32Cube/Repository/STM32Cube_FW_G4_V1.5.0")
+        "CUBE_F4_PATH is not set. Point it at your STM32CubeF4 install:\n"
+        "  export CUBE_F4_PATH=$HOME/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.0")
 endif()
-set(CUBE $ENV{CUBE_G4_PATH})
+set(CUBE $ENV{CUBE_F4_PATH})
 
 # Cortex-M4F. The hard-float ABI is not optional — the FOC pipeline is float
 # math in a 50 us ISR, and soft-float will not make that deadline.
+#
+# These flags are identical to the G474's: both parts are Cortex-M4 with the
+# same single-precision FPU. The F405 runs at 168 MHz against the G4's 170 and
+# has no CORDIC, which costs about a microsecond a loop — see docs/BOM.md.
 set(MCU_FLAGS
     -mcpu=cortex-m4
     -mthumb
@@ -60,7 +68,7 @@ add_link_options(
     -Wl,--gc-sections
     -Wl,-Map=${PROJECT_NAME}.map
     --specs=nano.specs
-    -T${CMAKE_SOURCE_DIR}/STM32G474RETx_FLASH.ld
+    -T${CMAKE_SOURCE_DIR}/STM32F405RGTx_FLASH.ld
 )
 
 add_executable(${PROJECT_NAME}
@@ -78,13 +86,13 @@ add_executable(${PROJECT_NAME}
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     inc
-    ${CUBE}/Drivers/STM32G4xx_HAL_Driver/Inc
-    ${CUBE}/Drivers/CMSIS/Device/ST/STM32G4xx/Include
+    ${CUBE}/Drivers/STM32F4xx_HAL_Driver/Inc
+    ${CUBE}/Drivers/CMSIS/Device/ST/STM32F4xx/Include
     ${CUBE}/Drivers/CMSIS/Include
 )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
-    STM32G474xx
+    STM32F405xx
     USE_HAL_DRIVER
     AXLE_SELF=${AXLE_SELF}
     $<$<BOOL:${BRINGUP_APP}>:BRINGUP_APP>
