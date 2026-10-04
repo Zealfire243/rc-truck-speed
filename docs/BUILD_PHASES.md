@@ -375,8 +375,12 @@ at rest.
 **Phase 1a pass criteria:**
 
 - [ ] FOC math passes against the simulated motor model on the host.
-- [ ] SWD halts and resumes reliably, and **the stock firmware image is saved to a file you can
-      find again.**
+- [x] SWD halts and resumes reliably, and **the stock firmware image is saved to a file you can
+      find again.** Board A, 2026-10-04: ST-Link V2 over the 5-pin SWD connector, target at
+      3.23 V from the ST-Link, no read-out protection. Full 1 MB flash dumped twice with matching
+      SHA-256 `00942d11146c9540b4f83c475dcb29453097f489317ac0de1de002d9e3a44de6`
+      (`stock-fsesc-boardA.bin`, kept outside the repo). Resume verified: after `reset halt;
+      resume`, the stock firmware ran and a later halt landed in application code.
 - [ ] The motor spins correctly under stock VESC firmware, and its detected R, L and flux
       linkage are recorded.
 - [ ] Gate driver part number confirmed by eye, SPI registers read back sane, VDS OCP armed at
