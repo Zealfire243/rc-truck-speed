@@ -327,8 +327,8 @@ Six steps, in this order. **Nothing commutates into a motor until every one of t
 Each exists because it catches a class of mistake that would otherwise be discovered by a
 half-bridge failing at 70 A.
 
-**1. Prove the algorithms on your laptop first.** Run `foc.c` against a simulated motor model in
-`test_foc.c` before it touches silicon. Sign errors, sector errors and saturation bugs are
+**1. Prove the algorithms on your laptop first.** Run `foc.c` against a simulated motor model
+(`test_foc_sim.c`, plus the per-function checks in `test_foc.c`) before it touches silicon. Sign errors, sector errors and saturation bugs are
 exactly the ones that destroy hardware, and all of them are catchable here for free.
 
 **2. Attach SWD, and dump the stock firmware to a file before you overwrite anything.** It is a
@@ -374,7 +374,9 @@ at rest.
 
 **Phase 1a pass criteria:**
 
-- [ ] FOC math passes against the simulated motor model on the host.
+- [x] FOC math passes against the simulated motor model on the host. `test/test_foc_sim.c`
+      closes the real `foc_step()` loop around an independent phase-coordinate motor model;
+      motor constants there are illustrative until VESC Tool measures the real ones.
 - [x] SWD halts and resumes reliably, and **the stock firmware image is saved to a file you can
       find again.** Board A, 2026-10-04: ST-Link V2 over the 5-pin SWD connector, target at
       3.23 V from the ST-Link, no read-out protection. Full 1 MB flash dumped twice with matching

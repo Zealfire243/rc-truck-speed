@@ -89,6 +89,7 @@ on your laptop right now — before a single part is bought:
 
 ```bash
 cc -Iinc -lm -o /tmp/test_foc test/test_foc.c src/foc.c && /tmp/test_foc
+cc -Iinc -lm -o /tmp/test_foc_sim test/test_foc_sim.c src/foc.c && /tmp/test_foc_sim
 ```
 
 Covers Clarke amplitude and balance, Park landing pure-d and pure-q at the

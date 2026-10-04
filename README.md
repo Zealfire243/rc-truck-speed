@@ -57,6 +57,7 @@ That prints the tire × final-drive × pack table the whole build is designed ar
 ```bash
 # Host tests — no hardware, no toolchain beyond a C compiler. Phase 1a step 1.
 cd motor-ctrl && cc -Iinc -lm -o /tmp/test_foc test/test_foc.c src/foc.c && /tmp/test_foc
+cd motor-ctrl && cc -Iinc -lm -o /tmp/test_foc_sim test/test_foc_sim.c src/foc.c && /tmp/test_foc_sim
 cd motor-ctrl && cc -Iinc -lm -o /tmp/test_safety test/test_safety.c src/safety.c && /tmp/test_safety
 
 # Motor controller — needs arm-none-eabi-gcc and STM32CubeF4 at $CUBE_F4_PATH.
