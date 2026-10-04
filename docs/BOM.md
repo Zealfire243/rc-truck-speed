@@ -450,7 +450,9 @@ paths below. Email them anyway (it is the cheap path), but do not block on it.
   meter, and solve for `amps_per_count` empirically. That is arguably better than trusting a
   schematic, and it is a bench afternoon rather than a blocker. Diff against upstream VESC 6
   hardware for the topology.
-- ❌ **Gate driver part number — OPEN, and the easiest one to close.** VESC 6 revisions have
+- ✅ **Gate driver part number — CLOSED: DRV8301** (read off the IC on board A, 2026-10-04).
+  The DRV8323 register map does not apply; do not mix them. The original open question, kept
+  for the record: VESC 6 revisions have
   shipped both DRV8301 and DRV8323; their SPI register maps differ and you initialise it
   yourself. **Recovery without Flipsky: read the part number off the chip.** It is the
   largest IC next to the FETs — a magnifier and good light settles it in a minute, on
