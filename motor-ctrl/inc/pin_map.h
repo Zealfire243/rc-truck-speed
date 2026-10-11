@@ -103,6 +103,33 @@ typedef enum {
  * ========================================================================= */
 #define PIN_UNVERIFIED  (-1)
 
+/* -------------------------------------------------------------------------
+ * CANDIDATES — evidence, not verification. (Board A, 2026-10-10.)
+ *
+ * Every value below is still PIN_UNVERIFIED. The `candidate:` comments record
+ * what the evidence points to, so the continuity checks have a short list to
+ * confirm instead of a board to search. Promote a candidate to a real value
+ * only when its continuity check in docs/PIN_CONTINUITY.md has passed.
+ *
+ * Where the candidates come from, all three agreeing:
+ *
+ *   1. The STOCK FIRMWARE's own register state, read live over SWD with
+ *      motor-ctrl/tools/gpio_dump.cfg (core halted, read, resumed; nothing
+ *      written). This is what the silicon on THIS board is actually doing.
+ *   2. vedder/bldc hwconf/trampa/vesc6/hw_60_core.{h,c} — the ORIGINAL
+ *      VESC 6.0 pin set, not MK3-MK6. The discriminator: the DRV8301 SPI
+ *      data lines are on PC11/PC12 here (MK3+ moves them to PB3/PB4, which
+ *      the stock firmware leaves as plain inputs on this board).
+ *   3. ST's STM32F405RGTx pin database (STM32_open_pin_data) for pin numbers
+ *      and alternate functions, and TI's DRV8301 datasheet (SLOS719F) for
+ *      the gate driver's side of every connection.
+ *
+ * What none of that establishes: physical copper. A pin the stock firmware
+ * drives is a pin it USES, not proof of where the trace goes. The high/low
+ * pairing in particular is the shoot-through question and is settled only
+ * by continuity from the MCU pin to the named DRV8301 pin.
+ * ------------------------------------------------------------------------- */
+
 /* Fires on firmware builds only. The host tests (test/test_safety.c,
  * test/test_foc.c) pull this header in through safety.h and must keep
  * building with no hardware known — proving the math on your laptop is
@@ -119,13 +146,27 @@ typedef enum {
  * single test standing between a mistake here and a dead board.
  * ------------------------------------------------------------------------- */
 #define PWM_TIMER            TIM1
-#define PIN_PWM_AH           PIN_UNVERIFIED
-#define PIN_PWM_BH           PIN_UNVERIFIED
-#define PIN_PWM_CH           PIN_UNVERIFIED
-#define PIN_PWM_AL           PIN_UNVERIFIED
-#define PIN_PWM_BL           PIN_UNVERIFIED
-#define PIN_PWM_CL           PIN_UNVERIFIED
-#define PIN_BKIN             PIN_UNVERIFIED  /* gate driver nFAULT -> TIM1 BKIN */
+#define PIN_PWM_AH           PIN_UNVERIFIED  /* candidate: PA8  (pin 41, TIM1_CH1)  -> DRV8301 INH_A (17) */
+#define PIN_PWM_BH           PIN_UNVERIFIED  /* candidate: PA9  (pin 42, TIM1_CH2)  -> DRV8301 INH_B (19) */
+#define PIN_PWM_CH           PIN_UNVERIFIED  /* candidate: PA10 (pin 43, TIM1_CH3)  -> DRV8301 INH_C (21) */
+#define PIN_PWM_AL           PIN_UNVERIFIED  /* candidate: PB13 (pin 34, TIM1_CH1N) -> DRV8301 INL_A (18) */
+#define PIN_PWM_BL           PIN_UNVERIFIED  /* candidate: PB14 (pin 35, TIM1_CH2N) -> DRV8301 INL_B (20) */
+#define PIN_PWM_CL           PIN_UNVERIFIED  /* candidate: PB15 (pin 36, TIM1_CH3N) -> DRV8301 INL_C (22) */
+/* Stock firmware: all six on AF1 (TIM1); TIM1 center-aligned, running; break
+ * DISABLED (BDTR.BKE = 0); dead time DTG = 0x3c = 60 ticks, ~357 ns if TIM1
+ * is clocked at 168 MHz. The timer pairs CHx with CHxN by design, so the
+ * pairing above is only right if the board routes them to the SAME
+ * half-bridge — that is checks P1-P6 in docs/PIN_CONTINUITY.md. */
+
+/* !! OPEN DESIGN QUESTION. The plan was gate-driver nFAULT -> TIM1 BKIN. On
+ * !! the F405, TIM1_BKIN exists only on PA6 (pin 22) or PB12 (pin 33), and
+ * !! nFAULT's candidate pin (PB7) is neither. The stock firmware polls PB7 as
+ * !! a GPIO and leaves the hardware break off. Unless continuity check F3
+ * !! finds nFAULT also routed to PB12 or PA6, there is no hardware break
+ * !! path on this board, and docs/SAFETY.md has to be revisited: the
+ * !! DRV8301's own latched VDS shutdown still kills the gates in hardware,
+ * !! but the timer will not know. */
+#define PIN_BKIN             PIN_UNVERIFIED  /* candidate: NONE yet — see above  */
 
 /* -------------------------------------------------------------------------
  * The gate driver.
@@ -139,10 +180,26 @@ typedef enum {
  * Arm it at its most sensitive threshold for all of Phases 1 and 2, and
  * relax it deliberately at Phase 2b rather than by forgetting it is set.
  * ------------------------------------------------------------------------- */
-#define GATE_DRIVER_SPI      PIN_UNVERIFIED  /* SPI peripheral               */
-#define PIN_GATE_CS          PIN_UNVERIFIED
-#define PIN_GATE_ENABLE      PIN_UNVERIFIED
-#define PIN_GATE_FAULT       PIN_UNVERIFIED  /* also feeds PIN_BKIN above    */
+/* CLOSED: the part is a DRV8301 (read off the IC, board A). Its SPI is
+ * powered from PVDD1, the power-stage supply (SLOS719F pin 29), so register
+ * reads need the bench supply on the main input — ST-Link 3V3 alone will
+ * not answer. Stock firmware bit-bangs these as plain GPIO. */
+#define GATE_DRIVER_SPI      PIN_UNVERIFIED  /* candidate: SPI3 is available on
+                                              * PC10/11/12 (AF6), or bit-bang
+                                              * as stock does. A choice, not
+                                              * a pin — decide at step 4.    */
+#define PIN_GATE_SCK         PIN_UNVERIFIED  /* candidate: PC10 (pin 51) -> SCLK (11). Stock: output, idles low  */
+#define PIN_GATE_MISO        PIN_UNVERIFIED  /* candidate: PC11 (pin 52) <- SDO  (10). Stock: input             */
+#define PIN_GATE_MOSI        PIN_UNVERIFIED  /* candidate: PC12 (pin 53) -> SDI  (9).  Stock: output, idles low  */
+#define PIN_GATE_CS          PIN_UNVERIFIED  /* candidate: PC9  (pin 40) -> nSCS (8).  Stock: output, idles high */
+#define PIN_GATE_ENABLE      PIN_UNVERIFIED  /* candidate: PB5  (pin 57) -> EN_GATE (16). Stock: output, high   */
+#define PIN_GATE_FAULT       PIN_UNVERIFIED  /* candidate: PB7  (pin 59) <- nFAULT (6), active low, pull-up.
+                                              * Read LOW on ST-Link power alone — expected, since PVDD is
+                                              * absent and the driver flags undervoltage. Re-check with
+                                              * the bench supply on. NOT a TIM1_BKIN pin; see PIN_BKIN. */
+/* nOCTW (DRV8301 pin 5) is not referenced by the VESC 6 hwconf and the dump
+ * shows no unexplained input that would carry it. Probably not routed to
+ * the MCU. Check F4 in docs/PIN_CONTINUITY.md. */
 
 /* -------------------------------------------------------------------------
  * Analog. All three current channels are sampled by INJECTED conversion
@@ -154,21 +211,38 @@ typedef enum {
  * already assumes. What is NOT known is the shunt value, the amplifier gain,
  * or which ADC channel carries which phase.
  * ------------------------------------------------------------------------- */
-#define ADC_IA               PIN_UNVERIFIED
-#define ADC_IB               PIN_UNVERIFIED
-#define ADC_IC               PIN_UNVERIFIED
-#define ADC_VBUS             PIN_UNVERIFIED  /* divider ratio also unverified */
-#define ADC_TEMP_BOARD       PIN_UNVERIFIED  /* thermistor on the FET plate   */
-#define ADC_TEMP_MOTOR       PIN_UNVERIFIED  /* motor thermistor, if wired    */
+/* Candidates from hw_60_core.c, which runs the three ADCs in triple
+ * regular-simultaneous mode with DMA mode 1, so VESC's ADC_Value[] index n
+ * is ADC(n%3 + 1), rank (n/3 + 1). Every pin listed is in analog mode in the
+ * stock dump. WHICH SHUNT IS WHICH PHASE is not established by any of this:
+ * the DRV8301 amplifies only two shunts (SO1/SO2, pins 25/26), so the third
+ * comes through a separate amplifier and must be traced. Checks A1-A4. */
+#define ADC_IA               PIN_UNVERIFIED  /* candidate: PC0 (pin 8,  IN10) — VESC CURR1 */
+#define ADC_IB               PIN_UNVERIFIED  /* candidate: PC1 (pin 9,  IN11) — VESC CURR2 */
+#define ADC_IC               PIN_UNVERIFIED  /* candidate: PC2 (pin 10, IN12) — VESC CURR3 */
+#define ADC_VBUS             PIN_UNVERIFIED  /* candidate: PC3 (pin 11, IN13). VESC 6 divider
+                                              * 39k / 2.2k — read the resistors, check A5 */
+#define ADC_TEMP_BOARD       PIN_UNVERIFIED  /* candidate: PA3 (pin 17, IN3) — VESC TEMP_MOS   */
+#define ADC_TEMP_MOTOR       PIN_UNVERIFIED  /* candidate: PC4 (pin 24, IN14) — SENSE "TMP"    */
+/* Also analog in the stock dump, not used by this firmware yet: PA0/PA1/PA2
+ * (VESC phase-voltage sense 1-3, useful for an observer later), PA5 and PA6
+ * (VESC EXT / EXT2, likely COMM header ADC pins), PC5 (VESC MK3+ shutdown). */
 
 /* -------------------------------------------------------------------------
  * Comms and I/O. These come off the FSESC's labelled COMM / SENSE headers
  * rather than out of the inverter, so they are the easiest block to confirm
  * — but confirm them anyway.
  * ------------------------------------------------------------------------- */
+/* From the stock dump: USART3 on PB10/PB11 (AF7, pull-ups) — the COMM
+ * header TX/RX per Flipsky's wiring sheet. CAN1 on PB8/PB9 (AF9), USB FS on
+ * PA11/PA12 (AF10). PA15 (open-drain output, pulled up, high) and PB12
+ * (plain input) are configured but not explained by the VESC 6 source;
+ * likely Flipsky-specific. Do not assign them until traced (checks M1, F3). */
 #define RC_UART              PIN_UNVERIFIED  /* CRSF receiver goes HERE, not
                                               * to the ESP32. ARCHITECTURE.md */
-#define LINK_UART            PIN_UNVERIFIED  /* to ESP32-S3, 921600           */
+#define LINK_UART            PIN_UNVERIFIED  /* to ESP32-S3, 921600. candidate:
+                                              * USART3, PB10 TX (pin 29) /
+                                              * PB11 RX (pin 30), COMM header */
 #define PIN_STEER_SERVO      PIN_UNVERIFIED  /* 50 Hz                         */
 #define PIN_HALL_A           PIN_UNVERIFIED  /* SENSE header; motor is sensored */
 #define PIN_HALL_B           PIN_UNVERIFIED
@@ -375,7 +449,12 @@ extern const tire_profile_t TIRE_PROFILES[TIRE_PROFILE_COUNT];
  * !! microseconds. Scope it before connecting the gate driver. docs/SAFETY.md
  * ------------------------------------------------------------------------- */
 #define PWM_FREQ_HZ          20000
-#define PWM_DEADTIME_NS      500     /* check against your gate driver spec  */
+#define PWM_DEADTIME_NS      500     /* check against your gate driver spec.
+                                      * Stock firmware runs ~357 ns (BDTR
+                                      * DTG = 60 ticks, assuming 168 MHz).
+                                      * 500 is the more conservative of the
+                                      * two; keep it until Phase 1a step 5
+                                      * has scoped the real edges.          */
 #define CONTROL_DT           (1.0f / (float)PWM_FREQ_HZ)
 
 #define VELOCITY_LOOP_DIV    10      /* velocity loop at PWM_FREQ / 10 = 2 kHz */
