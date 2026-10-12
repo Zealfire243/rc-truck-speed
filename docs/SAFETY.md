@@ -43,6 +43,35 @@ Not software. Hardware.
 - [ ] **Receiver failsafe configured and tested at the receiver**, so it holds even if a controller
       is confused. Both controllers decode CRSF independently, so both must fail safe.
 
+### Board A has no hardware break path
+
+Recorded 2026-10-11, from continuity checks F1–F4 in [PIN_CONTINUITY.md](PIN_CONTINUITY.md#4-fault-lines).
+The first two interlocks above assume a TIM1 break input exists on the board. On board A, it
+doesn't:
+
+- DRV8301 nFAULT goes to PB7 and only to PB7. On the F405, TIM1_BKIN is available only on PA6
+  or PB12, and both read open to nFAULT.
+- nOCTW isn't routed to the MCU.
+- nFAULT has no external pull-up. PB7 relies on the MCU's internal pull-up.
+
+**What still works in hardware.** The DRV8301's own VDS overcurrent protection shuts down
+the gates itself, with no software involved, as long as its OC mode is set to latch
+shutdown. That's the gates going off, just not the timer.
+
+**What's lost.** TIM1 doesn't learn that the driver tripped, and **no path through copper
+alone takes a fault into the other controller's break input.** That second point breaks the
+cross-wired fault-line item above as written.
+
+**Not decided yet.** The options to choose between before Phase 4:
+1. A bodge wire from nFAULT to PB12 (PB12 is a plain input in the stock firmware; check M2
+   first). That gives TIM1 a real BKIN.
+2. Cross-wire the peer's fault into the other controller's **EN_GATE** instead of BKIN,
+   through a diode-OR, so either fault pulls both drivers' enables low in hardware.
+3. Accept a software path, with PB7 on an EXTI interrupt at top priority. This doesn't meet
+   the "no software involved" rule above, and is listed only so it gets rejected on purpose.
+
+Until one of these is chosen and built, the first two interlock boxes stay unchecked.
+
 ## Every session, before the first run
 
 - [ ] **Fault-line continuity.** Assert one controller's fault output and confirm the *other*

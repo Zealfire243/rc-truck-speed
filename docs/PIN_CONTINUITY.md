@@ -15,6 +15,10 @@ Pin numbers come from **TI SLOS719F** (DRV8301, 56-pin HTSSOP "DCA") and **ST's
 STM32F405RGTx pin database** (LQFP64). Check that your chips match those packages before you
 start (step 0.3).
 
+> **Board A results, 2026-10-11.** The probe zero was 0.15 Ω. Readings are written as
+> *raw (net)*, where net = raw − 0.15 Ω. Still open: A1–A5, A6, M1, M2. PWM, SPI, EN_GATE and nFAULT pins are promoted in `pin_map.h`.
+> `PIN_MAP_VERIFIED` is **not** defined.
+
 ---
 
 ## 0. Before you touch a probe
@@ -90,12 +94,12 @@ If PA8 went to INH_A but PB13 went to INL_B, the timer's deadtime would protect 
 
 | ID | MCU pin | Where on the MCU | DRV8301 pin | Where on the DRV8301 | Expect | Reading | Pass |
 |---|---|---|---|---|---|---|---|
-| P1 | PA8 (41), TIM1_CH1 | right side, 9th from bottom | INH_A (17) | pin-1 side, 17th from pin 1 | < 1 Ω or series R | | |
-| P2 | PB13 (34), TIM1_CH1N | right side, 2nd from bottom | INL_A (18) | pin-1 side, 18th from pin 1 | < 1 Ω or series R | | |
-| P3 | PA9 (42), TIM1_CH2 | right side, 10th from bottom | INH_B (19) | pin-1 side, 19th | < 1 Ω or series R | | |
-| P4 | PB14 (35), TIM1_CH2N | right side, 3rd from bottom | INL_B (20) | pin-1 side, 20th | < 1 Ω or series R | | |
-| P5 | PA10 (43), TIM1_CH3 | right side, 11th from bottom | INH_C (21) | pin-1 side, 21st | < 1 Ω or series R | | |
-| P6 | PB15 (36), TIM1_CH3N | right side, 4th from bottom | INL_C (22) | pin-1 side, 22nd | < 1 Ω or series R | | |
+| P1 | PA8 (41), TIM1_CH1 | right side, 9th from bottom | INH_A (17) | pin-1 side, 17th from pin 1 | < 1 Ω or series R | 0.22 Ω (0.07) | ✅ |
+| P2 | PB13 (34), TIM1_CH1N | right side, 2nd from bottom | INL_A (18) | pin-1 side, 18th from pin 1 | < 1 Ω or series R | 0.18 Ω (0.03) | ✅ |
+| P3 | PA9 (42), TIM1_CH2 | right side, 10th from bottom | INH_B (19) | pin-1 side, 19th | < 1 Ω or series R | 0.25 Ω (0.10) | ✅ |
+| P4 | PB14 (35), TIM1_CH2N | right side, 3rd from bottom | INL_B (20) | pin-1 side, 20th | < 1 Ω or series R | 0.23 Ω (0.08) | ✅ |
+| P5 | PA10 (43), TIM1_CH3 | right side, 11th from bottom | INH_C (21) | pin-1 side, 21st | < 1 Ω or series R | 0.21 Ω (0.06) | ✅ |
+| P6 | PB15 (36), TIM1_CH3N | right side, 4th from bottom | INL_C (22) | pin-1 side, 22nd | < 1 Ω or series R | 0.19 Ω (0.04) | ✅ |
 
 **X1 — no cross-connections between the six PWM lines.** Measure each of the six DRV8301 input
 pins (17–22) against every other one. That's 15 pairs, and all should read **open / OL**. Then
@@ -106,11 +110,14 @@ Adjacent pins at 0.5 mm are exactly where a solder bridge hides.
 
 | Pair | Reading | | Pair | Reading | | Pair | Reading |
 |---|---|---|---|---|---|---|---|
-| 17–18 | | | 18–19 | | | 19–21 | |
-| 17–19 | | | 18–20 | | | 19–22 | |
-| 17–20 | | | 18–21 | | | 20–21 | |
-| 17–21 | | | 18–22 | | | 20–22 | |
-| 17–22 | | | 19–20 | | | 21–22 | |
+| 17–18 | OL | | 18–19 | OL | | 19–21 | OL |
+| 17–19 | OL | | 18–20 | OL | | 19–22 | OL |
+| 17–20 | OL | | 18–21 | OL | | 20–21 | OL |
+| 17–21 | OL | | 18–22 | OL | | 20–22 | OL |
+| 17–22 | OL | | 19–20 | OL | | 21–22 | OL |
+
+**Board A:** all 15 pairs open ✅. Each of pins 17–22 to GND is open ✅, and each to 3V3 is
+open ✅.
 
 **P7 — which half-bridge is which motor wire.** This doesn't affect shoot-through, but it sets
 phase labels for the rest of the project. Find the three thick motor output wires or pads, and
@@ -120,9 +127,25 @@ Each motor output should read < 1 Ω to exactly one of them.
 
 | Motor output (label or position) | SH_A (46) | SH_B (41) | SH_C (36) |
 |---|---|---|---|
-| | | | |
-| | | | |
-| | | | |
+| A | **0.20–0.22 Ω (0.05–0.07)** | — | — |
+| B | — | **0.20–0.22 Ω (0.05–0.07)** | — |
+| C | — | — | **0.20–0.22 Ω (0.05–0.07)** |
+
+**Board A: ✅ passed on the re-measure.** Each motor output connects directly to its own
+letter's SH pin, so the silkscreen labels match the driver's half-bridges. The other cells
+weren't re-measured, because the first pass showed megohms for every pair.
+
+*First attempt, kept for the record:* 1.5 MΩ to the matching letter and 1.6 MΩ to the other
+two. The expected reading is under 1 Ω. The expected reading is under 1 Ω. SH_x *is* the
+switch node, so it's copper to the motor output, sometimes through a resistor of a few ohms.
+Megohm readings are leakage through the FETs and the driver, not a connection. A 0.1 MΩ
+difference doesn't prove the labels. Before re-measuring:
+- Disconnect the motor. With it attached, its windings tie all three outputs together, and
+  every output reads the same to every SH pin.
+- Find the right pins. Count from pin 29, which sits directly across from pin 28 (AGND). A
+  pin miscounted by one lands on GH_x or GL_x (a gate, megohms) instead of SH_x.
+- If the pins are too hard to hit, use the FETs instead: each motor output should read
+  ~0 Ω to one high-side FET's source tab, which is the same net as SH_x.
 
 ---
 
@@ -133,12 +156,12 @@ to the driver's **SDI**, and the driver's **SDO** comes back to the MCU's MISO.
 
 | ID | MCU pin | Where on the MCU | DRV8301 pin | Where on the DRV8301 | Expect | Reading | Pass |
 |---|---|---|---|---|---|---|---|
-| S1 | PC9 (40), chip select | right side, 8th from bottom | nSCS (8) | pin-1 side, 8th | < 1 Ω or series R | | |
-| S2 | PC10 (51), clock | top side, 3rd from right | SCLK (11) | pin-1 side, 11th | < 1 Ω or series R | | |
-| S3 | PC12 (53), MOSI | top side, 5th from right | SDI (9) | pin-1 side, 9th | < 1 Ω or series R | | |
-| S4 | PC11 (52), MISO | top side, 4th from right | SDO (10) | pin-1 side, 10th | < 1 Ω or series R | | |
-| S5 | VDD_SPI (49) on the DRV8301 | 21st from bottom on the 29–56 side | 3V3 reference | — | < 1 Ω (confirms 3.3 V SPI logic) | | |
-| E1 | PB5 (57), gate enable | top side, 9th from right | EN_GATE (16) | pin-1 side, 16th | < 1 Ω or series R | | |
+| S1 | PC9 (40), chip select | right side, 8th from bottom | nSCS (8) | pin-1 side, 8th | < 1 Ω or series R | 0.20 Ω (0.05) | ✅ |
+| S2 | PC10 (51), clock | top side, 3rd from right | SCLK (11) | pin-1 side, 11th | < 1 Ω or series R | 0.20 Ω (0.05) | ✅ |
+| S3 | PC12 (53), MOSI | top side, 5th from right | SDI (9) | pin-1 side, 9th | < 1 Ω or series R | 0.21 Ω (0.06) | ✅ |
+| S4 | PC11 (52), MISO | top side, 4th from right | SDO (10) | pin-1 side, 10th | < 1 Ω or series R | 0.20 Ω (0.05) | ✅ |
+| S5 | VDD_SPI (49) on the DRV8301 | 21st from bottom on the 29–56 side | 3V3 reference | — | < 1 Ω (confirms 3.3 V SPI logic) | 0.18 Ω (0.03) | ✅ |
+| E1 | PB5 (57), gate enable | top side, 9th from right | EN_GATE (16) | pin-1 side, 16th | < 1 Ω or series R | 0.17 Ω (0.02) | ✅ |
 
 **If S2–S4 fail but read through to PB3/PB4 instead,** this board is on the MK3–MK6 pin set
 after all and the stock-firmware evidence was misleading. Stop, record what you found, and
@@ -150,11 +173,11 @@ don't promote any SPI pin.
 
 | ID | From | To | Expect | Reading | Pass |
 |---|---|---|---|---|---|
-| F1 | MCU PB7 (59), top side, 11th from right | DRV8301 nFAULT (6), pin-1 side, 6th | < 1 Ω or series R | | |
-| F2 | DRV8301 nFAULT (6) | 3V3 reference | A pull-up resistor, typically 1–10 kΩ. The DRV8301's fault output is open-drain and needs one. Record the value. | | |
-| F3 | DRV8301 nFAULT (6) | MCU **PB12** (33), right side, 1st from bottom (corner) | **Probably open.** If it connects, the hardware break path exists. See below. | | |
-| F3b | DRV8301 nFAULT (6) | MCU **PA6** (22), bottom side, 6th from left | **Probably open.** Same reason. | | |
-| F4 | DRV8301 nOCTW (5), pin-1 side, 5th | MCU PB12 (33), PA15 (50), PB6 (58), and 3V3 | Probably not routed to the MCU. Record anything that connects. | | |
+| F1 | MCU PB7 (59), top side, 11th from right | DRV8301 nFAULT (6), pin-1 side, 6th | < 1 Ω or series R | 0.19 Ω (0.04) | ✅ |
+| F2 | DRV8301 nFAULT (6) | 3V3 reference | A pull-up resistor, typically 1–10 kΩ. The DRV8301's fault output is open-drain and needs one. Record the value. | 0.7 MΩ | ❌ no external pull-up |
+| F3 | DRV8301 nFAULT (6) | MCU **PB12** (33), right side, 1st from bottom (corner) | **Probably open.** If it connects, the hardware break path exists. See below. | OL | open, as expected |
+| F3b | DRV8301 nFAULT (6) | MCU **PA6** (22), bottom side, 6th from left | **Probably open.** Same reason. | OL | open, as expected |
+| F4 | DRV8301 nOCTW (5), pin-1 side, 5th | MCU PB12 (33), PA15 (50), PB6 (58), and 3V3 | Probably not routed to the MCU. Record anything that connects. | all OL | not routed |
 
 **Why F3 matters.** The plan in `pin_map.h` and [SAFETY.md](SAFETY.md) was to feed the gate
 driver's fault output into TIM1's hardware **break input**, so the timer itself kills the PWM
@@ -163,6 +186,16 @@ candidate pin, PB7, is neither. The stock firmware polls PB7 as a GPIO and leave
 input off. If F3 and F3b both read open, there is no hardware break path on this board.
 That's a design decision to revisit, not a reason to stop. The DRV8301's own latched
 overcurrent shutdown still kills the gates in hardware; the timer just won't know about it.
+
+**Board A: F3 and F3b are both open. There is no hardware break path.** See
+[SAFETY.md](SAFETY.md#board-a-has-no-hardware-break-path).
+
+**F2 on board A.** 0.7 MΩ is leakage, not a pull-up resistor, so no external pull-up is
+fitted. The stock firmware sets PB7 to input with the **MCU's internal pull-up** (PUPDR, in
+the SWD dump), which is roughly 40 kΩ. So this board relies on the MCU for its pull-up, and
+our firmware **must** configure PB7 as input with pull-up. If it doesn't, nFAULT floats and
+the fault reading is noise. Only the powered check below proves the line reads high when
+there's no fault.
 
 ---
 
@@ -177,12 +210,46 @@ chip. Finding it is part of A3.
 
 | ID | Check | Expect | Reading | Pass |
 |---|---|---|---|---|
-| A1 | DRV8301 SO1 (25, pin-1 side, 25th) → which of MCU PC0 (8), PC1 (9), PC2 (10)? Those are left side, 8th, 9th and 10th from top. | One of the three, through a resistor | | |
-| A2 | DRV8301 SO2 (26, pin-1 side, 26th) → which of PC0 / PC1 / PC2? | A different one of the three | | |
-| A3 | The third amplifier's output → the remaining one of PC0 / PC1 / PC2 | The last one | | |
+| A1 | DRV8301 SO1 (25, pin-1 side, 25th) → which of MCU PC0 (8), PC1 (9), PC2 (10)? Those are left side, 8th, 9th and 10th from top. | One of the three, through a resistor | PC0 1.92 MΩ · PC1 1.86 MΩ · PC2 1.92 MΩ | ❌ none |
+| A2 | DRV8301 SO2 (26, pin-1 side, 26th) → which of PC0 / PC1 / PC2? | A different one of the three | PC0 0.536 MΩ · PC1 0.489 MΩ · PC2 0.522 MΩ | ❌ none |
+| A3 | The third amplifier's output → the remaining one of PC0 / PC1 / PC2 | The last one | PC0 0.552 MΩ · PC1 0.50 MΩ · PC2 0.541 MΩ | ❌ none |
 | A4 | Which shunt each amplifier reads. For the DRV8301: SN1 (33) and SN2 (31) are the shunt-side inputs, 5th and 3rd from bottom on the 29–56 side. Trace each to a shunt, then trace that shunt to a low-side FET whose source ties to SL_A (44), SL_B (39) or SL_C (34). | A complete map: ADC pin → amplifier → shunt → phase | | |
-| A5 | Bus voltage divider: MCU PC3 (11, left side, 11th from top) to the battery-positive input, and PC3 to GND | Roughly the top and bottom divider resistors (VESC 6 uses 39 kΩ / 2.2 kΩ). Read the resistor markings too, because in-circuit readings are distorted by parallel paths. | | |
+| A5 | Bus voltage divider: MCU PC3 (11, left side, 11th from top) to the battery-positive input, and PC3 to GND | Roughly the top and bottom divider resistors (VESC 6 uses 39 kΩ / 2.2 kΩ). Read the resistor markings too, because in-circuit readings are distorted by parallel paths. | top 22 kΩ, bottom 2 kΩ | ⏳ see below |
 | A6 | Board temperature: MCU PA3 (17, bottom side, 1st from left) to the thermistor near the FETs | Through a resistor or the thermistor itself | | |
+
+**A1–A3 on board A: no connection found.** A series resistor would read 100 Ω to a few kΩ.
+Hundreds of kΩ to MΩ is leakage. PC1 reads lowest in all three rows, which points to PC1 having
+the lower-impedance path to ground, not to a connection. Two explanations, and the first is
+more likely:
+1. **The ADC isn't fed by the DRV8301's amplifiers at all.** SO1/SO2 are left unused, and
+   all three phases go through external amplifiers near the shunts. Find those chips (small
+   5–8 pin parts beside the shunts), trace each one's output pin to PC0/PC1/PC2, and trace
+   each one's inputs to a shunt. That gives A1–A4 in a single pass.
+2. Pins 25/26 were miscounted. Check that SO1/SO2 sit between REF (24) and AVDD (27). AVDD
+   should read like a supply rail and AGND (28) should read ~0 Ω to GND.
+
+Measuring SO1 and SO2 to GND tells the two apart. If they're tied off or floating, the
+amplifiers aren't used.
+
+**Confirmed on board A (2026-10-11): explanation 1.** The phase currents go through
+external **6-pin amplifiers** beside the shunts. Which pin is the output isn't known yet.
+
+**A5 on board A.** 22 kΩ / 2 kΩ is a ratio of 12, against VESC 6's 18.7. That changes the
+ADC full scale from ~62 V to ~40 V, so the ratio needs settling. The readings fit **39 k / 2.2 k
+in parallel with a ~48 kΩ path from battery+ to GND** (through the regulator, other dividers,
+and so on): 39 k ∥ (2.2 k + 48 k) ≈ 22 k, and 2.2 k ∥ (39 k + 48 k) ≈ 2.15 k. Settle it any of
+these ways:
+- Measure battery+ to GND. If it's ~48 kΩ, the board has 39 k / 2.2 k. *Tried on board A:
+  the reading won't settle, because the meter is charging the bulk capacitors. It dipped to
+  ~20 k, jumped to ~160 k (likely the meter autoranging), then crept down past 50 k to ~40 k
+  after 50 s and was still falling. Still, at around 40–50 k, 22 k / 2 k would read only
+  ~14 k on top, not 22 k, so the reading leans toward 39 k / 2.2 k. The PC3 readings run
+  through the same capacitors, so they may have drifted too. Not conclusive: use one of the
+  next two checks.*
+- Read the SMD codes. 39 kΩ is `393` or `01D`, 2.2 kΩ is `222` or `34B`. 22 kΩ would be `223`
+  or `22C`.
+- Powered and definitive: set the bench supply to 12.00 V and measure PC3 to GND. 0.64 V
+  means 39 k / 2.2 k. 1.00 V means 22 k / 2 k.
 
 **A4 is the one that matters for torque control.** A current loop that reads phase B's shunt
 and calls it phase A will produce torque that's wrong in direction and magnitude, and the
@@ -205,11 +272,11 @@ When a check passes, change the matching `PIN_UNVERIFIED` in `pin_map.h` to the 
 commit message should say **how** each was established, for example "continuity, 0.3 Ω, check
 P1". Define `PIN_MAP_VERIFIED` only when:
 
-- [ ] P1–P6 pass, X1 is open on all 15 pairs, and nothing reads shorted to GND or 3V3.
-- [ ] P7 maps every motor output to exactly one half-bridge.
-- [ ] S1–S4 and E1 pass, and S5 confirms 3.3 V SPI logic.
-- [ ] F1 and F2 pass. F3/F3b recorded either way, and if open, the break-input question is
-      written up in SAFETY.md.
+- [x] P1–P6 pass, X1 is open on all 15 pairs, and nothing reads shorted to GND or 3V3.
+- [x] P7 maps every motor output to exactly one half-bridge. *(Board A: labels A/B/C match.)*
+- [x] S1–S4 and E1 pass, and S5 confirms 3.3 V SPI logic.
+- [x] F1 passes. F2 shows no external pull-up, so the firmware uses the MCU's internal one.
+      F3/F3b are open, and the break-input question is written up in SAFETY.md.
 - [ ] A1–A4 give a complete ADC pin → amplifier → shunt → phase map. A5 and A6 recorded.
 - [ ] Results are recorded in this file with date and board ID.
 
